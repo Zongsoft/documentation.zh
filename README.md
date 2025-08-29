@@ -33,32 +33,6 @@ stateDiagram-v2
 
 ```
 
-```mermaid
----
-title: Simple sample
----
-stateDiagram-v2
-    [*] --> Still
-    Still --> [*]
-
-    Still --> Moving
-    Moving --> Still
-    Moving --> Crash
-    Crash --> [*]
-```
-
-```plantuml
-@startuml
-Bob -> Alice : hello
-@enduml
-```
-
-```plant-uml
-@startuml
-Bob -> Alice : hello
-@enduml
-```
-
 ## Quick links
 
 {% content-ref url="overview/what-we-do.md" %}
