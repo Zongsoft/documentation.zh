@@ -18,6 +18,21 @@ Here are a couple of example overviews from products with really great docs:
 >
 > — From the [Mailchimp Marketing API docs](https://mailchimp.com/developer/marketing/docs/fundamentals/)
 
+```mermaid
+---
+title: Simple sample
+---
+stateDiagram-v2
+    [*] --> Still
+    Still --> [*]
+
+    Still --> Moving
+    Moving --> Still
+    Moving --> Crash
+    Crash --> [*]
+
+```
+
 ## Quick links
 
 {% content-ref url="overview/what-we-do.md" %}
