@@ -30,7 +30,12 @@ stateDiagram-v2
     Moving --> Still
     Moving --> Crash
     Crash --> [*]
+```
 
+```plant-uml
+@startuml
+Bob -> Alice : hello
+@enduml
 ```
 
 ## Quick links
