@@ -32,6 +32,12 @@ stateDiagram-v2
     Crash --> [*]
 ```
 
+```plantuml
+@startuml
+Bob -> Alice : hello
+@enduml
+```
+
 ```plant-uml
 @startuml
 Bob -> Alice : hello
