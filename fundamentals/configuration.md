@@ -1,5 +1,6 @@
 ---
 description: 位于 Zongsoft.Core 核心库的 Configuration 命名空间。
+icon: square-sliders
 cover: >-
   https://images.unsplash.com/photo-1593720218365-b2076cfdefee?crop=entropy&cs=srgb&fm=jpg&ixid=M3wxOTcwMjR8MHwxfHNlYXJjaHwyfHxjb25maWd1cmF0aW9ufGVufDB8fHx8MTc1NzUxNjE3MXww&ixlib=rb-4.1.0&q=85
 coverY: 0
@@ -22,7 +23,7 @@ layout:
     visible: true
 ---
 
-# 🎼 配置
+# 配置
 
 ### 概述
 

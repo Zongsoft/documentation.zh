@@ -24,7 +24,7 @@
 * [🚞 通讯](fundamentals/communication.md)
 * [🎛️ 组件](fundamentals/components.md)
 * [🤖 终端](fundamentals/terminals.md)
-* [🎼 配置](fundamentals/configuration.md)
+* [配置](fundamentals/configuration.md)
 * [👩‍⚕️ 诊断](fundamentals/diagnostics.md)
 * [👜 数据](fundamentals/data.md)
 * [📰 消息](fundamentals/messaging.md)
