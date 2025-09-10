@@ -8,10 +8,10 @@
 * [✨ 插件化](overview/pluginization.md)
 * [🛞 部署](overview/deployment.md)
 
-## 快速开始
+## 快速开始 <a href="#get-started" id="get-started"></a>
 
-* [💽 安装](kuai-su-kai-shi/install.md)
-* [🎪 宿主程序](kuai-su-kai-shi/hosting.md)
+* [💽 安装](get-started/install.md)
+* [🎪 宿主程序](get-started/hosting.md)
 
 ## 基础功能 <a href="#fundamentals" id="fundamentals"></a>
 
