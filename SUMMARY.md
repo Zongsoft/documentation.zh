@@ -1,6 +1,6 @@
 # Table of contents
 
-* [👋 Zongsoft 开发框架文档中心](README.md)
+* [👋 Zongsoft 开发框架](README.md)
 
 ## 概览 <a href="#overview" id="overview"></a>
 
