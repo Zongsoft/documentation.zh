@@ -1,4 +1,4 @@
-# 📪 Making a post
+# 💽 安装
 
 ## Step 1 - Start journalling
 

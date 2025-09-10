@@ -2,23 +2,40 @@
 
 * [👋 Zongsoft 开发框架文档中心](README.md)
 
-## Overview
+## 概览 <a href="#overview" id="overview"></a>
 
-* [💡 What we do](overview/what-we-do.md)
-* [✨ Our Features](overview/our-features.md)
+* [💡 设计理念](overview/conception.md)
+* [✨ 插件化](overview/pluginization.md)
+* [🛞 部署](overview/deployment.md)
 
-## Product Guides
+## 快速开始
 
-* [📪 Making a post](product-guides/making-a-post.md)
-* [📎 Understanding Projects](product-guides/understanding-projects.md)
+* [💽 安装](kuai-su-kai-shi/install.md)
+* [🎪 宿主程序](kuai-su-kai-shi/hosting.md)
 
-## Fundamentals
+## 基础功能 <a href="#fundamentals" id="fundamentals"></a>
 
-* [🛠️ Getting set up](fundamentals/getting-set-up/README.md)
-  * [📝 Setting permissions](fundamentals/getting-set-up/setting-permissions.md)
-  * [🧑 Inviting Members](fundamentals/getting-set-up/inviting-members.md)
+* [🛠️ 通用](fundamentals/common/README.md)
+  * [📝 转换](fundamentals/common/convert.md)
+  * [🧑 枚举](fundamentals/common/enumeration.md)
+* [📻 输入输出](fundamentals/io.md)
+* [👒 缓存](fundamentals/caching.md)
+* [🎹 集合](fundamentals/collections.md)
+* [🚞 通讯](fundamentals/communication.md)
+* [🎛️ 组件](fundamentals/components.md)
+* [🤖 终端](fundamentals/terminals.md)
+* [🎼 配置](fundamentals/configuration.md)
+* [👩‍⚕️ 诊断](fundamentals/diagnostics.md)
+* [👜 数据](fundamentals/data.md)
+* [📰 消息](fundamentals/messaging.md)
+* [🌒 反射](fundamentals/reflection.md)
+* [💞 资源](fundamentals/resources.md)
+* [🍒 调度](fundamentals/scheduling.md)
+* [🔐 安全](fundamentals/security.md)
+* [🥤 服务](fundamentals/services.md)
+* [🏜️ 序列化](fundamentals/serialization.md)
 
-## Use Cases
+***
 
-* [🎨 For Designers](use-cases/for-designers.md)
-* [🖥️ For Developers](use-cases/for-developers.md)
+* [❓ 常见问题](faq.md)
+* [🌷 用户案例](cases.md)
