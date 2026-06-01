@@ -1,23 +1,48 @@
-# 🎪 宿主程序
+---
+description: 根据调试、服务运行和 Web API 场景选择合适的 Zongsoft 宿主程序。
+icon: server
+---
 
-## How Projects work
+# 选择宿主程序
 
-Nullam quis risus eget urna mollis ornare vel eu leo. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Maecenas sed diam eget risus varius blandit sit amet non magna. Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Etiam porta sem malesuada magna mollis euismod. Donec id elit non mi porta gravida at eget metus. Donec id elit non mi porta gravida at eget metus.
+Zongsoft 的宿主程序位于 [`Zongsoft/hosting`](https://github.com/Zongsoft/hosting) 仓库。宿主程序只负责启动运行时和承载插件，不应该直接写入业务代码。
 
+## 宿主类型
 
+### 终端宿主
 
-### The Basics
+终端宿主通过控制台运行，适合交互式调试、命令行复现和观察插件式应用行为。
 
-Praesent commodo cursus magna, vel scelerisque nisl consectetur et. Duis mollis, est non commodo luctus, nisi erat porttitor ligula, eget lacinia odio sem nec elit.
+源码目录：
 
-Fusce dapibus, tellus ac cursus commodo, tortor mauris condimentum nibh, ut fermentum massa justo sit amet risus. Aenean eu leo quam. Pellentesque ornare sem lacinia quam venenatis vestibulum.
+```text
+hosting/terminal
+```
 
-### Creating a Project
+### 后台服务宿主
 
-Nullam quis risus eget urna mollis ornare vel eu leo. Cras justo odio, dapibus ac facilisis in, egestas eget quam. Praesent commodo cursus magna, vel scelerisque nisl consectetur et.
+后台服务宿主适合部署为 Windows Service 或 Linux systemd 服务，面向长期运行的后台应用。
 
-### Organizing your Projects
+源码目录：
 
-Sed posuere consectetur est at lobortis. Curabitur blandit tempus porttitor. Donec ullamcorper nulla non metus auctor fringilla. Donec sed odio dui.
+```text
+hosting/daemon
+```
 
-Curabitur blandit tempus porttitor. Donec id elit non mi porta gravida at eget metus. Nullam id dolor id nibh ultricies vehicula ut id elit. Aenean eu leo quam. Pellentesque ornare sem lacinia quam venenatis vestibulum.
+### Web 宿主
+
+Web 宿主基于 ASP.NET，适合 Web API、认证授权、HTTP 管线、站点配置和接口调测。
+
+源码目录：
+
+```text
+hosting/web/default
+```
+
+## 如何选择
+
+开发和调试插件时，优先使用终端宿主；需要验证 HTTP 接口时，使用 Web 宿主；准备部署为后台服务时，使用后台服务宿主。
+
+## 下一步
+
+选择宿主后，继续阅读 [部署第一个插件](deploy-first-plugin.md)，了解如何把插件部署到宿主的 `plugins/` 目录。

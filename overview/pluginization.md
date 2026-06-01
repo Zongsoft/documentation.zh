@@ -1,17 +1,37 @@
-# ✨ Our Features
+---
+description: Zongsoft 插件化应用的基本概念和运行方式。
+icon: puzzle-piece
+---
 
-{% hint style="info" %}
-**GitBook tip:** A succinct video overview is a great way to introduce folks to your product. Embed a Loom, Vimeo or YouTube video and you're good to go! We love this video from the fine folks at Loom as a perfect example of a succinct feature overview.
-{% endhint %}
+# 插件化
 
-## Awesome Feature One
+插件化是 Zongsoft 的核心特征。一个插件式应用由宿主程序和多个插件共同组成，宿主负责启动和承载，插件负责提供业务能力与扩展点。
 
-Get amazing things done with awesome feature one. But remember that awesome feature two and three exist too. In fact, Awesome Product is full of awesome features.
+## 插件是什么
 
-![](https://images.unsplash.com/photo-1555774698-0b77e0d5fac6?crop=entropy\&cs=tinysrgb\&fm=jpg\&ixid=MnwxOTcwMjR8MHwxfHNlYXJjaHwyfHxhcHB8ZW58MHx8fHwxNjYwNTgzMzQz\&ixlib=rb-1.2.1\&q=80)
+在 Zongsoft 中，插件不是单个程序集的别名，而是一组文件和元数据的组合。最常见的插件内容包括：
 
-## Awesome Feature Two
+- 插件描述文件 `*.plugin`。
+- 插件程序集 `*.dll`。
+- 选项配置 `*.option`。
+- 数据映射 `*.mapping`。
+- 本地化资源目录，如 `zh-Hans`、`zh-CN`。
+- 证书、模板、静态资源等附属文件。
 
-Get amazing things done with awesome feature two. But remember that awesome feature one and three exist too. In fact, Awesome Product is full of awesome features.
+## 插件如何加载
 
-![](https://images.unsplash.com/photo-1569144157591-c60f3f82f137?crop=entropy\&cs=tinysrgb\&fm=jpg\&ixid=MnwxOTcwMjR8MHwxfHNlYXJjaHwxfHxmZWF0dXJlfGVufDB8fHx8MTY2MDU4MzM1OQ\&ixlib=rb-1.2.1\&q=80)
+宿主程序启动后，插件框架会扫描宿主目录下的 `plugins/` 目录，读取插件描述文件，加载程序集并建立应用上下文。插件可以注册服务、命令、事件处理器、Web 控制器或其它模块能力。
+
+## 为什么使用插件化
+
+插件化解决的是大型业务系统的组织问题：
+
+- 业务模块可以独立发布。
+- 运行宿主可以保持轻量和稳定。
+- 不同环境可以通过部署文件组合不同插件。
+- 同一个业务插件可以在不同宿主形态中复用。
+- 配置、映射和资源可以随插件一起部署。
+
+## 文档阅读建议
+
+先阅读 [插件框架](../framework/plugins/README.md) 理解应用模型，再阅读 [部署第一个插件](../get-started/deploy-first-plugin.md) 了解插件如何进入宿主。需要深入数据访问时，再进入 [数据引擎](../framework/data/README.md)。

@@ -1,11 +1,33 @@
-# 💡 What we do
+---
+description: Zongsoft 框架系列的核心设计理念。
+icon: lightbulb
+---
 
-{% hint style="info" %}
-**GitBook tip:** A succinct video overview is a great way to introduce folks to your product. Embed a Loom, Vimeo or YouTube video and you're good to go! We love this video from the fine folks at Loom as a perfect example of a succinct feature overview.
-{% endhint %}
+# 设计理念
 
-## Video overview
+Zongsoft 的设计围绕“可插件化的应用系统”展开。框架希望把业务能力、运行宿主、部署过程和基础设施适配拆开，使它们能够独立开发、独立部署并按需组合。
 
-Got 2 minutes? Check out a video overview of our product:
+## 宿主与业务分离
 
-{% embed url="https://www.loom.com/embed/3bfa83acc9fd41b7b98b803ba9197d90" %}
+宿主程序只负责初始化运行时环境，不直接包含业务代码。业务能力由插件提供，插件部署到宿主的 `plugins/` 目录后，由插件框架加载并组装到应用上下文中。
+
+这种分离带来几个直接收益：
+
+- 宿主程序可以保持稳定，不随业务模块频繁变化。
+- 业务模块可以按插件拆分、发布和替换。
+- 同一组插件可以运行在终端、后台服务或 Web 宿主中。
+- 部署过程可以由 `.deploy` 文件声明，而不是靠人工复制文件。
+
+## 显式元数据
+
+Zongsoft 倾向于使用显式元数据描述系统结构。例如数据引擎使用 `.mapping` 文件描述实体、表、字段和关系；部署工具使用 `.deploy` 文件描述插件和附属文件如何复制到宿主。
+
+显式元数据的目标不是增加配置负担，而是让系统的关键结构可以被审查、复用、部署和自动化处理。
+
+## 模块隔离
+
+配置、映射、资源和插件文件都鼓励按业务模块隔离。一个模块应尽量拥有自己的插件文件、选项配置、数据映射和资源目录，避免把整个系统的元数据堆在一个大文件里。
+
+## 工具化部署
+
+Zongsoft 不把部署看作编译后的附带步骤，而是把它建模为应用组成的一部分。`dotnet-deploy` 负责按 `.deploy` 文件部署插件，`dotnet-pack` 负责制作安装包，`dotnet-upgrade` 负责发布升级包。

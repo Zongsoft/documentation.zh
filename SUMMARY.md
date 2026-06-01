@@ -1,41 +1,66 @@
-# Table of contents
+# Summary
 
-* [🏆 Zongsoft 开发框架](README.md)
+* [Zongsoft 开发框架](README.md)
 
-## 概览 <a href="#overview" id="overview"></a>
+## 概览
 
-* [💡 设计理念](overview/conception.md)
-* [✨ 插件化](overview/pluginization.md)
-* [🛞 部署](overview/deployment.md)
+* [什么是 Zongsoft](overview/what-is-zongsoft.md)
+* [设计理念](overview/conception.md)
+* [架构总览](overview/architecture.md)
+* [插件化](overview/pluginization.md)
+* [部署模型](overview/deployment.md)
 
-## 快速开始 <a href="#get-started" id="get-started"></a>
+## 快速开始
 
-* [💽 安装](get-started/install.md)
-* [🎪 宿主程序](get-started/hosting.md)
+* [准备环境](get-started/prerequisites.md)
+* [安装包](get-started/install.md)
+* [选择宿主程序](get-started/hosting.md)
+* [部署第一个插件](get-started/deploy-first-plugin.md)
+* [运行与调试](get-started/run-and-debug.md)
 
-## 基础功能 <a href="#fundamentals" id="fundamentals"></a>
+## 框架指南
 
-* [🛠️ 通用](fundamentals/common/README.md)
-  * [📝 转换](fundamentals/common/convert.md)
-  * [🧑 枚举](fundamentals/common/enumeration.md)
-* [📻 输入输出](fundamentals/io.md)
-* [👒 缓存](fundamentals/caching.md)
-* [🎹 集合](fundamentals/collections.md)
-* [🚞 通讯](fundamentals/communication.md)
-* [🎛️ 组件](fundamentals/components.md)
-* [🤖 终端](fundamentals/terminals.md)
-* [配置](fundamentals/configuration.md)
-* [👩‍⚕️ 诊断](fundamentals/diagnostics.md)
-* [👜 数据](fundamentals/data.md)
-* [📰 消息](fundamentals/messaging.md)
-* [🌒 反射](fundamentals/reflection.md)
-* [💞 资源](fundamentals/resources.md)
-* [🍒 调度](fundamentals/scheduling.md)
-* [🔐 安全](fundamentals/security.md)
-* [🥤 服务](fundamentals/services.md)
-* [🏜️ 序列化](fundamentals/serialization.md)
+* [核心类库](framework/core/README.md)
+* [插件框架](framework/plugins/README.md)
+  * [插件应用模型](framework/plugins/application-model.md)
+  * [插件文件与加载](framework/plugins/plugin-file.md)
+* [数据引擎](framework/data/README.md)
+  * [数据模式](framework/data/schema.md)
+  * [映射文件](framework/data/mapping.md)
+  * [连接配置](framework/data/connections.md)
+* [Web 基础](framework/web/README.md)
+* [安全](framework/security.md)
+* [诊断](framework/diagnostics.md)
+* [智能化](framework/intelligences.md)
+* [消息队列](framework/messaging.md)
+* [自动升级](framework/upgrading.md)
+* [扩展插件](framework/externals.md)
+
+## 宿主程序
+
+* [宿主概览](hosting/README.md)
+* [终端宿主](hosting/terminal.md)
+* [后台服务宿主](hosting/daemon.md)
+* [Web 宿主](hosting/web.md)
+* [部署宿主](hosting/deployment.md)
+* [容器化环境](hosting/containerization.md)
+
+## 工具
+
+* [工具概览](tools/README.md)
+* [部署工具 dotnet-deploy](tools/deployer.md)
+* [打包工具 dotnet-pack](tools/packager.md)
+* [升级打包器 dotnet-upgrade](tools/upgrader.md)
+* [正则表达式工具](tools/regular.md)
+
+## 参考
+
+* [包与模块索引](reference/packages.md)
+* [部署文件格式](reference/deploy-files.md)
+* [选项配置文件](reference/option-files.md)
+* [术语表](reference/glossary.md)
 
 ***
 
-* [❓ 常见问题](faq.md)
-* [🌷 用户案例](cases.md)
+* [常见问题](faq.md)
+* [用户案例](cases.md)
