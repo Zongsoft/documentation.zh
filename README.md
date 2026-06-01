@@ -25,40 +25,7 @@ Zongsoft 是一组面向 .NET 的开源框架、宿主程序和开发工具，�
 
 ## 快速导航
 
-<table data-view="cards">
-    <thead>
-        <tr>
-            <th>主题</th>
-            <th data-card-target data-type="content-ref">页面</th>
-        </tr>
-    </thead>
-    <tbody>
-        <tr>
-            <td>了解整体设计</td>
-            <td><a href="overview/what-is-zongsoft.md">什么是 Zongsoft</a></td>
-        </tr>
-        <tr>
-            <td>从本地环境开始</td>
-            <td><a href="get-started/prerequisites.md">准备环境</a></td>
-        </tr>
-        <tr>
-            <td>理解插件化应用</td>
-            <td><a href="framework/plugins/README.md">插件框架</a></td>
-        </tr>
-        <tr>
-            <td>学习数据访问</td>
-            <td><a href="framework/data/README.md">数据引擎</a></td>
-        </tr>
-        <tr>
-            <td>部署和运行应用</td>
-            <td><a href="hosting/deployment.md">部署宿主</a></td>
-        </tr>
-        <tr>
-            <td>使用命令行工具</td>
-            <td><a href="tools/README.md">工具概览</a></td>
-        </tr>
-    </tbody>
-</table>
+<table data-view="cards"><thead><tr><th>主题</th><th data-card-target data-type="content-ref">页面</th></tr></thead><tbody><tr><td>了解整体设计</td><td><a href="overview/what-is-zongsoft.md">what-is-zongsoft.md</a></td></tr><tr><td>从本地环境开始</td><td><a href="get-started/prerequisites.md">prerequisites.md</a></td></tr><tr><td>理解插件化应用</td><td><a href="framework/plugins/">plugins</a></td></tr><tr><td>学习数据访问</td><td><a href="framework/data/">data</a></td></tr><tr><td>部署和运行应用</td><td><a href="hosting/deployment.md">deployment.md</a></td></tr><tr><td>使用命令行工具</td><td><a href="tools/tools.md">tools.md</a></td></tr></tbody></table>
 
 ## 阅读路径
 
@@ -71,5 +38,5 @@ Zongsoft 是一组面向 .NET 的开源框架、宿主程序和开发工具，�
 5. 进入框架指南，按需要阅读核心类库、插件框架、数据引擎、Web 基础等主题。
 
 {% hint style="info" %}
-本文档优先以“如何构建一个插件式应用”的路径组织内容，而不是按 NuGet 包逐个罗列。包名、源码路径和模块关系可以在 [包与模块索引](reference/packages.md) 中查阅。
+本文档优先以“如何构建一个插件式应用”的路径组织内容，而不是按 NuGet 包逐个罗列。包名、源码路径和模块关系可以在 [包与模块索引](references/packages.md) 中查阅。
 {% endhint %}

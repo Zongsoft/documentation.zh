@@ -30,7 +30,7 @@ dotnet add package Zongsoft.Data
 dotnet add package Zongsoft.Data.MySql
 ```
 
-可用驱动包括 SQL Server、MySQL、SQLite、DuckDB、PostgreSQL、InfluxDB、TDengine 和 ClickHouse 等，具体见 [包与模块索引](../reference/packages.md)。
+可用驱动包括 SQL Server、MySQL、SQLite、DuckDB、PostgreSQL、InfluxDB、TDengine 和 ClickHouse 等，具体见 [包与模块索引](../references/packages.md)。
 
 ## 安装部署工具
 

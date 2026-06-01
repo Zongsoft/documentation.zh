@@ -45,8 +45,8 @@ nuget:Zongsoft.Security
 
 ## 解析器
 
-- 默认路径解析器：复制本地文件，支持 `*`、`?`、`**`。
-- `nuget`：下载 NuGet 包并部署包内文件或 `.deploy`。
-- `delete` / `remove`：删除目标文件。
+* 默认路径解析器：复制本地文件，支持 `*`、`?`、`**`。
+* `nuget`：下载 NuGet 包并部署包内文件或 `.deploy`。
+* `delete` / `remove`：删除目标文件。
 
-更多语法见 [部署文件格式](../reference/deploy-files.md)。
+更多语法见 [部署文件格式](../references/deploy-files.md)。
