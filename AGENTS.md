@@ -37,7 +37,7 @@ builder.Services.AddHostedService<Worker>();
 
 正文中出现简短代码形式的 .NET 内置类、命名空间、接口、结构、枚举等时，如果它不是以 `System.` 打头，应为其补充官方文档链接和 source.dot.net 源码链接。
 
-- 能找到 Microsoft Learn 文档时，格式为：类型名链接到 Learn，后接斜体格式的 `源码` 链接。
+- 能找到 Microsoft Learn 文档时，格式为：类型名链接到 Learn，后接斜体格式的 `(源码)` 链接。
 - 找不到 Learn 文档时，类型名直接链接到 source.dot.net 源码。
 - `System.` 打头的基础类型和命名空间不强制补链接，但当它是页面重点概念时可以补充。
 - Zongsoft 自有类型优先链接到本库相关页面；若需要源码，链接到对应 GitHub 源文件或目录。
