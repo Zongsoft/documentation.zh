@@ -1,6 +1,6 @@
 ---
 description: Zongsoft 常见包、模块和源码目录索引。
-icon: boxes
+icon: boxes-stacked
 ---
 
 # 包与模块索引
