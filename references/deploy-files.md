@@ -32,6 +32,14 @@ $(name)
 
 变量来源包括环境变量、宿主 `appsettings.json` 和命令行选项。
 
+<details>
+
+<summary>变量适合放什么？</summary>
+
+变量适合表达环境、目标框架、平台、架构、版本、站点名等部署参数。不要用变量绕过部署文件的结构约束；如果一个部署流程差异很大，通常应拆成独立的 `.deploy` 文件。
+
+</details>
+
 ## 过滤条件
 
 条目末尾可以使用 `<...>` 写过滤条件：
@@ -53,3 +61,7 @@ nuget:Zongsoft.Data@6.2.0/.deploy
 {% endcode %}
 
 如果包根目录包含 `.deploy` 文件，通常会优先执行包内部署文件。
+
+{% content-ref url="../tools/deployer.md" %}
+[deployer.md](../tools/deployer.md)
+{% endcontent-ref %}

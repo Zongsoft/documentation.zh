@@ -52,3 +52,10 @@ nuget:Zongsoft.Security
 * `delete` / `remove`：删除目标文件。
 
 更多语法见 [部署文件格式](../references/deploy-files.md)。
+
+## 相关资源
+
+* [deployer 源码目录](https://github.com/Zongsoft/tools/tree/main/deployer)
+* [deployer 中文 README](https://github.com/Zongsoft/tools/blob/main/deployer/README-zh_CN.md)
+* [deployer 英文 README](https://github.com/Zongsoft/tools/blob/main/deployer/README.md)
+* [Zongsoft.Tools.Deployer NuGet 包](https://www.nuget.org/packages/Zongsoft.Tools.Deployer)

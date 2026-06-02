@@ -30,8 +30,8 @@ Zongsoft 是一组面向 .NET 的开源框架、宿主程序和开发工具，�
 <table data-card-size="large" data-view="cards">
 	<thead>
 		<tr>
-			<th>主题</th>
-			<th>说明</th>
+			<th></th>
+			<th></th>
 			<th data-hidden data-card-target data-type="content-ref">页面</th>
 			<th data-hidden data-card-cover data-type="image">封面</th>
 		</tr>

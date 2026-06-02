@@ -59,4 +59,41 @@ flowchart LR
 
 ## 继续阅读
 
-<table data-view="cards"><thead><tr><th>主题</th><th>说明</th><th data-hidden data-card-target data-type="content-ref">页面</th></tr></thead><tbody><tr><td><strong>插件应用模型</strong></td><td>宿主、应用上下文、模块和服务之间的关系。</td><td><a href="application-model.md">application-model.md</a></td></tr><tr><td><strong>插件文件与加载</strong></td><td>插件文件、依赖、扩展点和加载策略。</td><td><a href="plugin-file.md">plugin-file.md</a></td></tr><tr><td><strong>宿主集成</strong></td><td>在 .NET Host 中启动插件式应用。</td><td><a href="hosting.md">hosting.md</a></td></tr><tr><td><strong>构件与服务</strong></td><td>构建器、解析器、插件树路径和服务发现。</td><td><a href="builtins-and-services.md">builtins-and-services.md</a></td></tr></tbody></table>
+<table data-view="cards">
+	<thead>
+		<tr>
+			<th></th>
+			<th></th>
+			<th data-hidden data-card-target data-type="content-ref">页面</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td><strong>插件应用模型</strong></td>
+			<td>宿主、应用上下文、模块和服务之间的关系。</td>
+			<td><a href="application-model.md">application-model.md</a></td>
+		</tr>
+		<tr>
+			<td><strong>插件文件与加载</strong></td>
+			<td>插件文件、依赖、扩展点和加载策略。</td>
+			<td><a href="plugin-file.md">plugin-file.md</a></td>
+		</tr>
+		<tr>
+			<td><strong>宿主集成</strong></td>
+			<td>在 .NET Host 中启动插件式应用。</td>
+			<td><a href="hosting.md">hosting.md</a></td>
+		</tr>
+		<tr>
+			<td><strong>构件与服务</strong></td>
+			<td>构建器、解析器、插件树路径和服务发现。</td>
+			<td><a href="builtins-and-services.md">builtins-and-services.md</a></td>
+		</tr>
+	</tbody>
+</table>
+
+## 相关资源
+
+* [Zongsoft.Plugins 源码目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Plugins)
+* [Zongsoft.Plugins README](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/README.md)
+* [Zongsoft.Plugins NuGet 包](https://www.nuget.org/packages/Zongsoft.Plugins)
+* [framework 仓库](https://github.com/Zongsoft/framework)

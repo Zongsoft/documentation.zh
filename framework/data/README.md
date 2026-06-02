@@ -27,7 +27,57 @@ icon: database
 
 ## 核心概念
 
-<table data-view="cards"><thead><tr><th>主题</th><th>说明</th><th data-hidden data-card-target data-type="content-ref">页面</th></tr></thead><tbody><tr><td><strong>数据模式</strong></td><td>描述查询或写入的数据形状。</td><td><a href="schema.md">schema.md</a></td></tr><tr><td><strong>映射文件</strong></td><td>描述实体、表、字段和关系。</td><td><a href="mapping.md">mapping.md</a></td></tr><tr><td><strong>连接配置</strong></td><td>配置数据源、读写分离和驱动。</td><td><a href="connections.md">connections.md</a></td></tr><tr><td><strong>数据访问接口</strong></td><td>执行查询、写入、聚合和命令。</td><td><a href="data-access.md">data-access.md</a></td></tr><tr><td><strong>条件与操作元</strong></td><td>表达过滤条件和字段运算。</td><td><a href="conditions-and-operands.md">conditions-and-operands.md</a></td></tr><tr><td><strong>查询与导航</strong></td><td>使用 `schema`、分页和排序读取对象图。</td><td><a href="querying.md">querying.md</a></td></tr><tr><td><strong>写入操作</strong></td><td>新增、更新、删除和增改。</td><td><a href="writing.md">writing.md</a></td></tr><tr><td><strong>驱动</strong></td><td>选择、部署和扩展数据库驱动。</td><td><a href="drivers.md">drivers.md</a></td></tr></tbody></table>
+<table data-view="cards">
+	<thead>
+		<tr>
+			<th></th>
+			<th></th>
+			<th data-hidden data-card-target data-type="content-ref">页面</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td><strong>数据模式</strong></td>
+			<td>描述查询或写入的数据形状。</td>
+			<td><a href="schema.md">schema.md</a></td>
+		</tr>
+		<tr>
+			<td><strong>映射文件</strong></td>
+			<td>描述实体、表、字段和关系。</td>
+			<td><a href="mapping.md">mapping.md</a></td>
+		</tr>
+		<tr>
+			<td><strong>连接配置</strong></td>
+			<td>配置数据源、读写分离和驱动。</td>
+			<td><a href="connections.md">connections.md</a></td>
+		</tr>
+		<tr>
+			<td><strong>数据访问接口</strong></td>
+			<td>执行查询、写入、聚合和命令。</td>
+			<td><a href="data-access.md">data-access.md</a></td>
+		</tr>
+		<tr>
+			<td><strong>条件与操作元</strong></td>
+			<td>表达过滤条件和字段运算。</td>
+			<td><a href="conditions-and-operands.md">conditions-and-operands.md</a></td>
+		</tr>
+		<tr>
+			<td><strong>查询与导航</strong></td>
+			<td>使用 `schema`、分页和排序读取对象图。</td>
+			<td><a href="querying.md">querying.md</a></td>
+		</tr>
+		<tr>
+			<td><strong>写入操作</strong></td>
+			<td>新增、更新、删除和增改。</td>
+			<td><a href="writing.md">writing.md</a></td>
+		</tr>
+		<tr>
+			<td><strong>驱动</strong></td>
+			<td>选择、部署和扩展数据库驱动。</td>
+			<td><a href="drivers.md">drivers.md</a></td>
+		</tr>
+	</tbody>
+</table>
 
 ## 选择入口
 
@@ -51,6 +101,10 @@ icon: database
 
 完整包名见 [包与模块索引](../../references/packages.md)，部署方式见 [插件文件与加载](../plugins/plugin-file.md)。
 
+{% content-ref url="drivers.md" %}
+[drivers.md](drivers.md)
+{% endcontent-ref %}
+
 ## 典型调用
 
 {% code title="SelectUsers.cs" %}
@@ -71,3 +125,24 @@ var users = accessor.Select<User>(
 * `Condition` 描述过滤条件。
 * `schema` 字符串描述返回字段和导航属性。
 * 排序由 `Sorting` 表达，最终由驱动转换为数据库方言；需要分页时可使用带 `Paging` 参数的重载。
+
+## 下一步
+
+{% content-ref url="schema.md" %}
+[schema.md](schema.md)
+{% endcontent-ref %}
+
+{% content-ref url="data-access.md" %}
+[data-access.md](data-access.md)
+{% endcontent-ref %}
+
+{% content-ref url="writing.md" %}
+[writing.md](writing.md)
+{% endcontent-ref %}
+
+## 相关资源
+
+* [Zongsoft.Data 源码目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Data)
+* [Zongsoft.Data 中文 README](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Data/README-zh_CN.md)
+* [Zongsoft.Data 英文 README](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Data/README.md)
+* [Zongsoft.Data NuGet 包](https://www.nuget.org/packages/Zongsoft.Data)

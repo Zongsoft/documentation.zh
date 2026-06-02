@@ -102,8 +102,26 @@ plugins/
 
 这种策略让基础能力可以先加载，业务插件再在稳定的扩展点上追加功能。
 
+<details>
+
+<summary>主插件、从插件和隐藏插件的区别</summary>
+
+主插件是不声明依赖项的插件，通常先加载并提供基础扩展点。从插件通过 `dependencies` 声明依赖，通常在主插件之后加载，并向已有扩展点追加能力。名为 `.plugin` 的隐藏式插件不能成为主插件，也不能声明依赖项，适合放置目录级的轻量扩展声明。
+
+</details>
+
 ## 部署来源
 
 插件可以来自本地构建输出，也可以来自 NuGet 包。Zongsoft 的 NuGet 包通常会在包内包含 `.deploy` 文件，用来描述插件内容如何部署到宿主目录。
 
 更多部署规则见 [部署工具 dotnet-deploy](../../tools/deployer.md)。
+
+{% content-ref url="../../tools/deployer.md" %}
+[deployer.md](../../tools/deployer.md)
+{% endcontent-ref %}
+
+## 相关资源
+
+* [Zongsoft.Plugins 源码目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Plugins)
+* [Zongsoft.Plugins README](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/README.md)
+* [Zongsoft.Plugins NuGet 包](https://www.nuget.org/packages/Zongsoft.Plugins)

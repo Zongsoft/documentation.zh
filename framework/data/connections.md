@@ -17,6 +17,14 @@ icon: plug
 
 如果调用 `GetAccessor()` 时没有指定名称，会使用默认连接；如果指定名称不存在，也会回退到默认连接。没有默认连接且指定名称不存在时会抛出数据配置异常。
 
+<details>
+
+<summary>访问器名称如何匹配连接配置？</summary>
+
+`IDataAccessProvider.GetAccessor("Security")` 会优先查找名为 `Security` 的连接配置。如果没有传入名称，则使用 `connectionSettings` 的默认项。读写分离时，`Security:master`、`Security:slave` 仍属于同一个 `Security` 数据访问名称下的不同数据源。
+
+</details>
+
 ## 单数据源
 
 {% code title="Default.option" %}
@@ -69,8 +77,20 @@ icon: plug
 
 如果插件目录中没有部署对应驱动，连接字符串即使正确也无法被解析和执行。
 
+{% content-ref url="drivers.md" %}
+[drivers.md](drivers.md)
+{% endcontent-ref %}
+
 ## 注意事项
 
 连接字符串由对应数据库驱动解释。配置时应同时确认驱动包已经部署到宿主插件目录。
 
 生产环境中建议把敏感信息交给环境配置、密钥系统或部署平台注入，避免把账号密码提交到源码仓库。
+
+<details>
+
+<summary>配置文件里可以放真实连接串吗？</summary>
+
+开发环境可以使用本地测试连接串，但生产环境不建议把账号、密码、访问密钥写入仓库。更稳妥的做法是由部署平台、环境变量、密钥管理服务或站点级配置注入敏感值。
+
+</details>

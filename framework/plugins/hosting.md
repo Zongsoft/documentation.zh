@@ -56,6 +56,10 @@ await host.RunAsync();
 
 如果 `plugins` 目录不存在，插件加载会失败并抛出目录不存在异常。部署宿主时应确保插件目录与宿主应用目录匹配。
 
+{% content-ref url="plugin-file.md" %}
+[plugin-file.md](plugin-file.md)
+{% endcontent-ref %}
+
 ## 服务注册
 
 插件程序集服务注册来自两个来源：
@@ -74,3 +78,15 @@ Host 构建完成后会初始化 `ApplicationContext`。应用上下文会解析
 - 宿主负责进程、环境和少量基础配置。
 - 插件负责模块、服务、命令、驱动、控制器和业务能力。
 - 应用上下文负责在运行时统一暴露模块、服务、事件和生命周期。
+
+<details>
+
+<summary>什么时候应该改宿主，什么时候应该写插件？</summary>
+
+如果改动影响进程启动、站点选择、Host 环境、服务托管方式或部署入口，通常属于宿主职责。如果改动是业务能力、数据库驱动、命令、Web API、后台工作器或模块内部服务，优先放入插件。
+
+</details>
+
+{% content-ref url="../../get-started/deploy-first-plugin.md" %}
+[deploy-first-plugin.md](../../get-started/deploy-first-plugin.md)
+{% endcontent-ref %}

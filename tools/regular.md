@@ -19,3 +19,12 @@ icon: magnifying-glass
 ```text
 tools/regular
 ```
+
+## 相关资源
+
+* [regular 源码目录](https://github.com/Zongsoft/tools/tree/main/regular)
+* [regular README](https://github.com/Zongsoft/tools/blob/main/regular/README.md)
+
+{% hint style="info" %}
+当前未发现 `Zongsoft.Tools.Regular` 的 NuGet 包页；该工具请以源码仓库说明为准。
+{% endhint %}

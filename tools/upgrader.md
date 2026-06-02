@@ -40,3 +40,11 @@ dotnet-upgrade pack \
 ## 发布清单
 
 打包完成后会生成 `.manifest` 发布清单，包含应用名称、版本、平台、包文件、校验码、标签、标题和执行器等信息。
+
+## 相关资源
+
+* [upgrading 源码目录](https://github.com/Zongsoft/framework/tree/main/upgrading)
+* [upgrader 工具源码目录](https://github.com/Zongsoft/framework/tree/main/upgrading/tool)
+* [upgrader 中文 README](https://github.com/Zongsoft/framework/blob/main/upgrading/tool/README-zh_CN.md)
+* [upgrader 英文 README](https://github.com/Zongsoft/framework/blob/main/upgrading/tool/README.md)
+* [Zongsoft.Tools.Upgrader NuGet 包](https://www.nuget.org/packages/Zongsoft.Tools.Upgrader)

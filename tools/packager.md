@@ -44,3 +44,10 @@ dotnet-pack deb \
 ## 适用场景
 
 当宿主和插件已经部署到发布目录后，可以使用 `dotnet-pack` 生成可交付安装包。
+
+## 相关资源
+
+* [packager 源码目录](https://github.com/Zongsoft/tools/tree/main/packager)
+* [packager 中文 README](https://github.com/Zongsoft/tools/blob/main/packager/README-zh_CN.md)
+* [packager 英文 README](https://github.com/Zongsoft/tools/blob/main/packager/README.md)
+* [Zongsoft.Tools.Packager NuGet 包](https://www.nuget.org/packages/Zongsoft.Tools.Packager)

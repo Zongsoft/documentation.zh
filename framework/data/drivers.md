@@ -62,3 +62,16 @@ icon: hard-drive
 - 数据库方言中的函数、分页、返回值和参数处理。
 
 业务代码不应直接依赖具体驱动类型。通过连接配置和数据访问接口选择驱动，才能保持模块可替换。
+
+## 相关资源
+
+| 驱动 | 源码 | README | NuGet |
+| --- | --- | --- | --- |
+| SQL Server | [mssql](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Data/drivers/mssql) | [README](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Data/drivers/mssql/README.md) | [Zongsoft.Data.MsSql](https://www.nuget.org/packages/Zongsoft.Data.MsSql) |
+| MySQL | [mysql](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Data/drivers/mysql) | [README](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Data/drivers/mysql/README.md) | [Zongsoft.Data.MySql](https://www.nuget.org/packages/Zongsoft.Data.MySql) |
+| PostgreSQL | [postgres](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Data/drivers/postgres) | [README](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Data/drivers/postgres/README.md) | [Zongsoft.Data.PostgreSql](https://www.nuget.org/packages/Zongsoft.Data.PostgreSql) |
+| SQLite | [sqlite](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Data/drivers/sqlite) | [README](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Data/drivers/sqlite/README.md) | [Zongsoft.Data.SQLite](https://www.nuget.org/packages/Zongsoft.Data.SQLite) |
+| DuckDB | [duckdb](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Data/drivers/duckdb) | [README](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Data/drivers/duckdb/README.md) | [Zongsoft.Data.DuckDB](https://www.nuget.org/packages/Zongsoft.Data.DuckDB) |
+| ClickHouse | [clickhouse](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Data/drivers/clickhouse) | [README](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Data/drivers/clickhouse/README.md) | [Zongsoft.Data.ClickHouse](https://www.nuget.org/packages/Zongsoft.Data.ClickHouse) |
+| TDengine | [tdengine](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Data/drivers/tdengine) | [README](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Data/drivers/tdengine/README.md) | [Zongsoft.Data.TDengine](https://www.nuget.org/packages/Zongsoft.Data.TDengine) |
+| InfluxDB | [influx](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Data/drivers/influx) | [README](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Data/drivers/influx/README.md) | [Zongsoft.Data.Influx](https://www.nuget.org/packages/Zongsoft.Data.Influx) |
