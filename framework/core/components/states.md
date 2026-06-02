@@ -56,64 +56,123 @@ icon: code-branch
 默认流程中，状态写入发生在处理器完成阶段，该阶段会在状态机释放时触发。迁移类型至少需要注册一个对应的 `IStateHandler<TKey, TValue>`，并确保手动创建的状态机实例被释放；或者由自定义状态图、状态机覆写相关流程，否则 `Run(...)` 只会完成迁移判定而不会写入目标状态。
 {% endhint %}
 
-## 定义状态向量
+## 范例：设施状态迁移
 
-状态向量是状态图中最小的规则单元。设计状态图时，先列出所有允许发生的迁移，再把它们映射到 `StateVector<T>` 数组中。
+下面的范例抽象自业务系统中的设施、工单和问题反馈状态流转代码。它展示了一个更接近实际项目的组织方式：状态图负责状态向量、当前状态读取和最终状态写入；处理器负责联动迁移、附加参数和历史记录；服务入口只暴露一个 `SetStatus(...)` 方法。
 
-{% code title="OrderStateVectors.cs" %}
+### 定义状态值
+
+状态值通常使用稳定的枚举来表达。枚举成员的顺序和取值会进入持久化数据或历史记录时，应明确每个值的业务含义，避免后续调整时破坏已有状态。
+
+{% code title="AssetStatus.cs" %}
 ```csharp
-using Zongsoft.Components.States;
-
-enum OrderStatus
+/// <summary>表示资产(设施)状态的枚举。</summary>
+public enum AssetStatus : byte
 {
-	Pending,
-	Approved,
-	Rejected,
-	Cancelled,
+	/// <summary>正常</summary>
+	Normal,
+	/// <summary>故障</summary>
+	Fault,
+	/// <summary>废弃</summary>
+	Disabled,
+	/// <summary>已停用</summary>
+	Suspended,
+	/// <summary>未启用</summary>
+	Inactived,
+	/// <summary>未知</summary>
+	Unknown = 99,
 }
-
-var approve = new StateVector<OrderStatus>(
-	OrderStatus.Pending,
-	OrderStatus.Approved);
-
-Console.WriteLine(approve.Contains(OrderStatus.Pending));
 ```
 {% endcode %}
 
-## 实现状态图
+### 定义状态图
 
-状态图需要回答两个问题：对象当前是什么状态，以及当迁移完成时如何写入新状态。下面示例省略了仓储实现，只保留状态图的形状。
+状态图需要先声明允许迁移的状态向量，然后实现 `GetState(...)` 和 `SetState(...)`。如果写入状态时还要同步其他字段，可以约定一组参数前缀，由处理器把附加值写入 `context.Parameters`，再由状态图统一落库。示例中的仓储、模型和关联任务查询是业务侧抽象，只用于说明状态机类型之间的协作方式。
 
-{% code title="OrderStateDiagram.cs" %}
+{% code title="AssetStateDiagram.cs" %}
 ```csharp
 using System;
 using System.Collections.Generic;
 using Zongsoft.Components.States;
 
-sealed class OrderStateDiagram : StateDiagramBase<long, OrderStatus>
+[Zongsoft.Services.Service]
+public sealed partial class AssetStateDiagram : StateDiagramBase<ulong, AssetStatus>
 {
-	private readonly IOrderRepository _orders;
+	private readonly IAssetRepository _repository;
 
-	public OrderStateDiagram(IServiceProvider serviceProvider, IOrderRepository orders) : base(serviceProvider)
+	public AssetStateDiagram(IServiceProvider serviceProvider, IAssetRepository repository) : base(serviceProvider)
 	{
-		_orders = orders;
+		_repository = repository;
+
+		//状态向量定义了“允许发生”的迁移方向，未定义的方向会被默认拒绝。
 		this.Vectors =
 		[
-			new(OrderStatus.Pending, OrderStatus.Approved),
-			new(OrderStatus.Pending, OrderStatus.Rejected),
-			new(OrderStatus.Pending, OrderStatus.Cancelled),
+			new(AssetStatus.Normal, AssetStatus.Fault),
+			new(AssetStatus.Normal, AssetStatus.Suspended),
+			new(AssetStatus.Normal, AssetStatus.Disabled),
+			new(AssetStatus.Fault, AssetStatus.Normal),
+			new(AssetStatus.Fault, AssetStatus.Disabled),
+			new(AssetStatus.Suspended, AssetStatus.Normal),
+			new(AssetStatus.Suspended, AssetStatus.Disabled),
 		];
 	}
 
-	protected override State<long, OrderStatus> GetState(long key)
+	//构建一个设施状态对象
+	public AssetState State(ulong assetId, AssetStatus value)
 	{
-		var order = _orders.Get(key);
-		return order == null ? null : new OrderState(this, order.Id, order.Status);
+		return new AssetState(this, assetId, value);
 	}
 
-	protected override bool SetState(long key, OrderStatus value, string description, IDictionary<object, object> parameters)
+	//状态机运行时会先读取当前状态，用它和目标状态组成迁移向量。
+	protected override State<ulong, AssetStatus> GetState(ulong key)
 	{
-		return _orders.SetStatus(key, value, description);
+		var asset = _repository.Get(key);
+		return asset == null ? null : new AssetState(this, asset);
+	}
+
+	protected override bool SetState(ulong key, AssetStatus value, string description, IDictionary<object, object> parameters)
+	{
+		const string PREFIX = "asset:";
+
+		var values = new Dictionary<string, object>
+		{
+			//状态图统一负责最终落库，因此状态字段和状态说明在这里写入。
+			{ "Status", value },
+			{ "StatusTimestamp", DateTime.Now },
+			{ "StatusDescription", description },
+		};
+
+		if(parameters != null)
+		{
+			//处理器可以通过约定前缀传入额外字段，例如 asset:PlateNo。
+			foreach(var parameter in parameters)
+			{
+				if(parameter.Key is string name && name.StartsWith(PREFIX, StringComparison.OrdinalIgnoreCase))
+					values[name.Substring(PREFIX.Length)] = parameter.Value;
+			}
+		}
+
+		//持久化状态
+		return _repository.Update(key, values);
+	}
+}
+```
+{% endcode %}
+
+### 定义状态对象
+
+状态对象通常作为状态图的内部模型存在。对外提供 `State(...)` 工厂方法后，调用方不需要知道状态对象如何构造，只需要传入对象编号和目标状态。
+
+{% code title="AssetState.cs" %}
+```csharp
+partial class AssetStateDiagram
+{
+	sealed class AssetState : State<ulong, AssetStatus>, IEquatable<AssetState>
+	{
+		internal AssetState(AssetStateDiagram diagram, ulong assetId, AssetStatus value) : base(diagram, assetId, value) { }
+		internal AssetState(AssetStateDiagram diagram, Asset asset) : base(diagram, asset.AssetId, asset.Status) => this.Asset = asset;
+
+		public Asset Asset { get; }
 	}
 }
 ```
@@ -121,70 +180,98 @@ sealed class OrderStateDiagram : StateDiagramBase<long, OrderStatus>
 
 `CanTransfer(...)` 默认会检查 `Vectors` 中是否存在匹配的源状态和目标状态。如果迁移规则不只是静态向量，例如还需要结合租户、库存、审批额度或外部配置，可以重写 `CanTransfer(...)`，但要避免把副作用放进判定逻辑。
 
-## 实现状态对象
+### 实现处理器
 
-`State<TKey, TValue>` 是抽象类，通常为某类业务对象提供一个很薄的派生类型即可。
+处理器适合承载迁移副作用。下面示例中，当设施被禁用时，处理器通过 `context.Parameters` 附加要同步更新的字段，并通过同一个状态机继续触发关联任务的取消迁移。这样做可以让一组关联状态变化共享同一轮迁移上下文和完成阶段。
 
-{% code title="OrderState.cs" %}
-```csharp
-using Zongsoft.Components.States;
-
-sealed class OrderState : State<long, OrderStatus>
-{
-	public OrderState(IStateDiagram<long, OrderStatus> diagram, long key, OrderStatus value) : base(diagram, key, value)
-	{
-	}
-}
-```
-{% endcode %}
-
-## 实现处理器
-
-处理器用于承载迁移副作用。`OnHandle(...)` 适合记录日志、校验附加参数、发送通知或触发后续任务；最终状态写入通常交给 `StateHandlerBase<TKey, TValue>` 的默认完成逻辑处理。
-
-{% code title="OrderStateHandler.cs" %}
+{% code title="AssetStateHandler.cs" %}
 ```csharp
 using System;
+using System.Collections.Generic;
+
+using Zongsoft.Services;
 using Zongsoft.Components.States;
 
-sealed class OrderStateHandler : StateHandlerBase<long, OrderStatus>
+[Service(typeof(IStateHandler<ulong, AssetStatus>))]
+sealed class AssetStateHandler : StateHandlerBase<ulong, AssetStatus>
 {
-	private readonly IAuditLog _logs;
-
-	public OrderStateHandler(IServiceProvider serviceProvider, IAuditLog logs) : base(serviceProvider)
+	//当状态机发生状态迁移会回调该方法，可以在该方法中进行参数控制或驱动别的状态图流转
+	protected override void OnHandle(StateContext<ulong, AssetStatus> context)
 	{
-		_logs = logs;
+		//业务：因为设施状态变为了“废弃”，因此需要将其 AssetNo 字段添加一个特定的前缀，并回收其牌号（即设置 PlateNo 为空）
+		if(context.State.Destination == AssetStatus.Disabled)
+		{
+			context.Parameters["asset:AssetNo"] = "$Discard!" + DateTime.Now.ToString("yyMMddHHmmss");
+			context.Parameters["asset:PlateNo"] = null;
+		}
+
+		if(context.State.Destination == AssetStatus.Suspended ||
+		   context.State.Destination == AssetStatus.Disabled)
+		{
+			//示例：获取当前设施关联的任务集
+			//业务：将处于“废弃”或“停用”状态的设施的关联任务取消掉
+			foreach(var task in this.GetUnfinishedTasks(context.Key))
+			{
+				//使用同一个状态机继续触发关联状态图的状态迁移，方便统一完成和防止状态重入导致的死递归
+				context.Machine.Run(
+					this.ServiceProvider.ResolveRequired<TaskStateDiagram>().State(task.TaskId, TaskStatus.Cancelled),
+					context.Description);
+			}
+		}
 	}
 
-	protected override void OnHandle(StateContext<long, OrderStatus> context)
+	protected override void OnFinish(StateContext<ulong, AssetStatus> context)
 	{
-		_logs.Append(
+		//更新设施状态
+		context.SetState();
+
+		//新增设施状态变更记录
+		this.ServiceProvider.ResolveRequired<AssetServiceBase>().SetState(
 			context.Key,
 			context.State.Source,
 			context.State.Destination,
 			context.Description);
 	}
+
+	//示例：查询并返回指定设施的关联任务。
+	private IEnumerable<(ulong TaskId)> GetUnfinishedTasks(ulong assetId) => [];
 }
 ```
 {% endcode %}
 
-## 运行迁移
+### 暴露服务入口
 
-运行迁移时，调用方只需要表达目标状态。状态机负责读取源状态、验证迁移向量并调度处理器。
+业务服务通常不直接暴露状态图和状态处理器，而是提供一个意图明确的方法。注意 `StateMachine` 的释放动作会触发完成阶段，因此用 `using` 包裹状态机是默认流程中的关键步骤。
 
-{% code title="ApproveOrder.cs" %}
+{% code title="AssetServiceBase.cs" %}
 ```csharp
-using System.Collections.Generic;
+using System;
+using Zongsoft.Services;
 using Zongsoft.Components.States;
 
-var target = new OrderState(diagram, orderId, OrderStatus.Approved);
+abstract class AssetServiceBase
+{
+	protected IServiceProvider ServiceProvider { get; }
+	protected IAssetRepository Repository { get; }
 
-stateMachine.Run(
-	target,
-	"审核通过",
-	[
-		KeyValuePair.Create<object, object>("operator", userId),
-	]);
+	public bool SetState(ulong assetId, AssetStatus origin, AssetStatus destination, string description)
+	{
+		//新增一条状态变更历史记录，不直接改变当前状态
+		return this.Repository.InsertHistory(assetId, origin, destination, DateTime.Now, description);
+	}
+
+	public bool SetStatus(ulong assetId, AssetStatus status, string description = null)
+	{
+		//释放状态机时(Dispose)会触发 AssetStateHandler 处理器的 OnFinish 回调
+		using(var machine = new StateMachine(this.ServiceProvider))
+		{
+			var diagram = this.ServiceProvider.ResolveRequired<AssetStateDiagram>();
+			machine.Run(diagram.State(assetId, status), description);
+		}
+
+		return true;
+	}
+}
 ```
 {% endcode %}
 
