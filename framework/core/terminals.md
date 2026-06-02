@@ -20,6 +20,27 @@ icon: terminal
 | --- | --- |
 | `Zongsoft.Terminals.Commands` | 终端内置命令。 |
 
+## 类型
+
+<table data-view="cards">
+<thead>
+<tr>
+<th></th>
+<th data-card-target data-type="content-ref"></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Terminal：终端抽象、控制台终端、终端执行器和交互式命令循环。</td>
+<td><a href="terminals/terminal.md">terminal.md</a></td>
+</tr>
+<tr>
+<td>commands：清屏、退出和 Shell 命令。</td>
+<td><a href="terminals/commands.md">commands.md</a></td>
+</tr>
+</tbody>
+</table>
+
 ## 相关资源
 
 * [Terminals 源码目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core/src/Terminals)
