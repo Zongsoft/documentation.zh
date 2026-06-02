@@ -122,9 +122,9 @@
 ## 工具 <a href="#tools" id="tools"></a>
 
 * [工具概览](tools/tools.md)
-* [部署工具 dotnet-deploy](tools/deployer.md)
-* [打包工具 dotnet-pack](tools/packager.md)
-* [升级打包器 dotnet-upgrade](tools/upgrader.md)
+* [部署工具](tools/deployer.md)
+* [打包工具](tools/packager.md)
+* [升级工具](tools/upgrader.md)
 * [正则表达式工具](tools/regular.md)
 
 ## 参考 <a href="#references" id="references"></a>

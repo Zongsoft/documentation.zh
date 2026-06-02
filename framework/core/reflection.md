@@ -5,14 +5,14 @@ icon: magnifying-glass
 
 # Zongsoft.Reflection
 
-`Zongsoft.Reflection` 为运行时对象访问提供一组轻量反射工具。它把常见的字段、属性、索引器和成员路径访问封装成可复用的访问器模型，适合配置绑定、数据映射、模板求值、命令参数解析、插件扩展和其他“成员名称在运行时才确定”的场景。
+`Zongsoft.Reflection` 为运行时对象访问提供一组轻量反射工具。它把常见的字段、属性、索引器和成员路径访问封装成可复用的动态访问器模型，适合配置绑定、数据映射、模板求值、命令参数解析、插件扩展和其他“成员名称在运行时才确定”的场景。
 
 反射访问本身不应替代普通的强类型代码：当成员在编译期已经确定时，直接调用仍然是最清晰的写法；当字段名、属性名或访问路径来自配置、脚本、用户输入或元数据时，再使用本命名空间提供的能力。
 
 ## 主要职责
 
 * 通过 `Reflector` 统一读取和写入字段、属性以及索引器。
-* 为 System.Reflection.FieldInfo 和 System.Reflection.PropertyInfo 生成并缓存 getter、setter 访问器，减少重复反射调用的成本。
+* 通过 [`System.Reflection.Emit`](https://learn.microsoft.com/zh-cn/dotnet/api/system.reflection.emit) 为 System.Reflection.FieldInfo 和 System.Reflection.PropertyInfo 动态编译并缓存 getter、setter 访问器，减少重复反射调用的成本。
 * 支持按字符串成员名读取或写入对象成员，名称查找忽略大小写，并可访问默认成员。
 * 解析成员表达式，将 `Address.City`、`Items[0].Name`、`Get("key")` 这类路径转换为表达式节点链。
 * 通过 `MemberExpressionEvaluator` 对表达式进行求值或设置最终成员。
@@ -71,6 +71,18 @@ var name = property.GetValue(ref user);
 property.SetValue(ref user, "Bob");
 ```
 {% endcode %}
+
+## 动态访问器与性能
+
+字段和属性扩展方法内部会基于 [`System.Reflection.Emit`](https://learn.microsoft.com/zh-cn/dotnet/api/system.reflection.emit) 生成动态方法，再把动态方法编译成 getter 或 setter 委托。第一次访问某个成员时需要完成动态方法生成、IL 发射和委托创建；生成完成后，访问器会缓存在成员信息对应的缓存项中，后续读取或写入同一成员时直接调用委托，避免反复走传统反射的 `GetValue`、`SetValue` 路径。
+
+这种设计适合高频、重复的运行时成员访问：例如数据映射持续填充模型、配置绑定反复写入属性、模板或报表按字段名读取对象。它不会让一次性的成员查找变成强类型调用，也不能消除按名称查找成员、解析表达式和参数转换的成本；因此在循环或批处理场景中，应尽量复用已经取得的 System.Reflection.FieldInfo、System.Reflection.PropertyInfo 或解析后的表达式对象。
+
+源码仓库的 `Zongsoft.Core/benchmark/Reflection` 目录提供了属性读写的 BenchmarkDotNet 基准测试。测试以普通反射的 `PropertyInfo.GetValue`、`PropertyInfo.SetValue` 为基线，分别比较 `Reflector` 封装访问和直接复用 `GetGetter<T>`、`GetSetter<T>` 委托的路径；在重复访问同一批属性时，动态访问器相对普通反射会有更好的吞吐表现。
+
+{% hint style="info" %}
+动态访问器的收益来自“生成一次，多次调用”。如果某个成员只访问一次，生成访问器本身也会产生少量开销；如果成员会被反复访问，缓存委托通常比每次使用反射调用更稳定。
+{% endhint %}
 
 {% hint style="info" %}
 字符串成员名查找默认面向公开实例成员和公开静态成员，并忽略大小写。若成员名称为空，则尝试访问目标类型的默认成员，常用于索引器访问。
@@ -159,7 +171,7 @@ var value = MemberExpressionEvaluator.Default.GetValue(
 
 优先把反射访问限制在系统边界，例如配置、插件、映射、绑定、序列化、报表字段和命令参数处理。业务核心流程如果可以用接口、泛型或普通属性访问表达，就不必引入成员名字符串。
 
-重复执行的路径建议先解析并缓存 `IMemberExpression`，不要在循环中反复调用 `MemberExpression.Parse`。同样地，已经拿到 System.Reflection.FieldInfo 或 System.Reflection.PropertyInfo 时，优先复用它们的访问器，而不是每次都按字符串名称查找。
+重复执行的路径建议先解析并缓存 `IMemberExpression`，不要在循环中反复调用 `MemberExpression.Parse`。同样地，已经拿到 System.Reflection.FieldInfo 或 System.Reflection.PropertyInfo 时，优先复用它们的动态访问器，而不是每次都按字符串名称查找。
 
 来自用户输入或外部配置的成员路径应先做白名单校验。反射工具可以降低调用成本，但不会自动判断某个成员是否适合暴露给外部使用；暴露字段路径、方法调用或索引器访问时，应由调用方定义清晰的可访问范围。
 
@@ -177,3 +189,5 @@ var value = MemberExpressionEvaluator.Default.GetValue(
 
 * [Reflection 源码目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core/src/Reflection)
 * [Expressions 源码目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core/src/Reflection/Expressions)
+* [属性读取性能基准](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/benchmark/Reflection/PropertyGetterBenchmark.cs)
+* [属性写入性能基准](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/benchmark/Reflection/PropertySetterBenchmark.cs)
