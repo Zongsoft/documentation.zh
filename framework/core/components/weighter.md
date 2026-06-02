@@ -7,6 +7,8 @@ icon: scale-balanced
 
 `Weighter<T>` 是一个平滑加权轮询选择器。它适合在多个候选项之间按权重分配请求，同时避免传统加权轮询在短时间内过度集中到高权重节点。
 
+它是进程内的轻量选择器，不保存外部分布式状态。多个进程各自持有 `Weighter<T>` 时，只能保证各自进程内的平滑分配。
+
 ## 基本原理
 
 平滑加权轮询会为每个候选项维护当前权重。每次选择时，算法先给所有候选项累加其静态权重，再选择当前权重最高的候选项，最后把该候选项的当前权重减去总权重。经过多个周期后，高权重候选项被选中的次数更多，但结果会尽量均匀地分布在序列中。
@@ -28,6 +30,7 @@ A, A, B, A, C, A, A
 | `Remove(value)` | 移除候选项。 |
 | `Get()` | 选择下一个候选项。 |
 | `Clear()` | 清空全部候选项。 |
+| `Count` | 获取当前候选项数量。 |
 
 ## 适用场景
 
@@ -38,7 +41,7 @@ A, A, B, A, C, A, A
 
 {% code title="短信供应商选择" %}
 ```csharp
-var weighter = new Weighter<string>();
+var weighter = new Weighter<string>([]);
 
 weighter.Add("primary-sms", 5);
 weighter.Add("backup-sms", 2);
@@ -48,6 +51,12 @@ var provider = weighter.Get();
 await SendAsync(provider, message, cancellation);
 ```
 {% endcode %}
+
+{% hint style="info" %}
+构造函数需要初始候选集合；后续可以通过 `Add(...)` 和 `Remove(...)` 动态调整候选项。权重小于 1 时会被修正为最小有效权重。
+{% endhint %}
+
+`Weighter<T>` 适合本地进程内的轻量流量分摊。需要全局配额、跨进程一致性或实时健康检查时，通常应使用更完整的负载均衡或调度机制。候选项为空时 `Get()` 返回目标类型默认值，调用方应处理空集合情况。
 
 ## 参考
 

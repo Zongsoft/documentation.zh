@@ -22,12 +22,14 @@ var enabled = restored.CompareTo(Zongsoft.Components.Version.Parse("2.3.0")) >= 
 ```
 {% endcode %}
 
+整数形式按四个 `ushort` 依次打包，因此同一个版本值在排序、比较和持久化之间可以保持一致。页面或配置里需要展示给用户时，仍建议使用 `1.2.3` 这样的文本形式。
+
 ## 类型能力
 
 | 能力 | 说明 |
 | --- | --- |
 | `IComparable<Version>` | 支持按主版本、次版本、补丁、修订号逐级比较。 |
-| `IParsable<Version>` | 支持从 `1.2`、`1.2.3`、`1.2.3.4` 解析。 |
+| `IParsable<Version>` | 支持从 `1.2`、`1.2.3`、`1.2.3.4` 解析，不支持单段版本。 |
 | `TypeConverter` | 支持配置绑定和类型转换。 |
 | `JsonConverter` | 支持 JSON 序列化和反序列化。 |
 | 与 `System.Version` 互转 | 便于与 .NET 标准版本类型协作。 |
@@ -35,6 +37,8 @@ var enabled = restored.CompareTo(Zongsoft.Components.Version.Parse("2.3.0")) >= 
 {% hint style="info" %}
 文档中提到 `Version` 时，如果语境容易和 `System.Version` 混淆，请写完整命名空间 `Zongsoft.Components.Version`。
 {% endhint %}
+
+它适合协议版本、插件版本、配置版本、数据结构版本等需要比较的值。它不是语义化版本完整模型，不表达预发布标签、构建元数据或版本约束表达式；每段最大值也取决于 `ushort`。如果版本段可能超过该范围，或需要完整的语义化版本能力，建议改用文本或专门的版本模型。
 
 ## 参考实现
 

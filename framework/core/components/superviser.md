@@ -7,6 +7,8 @@ icon: eye
 
 `Superviser` 是面向可监管对象的观察和恢复模型。它结合 Observer/Observable 思想：被监管对象暴露状态和失效原因，监管器订阅对象变化，并在对象失效、超时或被手动移除时触发恢复或清理逻辑。
 
+监管模型适合管理一批会随时间失效的对象，例如设备连接、长连接会话、临时订阅或需要健康观察的运行时资源。
+
 ## 关键类型
 
 | 类型 | 说明 |
@@ -59,21 +61,25 @@ protected override async ValueTask OnUnsupervisedAsync(
 {
 	var executor = Executor
 		.Features
-		.Fallback(TimeSpan.FromSeconds(1))
-		.Retry(3)
-		.Build(async (_, token) =>
+		.Retry(TimeSpan.FromSeconds(1), attempts: 3)
+		.Build<Meter>(async (target, token) =>
 		{
-			await this.OpenAsync(meter, token);
-			await this.SuperviseAsync(meter, token);
-			return true;
+			await this.OpenAsync(target, token);
+			await this.SuperviseAsync(target, token);
 		});
 
-	await executor.ExecuteAsync(new ExecutorContext(meter), cancellation);
+	await executor.ExecuteAsync(meter, cancellation);
 }
 ```
 {% endcode %}
 
 这个模式能把“对象失效了怎么办”收敛在可监管对象内部，而不是让采集循环、重连逻辑和错误处理互相缠在一起。
+
+{% hint style="info" %}
+上面的代码是恢复流程结构示意。实际项目中恢复方法签名、调度方式和是否重新加入监管集合，应以具体可监管对象的实现为准。
+{% endhint %}
+
+监管器适合对象生命周期、失效通知和恢复策略相对独立的场景。如果只是普通集合管理，没有超时、失效或恢复逻辑，使用集合或缓存通常更简单。当前监管器内部使用内存缓存和观察订阅，不提供跨进程一致的监管状态。
 
 ## 参考实现
 

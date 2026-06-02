@@ -7,11 +7,13 @@ icon: person-running
 
 `Worker` 是 Zongsoft 中可被启动、停止、暂停和恢复的运行时组件模型。它适合表达后台服务、事件交换器、调度服务器、消息监听器、设备采集器等具有生命周期的对象。
 
+工作器把生命周期命令和运行状态统一起来。宿主程序、终端命令或插件启动流程可以用同一组方法控制不同运行时组件。
+
 ## 关键类型
 
 | 类型 | 说明 |
 | --- | --- |
-| `IWorker` | 工作者接口，定义 `StartAsync`、`StopAsync`、`PauseAsync`、`ResumeAsync` 和状态。 |
+| `IWorker` | 工作者接口，定义 `Start`、`Stop`、`Pause`、`Resume` 及对应异步方法。 |
 | `WorkerBase` | 工作者基类，负责状态切换、重入控制、启用判断和状态变化事件。 |
 | `WorkerState` | 工作者状态枚举，包括停止、运行、暂停等状态。 |
 | `WorkerCommandBase` | 工作者命令基类，用于把工作者生命周期操作暴露成命令。 |
@@ -25,7 +27,7 @@ icon: person-running
 {% step %}
 ## Start
 
-`WorkerBase.StartAsync(...)` 检查启用状态和当前状态，进入启动过程，然后调用派生类的启动逻辑。
+`WorkerBase.StartAsync(...)` 检查启用状态和当前状态，进入 `Starting`，然后调用派生类的启动逻辑，成功后进入 `Running`。
 {% endstep %}
 
 {% step %}
@@ -37,7 +39,7 @@ icon: person-running
 {% step %}
 ## Stop
 
-停止过程会释放运行中的资源，例如关闭事件通道、停止调度服务器、注销订阅或释放外部连接。
+停止过程进入 `Stopping`，释放运行中的资源，例如关闭事件通道、停止调度服务器、注销订阅或释放外部连接，最终回到 `Stopped`。
 {% endstep %}
 {% endstepper %}
 
@@ -64,6 +66,8 @@ icon: person-running
 {% endcode %}
 
 这种设计让服务器自身只关心生命周期，而处理器和启动方式由插件文件组合。命令系统还能把 `start`、`stop`、`pause`、`resume` 等操作暴露给终端或管理程序。
+
+工作器适合生命周期明确、可能由宿主统一启动和停止的组件。一次性任务、普通业务服务或没有持续状态的对象，通常不需要实现 `IWorker`。暂停和恢复能力由 `CanPauseAndContinue` 约束；不支持暂停的工作器不应强行暴露暂停语义。
 
 ## 参考实现
 
