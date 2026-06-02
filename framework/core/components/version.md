@@ -18,17 +18,22 @@ Zongsoft.Components.Version version = new(2, 3, 1);
 ulong stored = version;
 Zongsoft.Components.Version restored = stored;
 
-var enabled = restored.CompareTo(Zongsoft.Components.Version.Parse("2.3.0")) >= 0;
+var baseline = Zongsoft.Components.Version.Parse("2.3.0");
+
+var enabled = restored >= baseline;
+var unchanged = restored == version;
 ```
 {% endcode %}
 
-整数形式按四个 `ushort` 依次打包，因此同一个版本值在排序、比较和持久化之间可以保持一致。页面或配置里需要展示给用户时，仍建议使用 `1.2.3` 这样的文本形式。
+整数形式按四个 `ushort` 依次打包，因此同一个版本值在排序、比较和持久化之间可以保持一致。比较时既可以调用 `CompareTo(...)`，也可以直接使用 `==`、`!=`、`>`、`>=`、`<`、`<=` 运算符。页面或配置里需要展示给用户时，仍建议使用 `1.2.3` 这样的文本形式。
 
 ## 类型能力
 
 | 能力 | 说明 |
 | --- | --- |
 | `IComparable<Version>` | 支持按主版本、次版本、补丁、修订号逐级比较。 |
+| `==`、`!=` | 支持直接判断两个版本值是否相等。 |
+| `>`、`>=`、`<`、`<=` | 支持直接用比较运算符判断版本大小。 |
 | `IParsable<Version>` | 支持从 `1.2`、`1.2.3`、`1.2.3.4` 解析，不支持单段版本。 |
 | `TypeConverter` | 支持配置绑定和类型转换。 |
 | `JsonConverter` | 支持 JSON 序列化和反序列化。 |
