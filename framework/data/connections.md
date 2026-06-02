@@ -19,6 +19,7 @@ icon: plug
 
 ## 单数据源
 
+{% code title="Default.option" %}
 ```xml
 <configuration>
 	<option path="/Data">
@@ -30,6 +31,7 @@ icon: plug
 	</option>
 </configuration>
 ```
+{% endcode %}
 
 `connectionSetting.name` 应与数据访问名称一致。业务模块通常用模块名作为数据访问名称，例如 `Security`、`Administratives` 或 `Discussions`。
 
@@ -37,6 +39,7 @@ icon: plug
 
 连接名称可以使用冒号分隔数据源标识：
 
+{% code title="ReadWrite.option" %}
 ```xml
 <configuration>
 	<option path="/Data">
@@ -53,6 +56,7 @@ icon: plug
 	</option>
 </configuration>
 ```
+{% endcode %}
 
 `mode="WriteOnly"` 的数据源用于写入，`mode="ReadOnly"` 的数据源用于读取。驱动和数据源提供器会根据操作类型选择合适的数据源。
 

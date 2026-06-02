@@ -9,6 +9,7 @@ icon: file-lines
 
 ## 基本结构
 
+{% code title="web.deploy" %}
 ```ini
 [plugins]
 nuget:Zongsoft.Plugins/plugins/Main.plugin
@@ -16,6 +17,7 @@ nuget:Zongsoft.Plugins/plugins/Main.plugin
 [plugins zongsoft data]
 nuget:Zongsoft.Data
 ```
+{% endcode %}
 
 章节表示目标目录，条目表示要部署的源内容。
 
@@ -34,16 +36,20 @@ $(name)
 
 条目末尾可以使用 `<...>` 写过滤条件：
 
+{% code title="web.deploy" %}
 ```ini
 app.$(environment)-debug.option = app.option <debug:on>
 app.$(environment).option = app.option <!debug:on>
 ```
+{% endcode %}
 
 ## NuGet 部署
 
+{% code title="web.deploy" %}
 ```ini
 nuget:Zongsoft.Data@latest
 nuget:Zongsoft.Data@6.2.0/.deploy
 ```
+{% endcode %}
 
 如果包根目录包含 `.deploy` 文件，通常会优先执行包内部署文件。

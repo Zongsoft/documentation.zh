@@ -35,6 +35,7 @@ dotnet deploy --edition:Debug --framework:net10.0 --platform:win --architecture:
 
 部署文件是 INI 风格文本文件，由章节和条目组成。章节表示目标目录，条目表示源文件、NuGet 包或删除操作。
 
+{% code title="web.deploy" %}
 ```ini
 [plugins]
 nuget:Zongsoft.Plugins/plugins/Main.plugin
@@ -42,6 +43,7 @@ nuget:Zongsoft.Plugins/plugins/Main.plugin
 [plugins zongsoft security]
 nuget:Zongsoft.Security
 ```
+{% endcode %}
 
 ## 解析器
 

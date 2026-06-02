@@ -17,15 +17,19 @@ hosting/daemon
 
 Windows 平台会注册 Windows Service：
 
+{% code title="Program.cs" %}
 ```csharp
 builder.Services.AddWindowsService(options => options.ServiceName = builder.Environment.ApplicationName);
 ```
+{% endcode %}
 
 Linux 平台会集成 systemd：
 
+{% code title="Program.cs" %}
 ```csharp
 builder.Services.AddSystemd();
 ```
+{% endcode %}
 
 ## 安装脚本
 

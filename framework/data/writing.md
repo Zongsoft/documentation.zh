@@ -9,6 +9,7 @@ icon: pen-to-square
 
 ## 新增
 
+{% code title="InsertUser.cs" %}
 ```csharp
 accessor.Insert<User>(
 	new User
@@ -20,11 +21,13 @@ accessor.Insert<User>(
 	"UserId, Name, Enabled"
 );
 ```
+{% endcode %}
 
 新增时推荐显式指定允许写入的字段，尤其是在外部输入较多或模型包含导航属性时。
 
 ## 更新
 
+{% code title="UpdateUser.cs" %}
 ```csharp
 accessor.Update<User>(
 	new
@@ -36,11 +39,13 @@ accessor.Update<User>(
 	"Name, ModifiedTime"
 );
 ```
+{% endcode %}
 
 更新对象可以是实体，也可以是匿名对象。匿名对象适合只更新少量字段。
 
 ## 字段运算更新
 
+{% code title="IncrementReplies.cs" %}
 ```csharp
 accessor.Update<Thread>(
 	new
@@ -50,6 +55,7 @@ accessor.Update<Thread>(
 	Condition.Equal("ThreadId", threadId)
 );
 ```
+{% endcode %}
 
 这种方式避免先读后写导致的并发问题，适合计数器和金额累计。
 
@@ -57,31 +63,37 @@ accessor.Update<Thread>(
 
 `Upsert` 表示存在则更新，不存在则新增：
 
+{% code title="UpsertProfile.cs" %}
 ```csharp
 accessor.Upsert<UserProfile>(
 	profile,
 	"UserId, DisplayName, Avatar"
 );
 ```
+{% endcode %}
 
 是否能高效执行取决于映射中的键定义和数据库驱动支持。对于关键业务路径，应确认目标驱动的 upsert 行为。
 
 ## 删除
 
+{% code title="DeleteUser.cs" %}
 ```csharp
 accessor.Delete<User>(
 	Condition.Equal(nameof(User.UserId), userId)
 );
 ```
+{% endcode %}
 
 删除也可以带 `schema`，用于控制导航或级联范围：
 
+{% code title="DeleteRoleMembers.cs" %}
 ```csharp
 accessor.Delete<Role>(
 	Condition.Equal(nameof(Role.RoleId), roleId),
 	"Members"
 );
 ```
+{% endcode %}
 
 删除范围取决于映射关系和数据引擎的级联处理。生产代码应避免对空条件执行删除。
 
@@ -89,11 +101,13 @@ accessor.Delete<Role>(
 
 `Import` 适合把大量同结构数据快速写入目标数据源：
 
+{% code title="ImportLogs.cs" %}
 ```csharp
 accessor.Import<LogEntry>(
 	logs,
 	"LogId, Level, Message, CreatedTime"
 );
 ```
+{% endcode %}
 
 导入能力由驱动实现。不同数据库在批量写入、事务和返回值支持上可能不同。

@@ -9,12 +9,14 @@ icon: magnifying-glass-chart
 
 ## 基本查询
 
+{% code title="SelectUsers.cs" %}
 ```csharp
 var users = accessor.Select<User>(
 	Condition.Equal(nameof(User.Enabled), true),
 	"*, Roles{Name}"
 );
 ```
+{% endcode %}
 
 `schema` 中的 `Roles{Name}` 会显式加载角色导航属性。如果不写导航属性，默认只读取用户的简单字段。
 
@@ -28,6 +30,7 @@ var users = accessor.Select<User>(
 
 根查询也可以通过查询参数传入分页和排序对象：
 
+{% code title="PagedSelect.cs" %}
 ```csharp
 var page = accessor.Select<User>(
 	Condition.Like(nameof(User.Name), "%admin%"),
@@ -36,6 +39,7 @@ var page = accessor.Select<User>(
 	Sorting.Descending(nameof(User.CreatedTime))
 );
 ```
+{% endcode %}
 
 具体重载以当前目标框架和包版本中的 `IDataAccess` 为准。
 
@@ -53,6 +57,7 @@ var page = accessor.Select<User>(
 
 聚合既可以单独查询，也可以作为写入表达式的一部分：
 
+{% code title="AggregateOrders.cs" %}
 ```csharp
 var total = accessor.Aggregate<Order, decimal>(
 	DataAggregateFunction.Sum,
@@ -60,6 +65,7 @@ var total = accessor.Aggregate<Order, decimal>(
 	Condition.Equal(nameof(Order.CustomerId), customerId)
 );
 ```
+{% endcode %}
 
 常见聚合包括计数、求和、平均值、最大值、最小值、中位数、方差和标准差。驱动会决定底层数据库支持哪些聚合和函数。
 
@@ -67,11 +73,13 @@ var total = accessor.Aggregate<Order, decimal>(
 
 当确实需要数据库原生命令、存储过程或复杂脚本时，可以在映射中定义命令，然后使用 `Execute` 或 `ExecuteScalar` 调用：
 
+{% code title="ExecuteCommand.cs" %}
 ```csharp
 var count = accessor.ExecuteScalar(
 	"RebuildStatistics",
 	new[] { new Parameter("TenantId", tenantId) }
 );
 ```
+{% endcode %}
 
 优先使用声明式查询；只有在无法用映射、条件和模式表达时，再引入数据命令。

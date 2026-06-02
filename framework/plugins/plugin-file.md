@@ -25,6 +25,7 @@ plugins/
 
 ## 最小插件文件
 
+{% code title="Zongsoft.Data.plugin" %}
 ```xml
 <?xml version="1.0" encoding="utf-8" ?>
 
@@ -37,6 +38,7 @@ plugins/
 	</manifest>
 </plugin>
 ```
+{% endcode %}
 
 `manifest` 中的 `assemblies` 用于声明插件程序集。宿主启动时会注册这些程序集中的服务类型，并把它们作为插件类型解析的来源。
 
@@ -44,6 +46,7 @@ plugins/
 
 从插件通过 `dependencies` 声明依赖。数据驱动插件就是典型例子：驱动插件必须依赖 `Zongsoft.Data`，因为它要把驱动对象挂载到数据引擎提供的扩展点。
 
+{% code title="Zongsoft.Data.MySql.plugin" %}
 ```xml
 <manifest>
 	<assemblies>
@@ -54,6 +57,7 @@ plugins/
 	</dependencies>
 </manifest>
 ```
+{% endcode %}
 
 加载器会先处理主插件，再按依赖关系加载从插件。如果从插件依赖缺失或出现循环依赖，该从插件会加载失败并从插件集合中移除。
 
@@ -61,6 +65,7 @@ plugins/
 
 `extension` 用于把对象挂载到插件树指定路径。下面的例子来自 MySQL 驱动插件的模式：连接设置驱动挂载到配置节点，数据驱动挂载到数据节点。
 
+{% code title="Zongsoft.Data.MySql.plugin" %}
 ```xml
 <extension path="/Workbench/Configuration/ConnectionSettings/Drivers">
 	<object name="MySql" value="{static:Zongsoft.Data.MySql.Configuration.MySqlConnectionSettingsDriver.Instance, Zongsoft.Data.MySql}" />
@@ -70,6 +75,7 @@ plugins/
 	<object name="MySql" value="{static:Zongsoft.Data.MySql.MySqlDriver.Instance, Zongsoft.Data.MySql}" />
 </extension>
 ```
+{% endcode %}
 
 `object` 是最常见的构件声明。它可以通过 `type` 创建对象，也可以通过 `value` 引用已有对象、静态成员、配置值、服务或插件树路径。
 

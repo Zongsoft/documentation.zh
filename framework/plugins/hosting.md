@@ -11,6 +11,7 @@ icon: power-off
 
 插件框架提供 `Application.Daemon(...)` 和 `Application.Terminal(...)` 两组入口：
 
+{% code title="Program.cs" %}
 ```csharp
 using Zongsoft.Plugins.Hosting;
 
@@ -21,6 +22,7 @@ var host = Application.Daemon(args, builder =>
 
 await host.RunAsync();
 ```
+{% endcode %}
 
 `Daemon` 适合后台服务和常驻进程，`Terminal` 适合终端程序。两者都会加载宿主配置文件，再构建和初始化 Host。
 

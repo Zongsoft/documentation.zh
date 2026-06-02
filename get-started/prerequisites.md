@@ -5,9 +5,13 @@ icon: list-check
 
 # 准备环境
 
+![准备环境](../.gitbook/assets/zongsoft-start-cover.svg)
+
 开始使用 Zongsoft 前，建议先准备 .NET SDK、Git、可选容器环境和常用命令行工具。
 
-## 必需环境
+{% stepper %}
+{% step %}
+## 安装必需工具
 
 - Git
 - .NET SDK 8、9 或 10
@@ -17,8 +21,10 @@ icon: list-check
 {% hint style="info" %}
 framework 仓库当前面向 .NET 8、.NET 9、.NET 10 等版本。具体项目可能声明不同目标框架，构建前应以对应 `.csproj` 或 `Directory.Build.props` 为准。
 {% endhint %}
+{% endstep %}
 
-## 推荐目录
+{% step %}
+## 建立推荐目录
 
 建议把相关仓库 clone 到同一个根目录下，例如：
 
@@ -31,7 +37,9 @@ D:\Zongsoft
 ```
 
 这样可以让文档、宿主、工具和源码中的相对引用更容易对应。
+{% endstep %}
 
+{% step %}
 ## 拉取源码
 
 ```bash
@@ -45,7 +53,11 @@ framework 仓库包含子模块，clone 后需要更新：
 ```bash
 git submodule update --init --recursive
 ```
+{% endstep %}
 
-## 可选容器环境
+{% step %}
+## 准备可选容器环境
 
 如果需要本地运行 Redis、MySQL、PostgreSQL 或 RustFS，可以使用 hosting 仓库提供的 Podman 容器文件。Windows 环境建议先确认 WSL 2 可用。
+{% endstep %}
+{% endstepper %}

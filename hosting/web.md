@@ -20,9 +20,11 @@ hosting/web
 
 `web/default/Program.cs` 使用 `Zongsoft.Web.Application.Web(...)` 启动应用，并传入宿主和站点参数：
 
+{% code title="Program.cs" %}
 ```csharp
 var app = Zongsoft.Web.Application.Web([..args, "host=web", "site=default", "daemon=zongsoft.web"]);
 ```
+{% endcode %}
 
 ## 调试接口
 

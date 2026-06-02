@@ -5,6 +5,8 @@ icon: book-open
 
 # Zongsoft 开发框架
 
+![Zongsoft 文档封面](.gitbook/assets/zongsoft-docs-cover.svg)
+
 Zongsoft 是一组面向 .NET 的开源框架、宿主程序和开发工具，核心目标是帮助团队构建可插件化、可部署、可维护的业务应用。
 
 它由三部分共同组成：
@@ -25,7 +27,42 @@ Zongsoft 是一组面向 .NET 的开源框架、宿主程序和开发工具，�
 
 ## 快速导航
 
-<table data-view="cards"><thead><tr><th>主题</th><th data-card-target data-type="content-ref">页面</th></tr></thead><tbody><tr><td>了解整体设计</td><td><a href="overview/what-is-zongsoft.md">what-is-zongsoft.md</a></td></tr><tr><td>从本地环境开始</td><td><a href="get-started/prerequisites.md">prerequisites.md</a></td></tr><tr><td>理解插件化应用</td><td><a href="framework/plugins/">plugins</a></td></tr><tr><td>学习数据访问</td><td><a href="framework/data/">data</a></td></tr><tr><td>部署和运行应用</td><td><a href="hosting/deployment.md">deployment.md</a></td></tr><tr><td>使用命令行工具</td><td><a href="tools/tools.md">tools.md</a></td></tr></tbody></table>
+<table data-card-size="large" data-view="cards">
+	<thead>
+		<tr>
+			<th>主题</th>
+			<th>说明</th>
+			<th data-hidden data-card-target data-type="content-ref">页面</th>
+			<th data-hidden data-card-cover data-type="image">封面</th>
+		</tr>
+	</thead>
+	<tbody>
+		<tr>
+			<td><strong>了解整体设计</strong></td>
+			<td>从框架、宿主和工具链的边界开始建立全局图景。</td>
+			<td><a href="overview/what-is-zongsoft.md">what-is-zongsoft.md</a></td>
+			<td><a href=".gitbook/assets/zongsoft-docs-cover.svg">zongsoft-docs-cover.svg</a></td>
+		</tr>
+		<tr>
+			<td><strong>从本地环境开始</strong></td>
+			<td>准备 SDK、源码、目录和可选容器环境。</td>
+			<td><a href="get-started/prerequisites.md">prerequisites.md</a></td>
+			<td><a href=".gitbook/assets/zongsoft-start-cover.svg">zongsoft-start-cover.svg</a></td>
+		</tr>
+		<tr>
+			<td><strong>理解插件化应用</strong></td>
+			<td>理解插件树、构件、服务注册和宿主集成。</td>
+			<td><a href="framework/plugins/">plugins</a></td>
+			<td><a href=".gitbook/assets/zongsoft-plugins-cover.svg">zongsoft-plugins-cover.svg</a></td>
+		</tr>
+		<tr>
+			<td><strong>学习数据访问</strong></td>
+			<td>用数据模式、映射文件和驱动完成对象图读写。</td>
+			<td><a href="framework/data/">data</a></td>
+			<td><a href=".gitbook/assets/zongsoft-data-cover.svg">zongsoft-data-cover.svg</a></td>
+		</tr>
+	</tbody>
+</table>
 
 ## 阅读路径
 

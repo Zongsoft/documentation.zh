@@ -26,6 +26,7 @@ icon: hard-drive
 
 驱动以插件方式部署。以 MySQL 为例，插件会依赖 `Zongsoft.Data`，并向两个扩展点注册对象：
 
+{% code title="Zongsoft.Data.MySql.plugin" %}
 ```xml
 <extension path="/Workbench/Configuration/ConnectionSettings/Drivers">
 	<object name="MySql" value="{static:Zongsoft.Data.MySql.Configuration.MySqlConnectionSettingsDriver.Instance, Zongsoft.Data.MySql}" />
@@ -35,6 +36,7 @@ icon: hard-drive
 	<object name="MySql" value="{static:Zongsoft.Data.MySql.MySqlDriver.Instance, Zongsoft.Data.MySql}" />
 </extension>
 ```
+{% endcode %}
 
 连接配置中的 `driver="MySql"` 必须与这里的对象名称一致。
 

@@ -17,11 +17,13 @@ hosting/terminal
 
 终端宿主通过插件框架启动应用：
 
+{% code title="Program.cs" %}
 ```csharp
 Zongsoft.Plugins.Hosting.Application
 	.Terminal("zongsoft.terminal", [.. args, "host=terminal", "site=daemon"])
 	.Run();
 ```
+{% endcode %}
 
 ## 适用场景
 

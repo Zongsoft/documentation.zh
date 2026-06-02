@@ -5,6 +5,8 @@ icon: database
 
 # 数据引擎
 
+![数据引擎](../../.gitbook/assets/zongsoft-data-cover.svg)
+
 `Zongsoft.Data` 是一个类 GraphQL 风格的 ORM 数据访问框架。它通过数据模式、映射文件、条件表达式和数据库驱动描述数据访问结构，目标是在不手写 SQL 的情况下完成复杂查询、导航、过滤、分页、分组、聚合和写入操作。
 
 它不是把 SQL 换成另一种字符串 SQL，而是把数据访问拆成四个稳定层次：
@@ -25,14 +27,23 @@ icon: database
 
 ## 核心概念
 
-* [数据模式](schema.md)：描述查询或写入的数据形状。
-* [映射文件](mapping.md)：描述实体、表、字段和关系。
-* [连接配置](connections.md)：配置数据源、读写分离和驱动。
-* [数据访问接口](data-access.md)：执行查询、写入、聚合和命令。
-* [条件与操作元](conditions-and-operands.md)：表达过滤条件和字段运算。
-* [查询与导航](querying.md)：使用 `schema`、分页和排序读取对象图。
-* [写入操作](writing.md)：新增、更新、删除和增改。
-* [驱动](drivers.md)：选择、部署和扩展数据库驱动。
+<table data-view="cards"><thead><tr><th>主题</th><th>说明</th><th data-hidden data-card-target data-type="content-ref">页面</th></tr></thead><tbody><tr><td><strong>数据模式</strong></td><td>描述查询或写入的数据形状。</td><td><a href="schema.md">schema.md</a></td></tr><tr><td><strong>映射文件</strong></td><td>描述实体、表、字段和关系。</td><td><a href="mapping.md">mapping.md</a></td></tr><tr><td><strong>连接配置</strong></td><td>配置数据源、读写分离和驱动。</td><td><a href="connections.md">connections.md</a></td></tr><tr><td><strong>数据访问接口</strong></td><td>执行查询、写入、聚合和命令。</td><td><a href="data-access.md">data-access.md</a></td></tr><tr><td><strong>条件与操作元</strong></td><td>表达过滤条件和字段运算。</td><td><a href="conditions-and-operands.md">conditions-and-operands.md</a></td></tr><tr><td><strong>查询与导航</strong></td><td>使用 `schema`、分页和排序读取对象图。</td><td><a href="querying.md">querying.md</a></td></tr><tr><td><strong>写入操作</strong></td><td>新增、更新、删除和增改。</td><td><a href="writing.md">writing.md</a></td></tr><tr><td><strong>驱动</strong></td><td>选择、部署和扩展数据库驱动。</td><td><a href="drivers.md">drivers.md</a></td></tr></tbody></table>
+
+## 选择入口
+
+{% tabs %}
+{% tab title="我要查询数据" %}
+先看 [数据模式](schema.md) 和 [查询与导航](querying.md)。这两页解释如何表达字段、导航属性、分页和排序。
+{% endtab %}
+
+{% tab title="我要写入数据" %}
+先看 [写入操作](writing.md) 和 [条件与操作元](conditions-and-operands.md)。这两页解释新增、更新、删除、增改和字段运算。
+{% endtab %}
+
+{% tab title="我要接数据库" %}
+先看 [连接配置](connections.md) 和 [驱动](drivers.md)。这两页解释连接名、读写分离、驱动插件和部署检查。
+{% endtab %}
+{% endtabs %}
 
 ## 驱动
 
@@ -42,6 +53,7 @@ icon: database
 
 ## 典型调用
 
+{% code title="SelectUsers.cs" %}
 ```csharp
 var accessor = dataAccessProvider.GetAccessor("Security");
 
@@ -51,6 +63,7 @@ var users = accessor.Select<User>(
 	Sorting.Descending(nameof(User.CreatedTime))
 );
 ```
+{% endcode %}
 
 在这个调用中：
 

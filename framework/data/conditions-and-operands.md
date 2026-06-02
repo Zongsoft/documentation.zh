@@ -11,11 +11,13 @@ icon: filter
 
 `Condition` 是最常用的条件类型：
 
+{% code title="Condition.cs" %}
 ```csharp
 var criteria =
 	Condition.Equal(nameof(User.Enabled), true) &
 	Condition.Like(nameof(User.Name), "%admin%");
 ```
+{% endcode %}
 
 常见条件包括：
 
@@ -32,12 +34,14 @@ var criteria =
 
 当条件右侧不是常量，而是另一个字段时，使用字段操作元：
 
+{% code title="FieldOperand.cs" %}
 ```csharp
 var criteria = Condition.Equal(
 	"MostRecentThreadAuthorId",
 	Operand.Field("MostRecentPostAuthorId")
 );
 ```
+{% endcode %}
 
 这会生成字段与字段的比较，而不是字段与字符串常量的比较。
 
@@ -45,6 +49,7 @@ var criteria = Condition.Equal(
 
 操作元也可用于写入字段：
 
+{% code title="UpdateThread.cs" %}
 ```csharp
 accessor.Update<Thread>(
 	new
@@ -55,6 +60,7 @@ accessor.Update<Thread>(
 	Condition.Equal("ThreadId", threadId)
 );
 ```
+{% endcode %}
 
 这类表达式适合计数器、金额计算、标志位、聚合回写等场景。
 
@@ -71,6 +77,7 @@ accessor.Update<Thread>(
 
 ## 聚合回写
 
+{% code title="UpdateOrderAmount.cs" %}
 ```csharp
 accessor.Update<Order>(
 	new
@@ -80,6 +87,7 @@ accessor.Update<Order>(
 	Condition.Equal("OrderId", orderId)
 );
 ```
+{% endcode %}
 
 驱动会根据映射关系和数据库方言把聚合表达式翻译为合适的 SQL 或类 SQL 表达式。
 

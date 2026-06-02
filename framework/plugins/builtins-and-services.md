@@ -11,11 +11,13 @@ icon: cubes
 
 在插件文件中，`object`、`lazy`、`expose` 等元素会被解析为构件。构件有名称、构建器、类型或取值表达式，并最终挂载到插件树节点。
 
+{% code title="Zongsoft.Data.MySql.plugin" %}
 ```xml
 <extension path="/Workbench/Data/Drivers">
 	<object name="MySql" value="{static:Zongsoft.Data.MySql.MySqlDriver.Instance, Zongsoft.Data.MySql}" />
 </extension>
 ```
+{% endcode %}
 
 这个声明会把 MySQL 数据驱动挂载到 `/Workbench/Data/Drivers/MySql`。后续数据访问执行时，就可以通过驱动集合找到对应数据库方言和执行器。
 

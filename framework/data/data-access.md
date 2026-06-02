@@ -11,12 +11,14 @@ icon: code
 
 访问器通常通过 `IDataAccessProvider` 获取：
 
+{% code title="UserService.cs" %}
 ```csharp
 public class UserService(IDataAccessProvider provider)
 {
 	private readonly IDataAccess _data = provider.GetAccessor("Security");
 }
 ```
+{% endcode %}
 
 访问器名称与连接配置名称匹配。如果不传名称，或者指定名称不存在且配置了默认连接，则会使用默认连接。
 
@@ -51,12 +53,14 @@ public class UserService(IDataAccessProvider provider)
 
 许多方法都有 `schema` 参数。它用于控制字段范围和导航范围：
 
+{% code title="SelectUsers.cs" %}
 ```csharp
 var users = accessor.Select<User>(
 	Condition.Equal(nameof(User.Enabled), true),
 	"*, Roles{Name}"
 );
 ```
+{% endcode %}
 
 不传 `schema` 时，查询默认只返回简单属性。需要导航属性时必须显式指定。
 

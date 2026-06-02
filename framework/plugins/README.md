@@ -5,6 +5,8 @@ icon: puzzle-piece
 
 # 插件框架
 
+![插件框架](../../.gitbook/assets/zongsoft-plugins-cover.svg)
+
 `Zongsoft.Plugins` 是 Zongsoft 插件化应用的核心库。它把应用拆成可独立部署、可声明依赖、可挂载能力的插件模块，让终端程序、后台服务、Web 应用和富客户端共享一套扩展模型。
 
 ## 核心概念
@@ -39,10 +41,22 @@ flowchart LR
 
 默认的基础插件会挂载 `/Workbench`、`/Workbench/Configuration/ConnectionSettings`、`/Workbench/Diagnostics` 等节点；数据、Web、安全等插件会继续向这些节点添加驱动、过滤器、命令、事件处理器或服务。
 
+## 典型视角
+
+{% tabs %}
+{% tab title="应用开发者" %}
+关注插件能提供什么能力：服务、命令、Web API、后台工作器、数据驱动或业务模块。通常只需要理解插件目录和部署结果。
+{% endtab %}
+
+{% tab title="插件作者" %}
+关注 `*.plugin` 文件如何声明程序集、依赖、构件和扩展点。插件作者需要理解插件树路径和构件解析器。
+{% endtab %}
+
+{% tab title="宿主维护者" %}
+关注 Host 如何启动、配置如何加载、插件目录在哪里、服务如何注册，以及插件加载失败时如何诊断。
+{% endtab %}
+{% endtabs %}
+
 ## 继续阅读
 
-* [插件应用模型](application-model.md)
-* [插件文件与加载](plugin-file.md)
-* [宿主集成](hosting.md)
-* [构件与服务](builtins-and-services.md)
-* [宿主程序](../../hosting/hosting.md)
+<table data-view="cards"><thead><tr><th>主题</th><th>说明</th><th data-hidden data-card-target data-type="content-ref">页面</th></tr></thead><tbody><tr><td><strong>插件应用模型</strong></td><td>宿主、应用上下文、模块和服务之间的关系。</td><td><a href="application-model.md">application-model.md</a></td></tr><tr><td><strong>插件文件与加载</strong></td><td>插件文件、依赖、扩展点和加载策略。</td><td><a href="plugin-file.md">plugin-file.md</a></td></tr><tr><td><strong>宿主集成</strong></td><td>在 .NET Host 中启动插件式应用。</td><td><a href="hosting.md">hosting.md</a></td></tr><tr><td><strong>构件与服务</strong></td><td>构建器、解析器、插件树路径和服务发现。</td><td><a href="builtins-and-services.md">builtins-and-services.md</a></td></tr></tbody></table>
