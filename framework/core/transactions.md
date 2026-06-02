@@ -17,4 +17,3 @@ icon: rotate
 
 * [数据引擎](../data/README.md)
 * [Transactions 源码目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core/src/Transactions)
-* [Zongsoft.Core NuGet 包](https://www.nuget.org/packages/Zongsoft.Core)

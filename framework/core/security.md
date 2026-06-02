@@ -24,4 +24,3 @@ icon: shield
 
 * [Security 源码目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core/src/Security)
 * [安全](../security.md)
-* [Zongsoft.Core NuGet 包](https://www.nuget.org/packages/Zongsoft.Core)

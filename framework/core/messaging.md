@@ -24,4 +24,3 @@ icon: message
 
 * [Messaging 源码目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core/src/Messaging)
 * [消息队列](../messaging.md)
-* [Zongsoft.Core NuGet 包](https://www.nuget.org/packages/Zongsoft.Core)

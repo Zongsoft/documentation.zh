@@ -28,4 +28,3 @@ icon: sliders
 
 * [Configuration 源码目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core/src/Configuration)
 * [选项配置文件](../../references/option-files.md)
-* [Zongsoft.Core NuGet 包](https://www.nuget.org/packages/Zongsoft.Core)

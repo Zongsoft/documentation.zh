@@ -25,5 +25,3 @@ icon: cubes
 ## 相关资源
 
 * [Components 源码目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core/src/Components)
-* [Zongsoft.Core README](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/README.md)
-* [Zongsoft.Core NuGet 包](https://www.nuget.org/packages/Zongsoft.Core)

@@ -26,4 +26,3 @@ icon: stethoscope
 
 * [Diagnostics 源码目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core/src/Diagnostics)
 * [诊断](../diagnostics.md)
-* [Zongsoft.Core NuGet 包](https://www.nuget.org/packages/Zongsoft.Core)

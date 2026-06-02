@@ -18,4 +18,3 @@ icon: radio
 
 * [Communication 源码目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core/src/Communication)
 * [Zongsoft.Net 源码目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Net)
-* [Zongsoft.Core NuGet 包](https://www.nuget.org/packages/Zongsoft.Core)

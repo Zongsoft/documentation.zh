@@ -1,6 +1,6 @@
 ---
 description: Zongsoft.Resources 命名空间的职责和主要类型。
-icon: languages
+icon: book
 ---
 
 # Zongsoft.Resources
@@ -17,5 +17,3 @@ icon: languages
 ## 相关资源
 
 * [Resources 源码目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core/src/Resources)
-* [Zongsoft.Core README](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/README.md)
-* [Zongsoft.Core NuGet 包](https://www.nuget.org/packages/Zongsoft.Core)
