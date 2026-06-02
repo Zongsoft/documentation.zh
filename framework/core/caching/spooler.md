@@ -93,23 +93,6 @@ public class Spooler<T> : IEnumerable<T>, IDisposable
 * `FlushAsync` 使用 `Interlocked.CompareExchange` 抢占刷新权，避免并发刷新。
 * 内部 `Iterable` 每次最多读取 `limit` 条数据；如果 `limit` 为 `0`，则读取当前可读的全部数据。
 
-## .NET 官方 API
-
-`Spooler<T>` 的实现主要依赖下面这些 .NET 官方类型：
-
-| API | 作用 | 文档 | 源码 |
-| --- | --- | --- | --- |
-| `System.Threading.Channels` | 生产者/消费者异步通道命名空间。 | [文档](https://learn.microsoft.com/zh-cn/dotnet/core/extensions/channels) | [源码](https://source.dot.net/#System.Threading.Channels) |
-| `Channel<T>` | 通道容器，暴露 `Reader` 和 `Writer`。 | [文档](https://learn.microsoft.com/zh-cn/dotnet/api/system.threading.channels.channel-1) | [源码](https://source.dot.net/#q=System.Threading.Channels.Channel) |
-| `ChannelReader<T>` | 通道读取端，`Spooler<T>` 通过它流式读取待刷新数据。 | [文档](https://learn.microsoft.com/zh-cn/dotnet/api/system.threading.channels.channelreader-1) | [源码](https://source.dot.net/#q=System.Threading.Channels.ChannelReader) |
-| `ChannelWriter<T>` | 通道写入端，`PutAsync` 通过它写入缓冲数据。 | [文档](https://learn.microsoft.com/zh-cn/dotnet/api/system.threading.channels.channelwriter-1) | [源码](https://source.dot.net/#q=System.Threading.Channels.ChannelWriter) |
-| `Interlocked` | 提供原子比较交换，用于抢占刷新权。 | [文档](https://learn.microsoft.com/zh-cn/dotnet/api/system.threading.interlocked) | [源码](https://source.dot.net/#q=System.Threading.Interlocked) |
-| `Volatile` | 在释放刷新权时写入共享标记，保证跨线程可见性。 | [文档](https://learn.microsoft.com/zh-cn/dotnet/api/system.threading.volatile) | [源码](https://source.dot.net/#q=System.Threading.Volatile) |
-| `CancellationToken` | 传递取消信号，允许写入和刷新及时退出。 | [文档](https://learn.microsoft.com/zh-cn/dotnet/api/system.threading.cancellationtoken) | [源码](https://source.dot.net/#q=System.Threading.CancellationToken) |
-| `ValueTask` | 表示轻量异步操作，减少同步完成场景下的分配。 | [文档](https://learn.microsoft.com/zh-cn/dotnet/api/system.threading.tasks.valuetask) | [源码](https://source.dot.net/#q=System.Threading.Tasks.ValueTask) |
-| `IEnumerable<T>` | 刷新回调接收的批次视图。 | [文档](https://learn.microsoft.com/zh-cn/dotnet/api/system.collections.generic.ienumerable-1) | [源码](https://source.dot.net/#q=System.Collections.Generic.IEnumerable) |
-| `IDisposable` | 释放内部定时器和通道写入端。 | [文档](https://learn.microsoft.com/zh-cn/dotnet/api/system.idisposable) | [源码](https://source.dot.net/#q=System.IDisposable) |
-
 ## 构造函数
 
 {% code title="CreateSpooler.cs" %}
@@ -337,4 +320,3 @@ spooler.Dispose();
 
 * [Spooler.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Caching/Spooler.cs)
 * [SpoolerTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Caching/SpoolerTest.cs)
-* [Zongsoft.Core NuGet 包](https://www.nuget.org/packages/Zongsoft.Core)

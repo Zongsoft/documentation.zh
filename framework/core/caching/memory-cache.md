@@ -5,7 +5,7 @@ icon: database
 
 # MemoryCache
 
-`MemoryCache` 是 `Zongsoft.Caching` 命名空间中的进程内缓存实现。它包装 `Microsoft.Extensions.Caching.Memory.MemoryCache`，并在此基础上增加 Zongsoft 风格的过期描述、依赖令牌、优先级、淘汰事件和数量限制提醒。
+`MemoryCache` 是 `Zongsoft.Caching` 命名空间中的进程内缓存实现。它包装 [`Microsoft.Extensions.Caching.Memory.MemoryCache`](https://learn.microsoft.com/zh-cn/dotnet/api/microsoft.extensions.caching.memory.memorycache) _[源码](https://source.dot.net/#Microsoft.Extensions.Caching.Memory/MemoryCache.cs)_，并在此基础上增加 Zongsoft 风格的过期描述、依赖令牌、优先级、淘汰事件和数量限制提醒。
 
 {% hint style="info" %}
 `MemoryCache` 适合缓存进程内可重建的数据，例如元数据、描述符、解析结果或轻量对象。跨进程共享、分布式一致性和服务间缓存同步应使用 `IDistributedCache` 的具体实现。
@@ -94,7 +94,7 @@ cache.SetValue(
 
 ## 依赖令牌
 
-缓存项可以依赖 `IChangeToken`。当令牌变更时，缓存项会被标记为失效，并触发淘汰回调。
+缓存项可以依赖 [`IChangeToken`](https://source.dot.net/#Microsoft.Extensions.Primitives/IChangeToken.cs)。当令牌变更时，缓存项会被标记为失效，并触发淘汰回调。
 
 {% code title="MemoryCacheDependency.cs" %}
 ```csharp
@@ -110,6 +110,8 @@ cancellation.Cancel();
 cache.Compact();
 ```
 {% endcode %}
+
+示例中的 [`CancellationChangeToken`](https://source.dot.net/#Microsoft.Extensions.Primitives/CancellationChangeToken.cs) 会把取消令牌转换为缓存依赖令牌。
 
 依赖失效对应的淘汰原因是 `CacheEvictedReason.Depended`。
 
@@ -164,4 +166,3 @@ scanner.Stop();
 * [MemoryCacheOptions.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Caching/MemoryCacheOptions.cs)
 * [MemoryCacheScanner.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Caching/MemoryCacheScanner.cs)
 * [MemoryCacheTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Caching/MemoryCacheTest.cs)
-* [Zongsoft.Core NuGet 包](https://www.nuget.org/packages/Zongsoft.Core)
