@@ -74,6 +74,7 @@
   * [Zongsoft.Configuration](framework/core/configuration.md)
   * [Zongsoft.Data](framework/core/data.md)
   * [Zongsoft.Diagnostics](framework/core/diagnostics.md)
+    * [Telemetry](framework/core/diagnostics/telemetry.md)
   * [Zongsoft.Expressions](framework/core/expressions.md)
   * [Zongsoft.IO](framework/core/io.md)
   * [Zongsoft.Messaging](framework/core/messaging.md)
