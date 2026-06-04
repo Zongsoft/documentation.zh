@@ -15,10 +15,6 @@ icon: sliders
 * `Zongsoft.Configuration.Models`：把数据库记录、模型对象或字典式实体包装成配置源。
 * `Zongsoft.Configuration.Options`：把 Zongsoft 绑定器接入 Microsoft Options 模式。
 
-{% hint style="info" %}
-本文按源码和单元测试整理，特意不讨论 `ISetting.cs`、`Setting.cs` 和 `SettingCollection.cs` 这三个文件。
-{% endhint %}
-
 ## 设计定位
 
 Zongsoft 的配置系统以“配置源仍然是标准配置源，解释方式由 Zongsoft 约定增强”为核心思路。这样做的直接好处是：JSON 配置提供程序、环境变量、命令行、文件监视、[`Microsoft.Extensions.Options.IOptions<TOptions>`](https://learn.microsoft.com/zh-cn/dotnet/api/microsoft.extensions.options.ioptions-1) _[源码](https://source.dot.net/#Microsoft.Extensions.Options/IOptions.cs)_ 等 .NET 基础能力仍然可用，而框架内部可以用统一的对象模型读取 `.option`、数据库配置、插件配置和连接字符串。
@@ -366,7 +362,7 @@ nuget:Zongsoft.Security.Web@7.6.5
 | `<platform:win,windows>` | `platform` 是逗号列表之一。 |
 | `<framework:net8.0^>` | 目标框架同平台且版本大于等于 `net8.0`。 |
 | `<debug:on & platform:windows>` | 两个条件都满足。 |
-| `<debug:on | environment:test>` | 任一条件满足。 |
+| `<debug:on \| environment:test>` | 任一条件满足。 |
 
 变量替换支持两种形式：
 
