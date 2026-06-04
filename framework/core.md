@@ -45,6 +45,11 @@ framework/Zongsoft.Core
 			<td><a href="core/components.md">components.md</a></td>
 		</tr>
 		<tr>
+			<td><strong>版本表达</strong></td>
+			<td>语义化版本、四段式数值版本号和版本比较。</td>
+			<td><a href="core/versioning/version.md">version.md</a></td>
+		</tr>
+		<tr>
 			<td><strong>配置与数据抽象</strong></td>
 			<td>配置绑定、选项文件、数据访问抽象和数据元数据。</td>
 			<td><a href="core/configuration.md">configuration.md</a></td>
