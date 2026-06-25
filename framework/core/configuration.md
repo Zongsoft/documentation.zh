@@ -149,6 +149,43 @@ public sealed class MySqlSettings : ConnectionSettingsBase<MySqlDriver>
 
 如果连接设置类继承 `ConnectionSettingsBase<TDriver, TOptions>`，可以调用 `settings.GetOptions()` 把连接项投影到第三方库的 Options 对象。驱动描述符上的别名和组装器会参与这个投影过程，适合把一个连接字符串同时填充为 `ConnectionTimeout`、`ExecutionTimeout` 这类不同目标属性。
 
+### 复合属性
+
+连接设置属性除了可以从同名连接项直接转换，还可以由多个子项组装。规则是：如果某个设置描述符名为 `Cluster`，连接字符串中出现 `cluster.address`、`cluster.heartbeat` 这类以 `Cluster.` 为前缀的键，并且没有可直接转换的 `cluster` 值，`ConnectionSettingsBase` 会创建 `Cluster` 属性类型的实例，再把后缀路径写入对应成员。
+
+{% code title="CompositeConnectionSettings.cs" %}
+```csharp
+public class MyConnectionSettings : ConnectionSettingsBase<MyDriver>
+{
+	public MyConnectionSettings(MyDriver driver, string settings) : base(driver, settings) { }
+
+	public ClusterSettings Cluster
+	{
+		get => this.GetValue<ClusterSettings>();
+		set => this.SetValue(value);
+	}
+}
+
+public struct ClusterSettings
+{
+	public string Address { get; set; }
+	public TimeSpan Heartbeat { get; set; }
+}
+
+var settings = MyDriver.Instance.GetSettings(
+	"cluster.address=192.168.0.100;cluster.heartbeat=30s");
+
+Console.WriteLine(settings.Cluster.Address);
+Console.WriteLine(settings.Cluster.Heartbeat);
+```
+{% endcode %}
+
+复合键后缀按成员表达式解析，因此可以继续表达嵌套属性或索引器成员。最终叶子成员仍会使用目标成员类型或其 `System.ComponentModel.TypeConverter` 进行值转换；例如上面的 `cluster.heartbeat=30s` 会按 `System.TimeSpan` 规则转换。
+
+{% hint style="info" %}
+复合属性适合把连接字符串保持为扁平键值对，同时让驱动设置对象暴露更自然的结构化属性。它要求目标属性类型可以被创建；抽象类、接口或没有可用构造方式的类型不能自动组装。
+{% endhint %}
+
 ## XML 选项文件
 
 `Zongsoft.Configuration.Xml` 提供 `AddOptionFile()` 和 `AddOptionStream()`，把 `*.option` XML 转成标准配置键值。它接受根节点 `<configuration>` 或 `<options>`，根节点下的一级元素必须是 `<option>`：

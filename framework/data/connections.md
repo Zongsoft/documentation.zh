@@ -43,6 +43,32 @@ icon: plug
 
 `connectionSetting.name` 应与数据访问名称一致。业务模块通常用模块名作为数据访问名称，例如 `Security`、`Administratives` 或 `Discussions`。
 
+## 连接字符串属性
+
+`value` 是传给对应驱动的连接字符串，通常由分号分隔的键值项组成。连接设置对象会把这些键值项映射到驱动定义的属性，并按属性类型转换，例如端口、布尔值、时间间隔、网络端点或集合。
+
+{% code title="ConnectionValue.option" %}
+```xml
+<connectionSetting connectionSetting.name="Default"
+                   driver="MyDriver"
+                   value="server=192.168.0.1:8080,localhost:8088;timeout=1m;mapping=s1:t1,s2=t2,same" />
+```
+{% endcode %}
+
+集合属性可以写成一个文本值，放在连接字符串 `value` 内时通常使用逗号或竖线分隔元素，因为分号已经被外层连接项用作分隔符；具体元素如何转换由属性类型或属性上声明的转换器决定。驱动如果为某个集合属性声明了元素转换器，就可以把 `mapping=s1:t1,s2=t2,same` 这类短格式解析成结构化条目。
+
+驱动设置对象还可以把多个扁平键组装成一个复合属性。下面的写法不会要求连接字符串里出现完整的 `cluster` 值，而是用 `cluster.` 前缀为 `Cluster` 属性填充子成员：
+
+{% code title="CompositeConnectionValue.option" %}
+```xml
+<connectionSetting connectionSetting.name="Default"
+                   driver="MyDriver"
+                   value="cluster.address=192.168.0.100;cluster.heartbeat=30s" />
+```
+{% endcode %}
+
+这类写法适合描述集群、证书、代理、重试策略等结构化设置。能否使用取决于驱动的连接设置类是否定义了对应属性，以及该属性类型是否可以被自动创建并写入公共成员。
+
 ## 读写分离
 
 连接名称可以使用冒号分隔数据源标识：
