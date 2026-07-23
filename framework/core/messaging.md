@@ -241,6 +241,7 @@ Local@ZeroMQ
 
 ## 相关资源
 
+* [事件通道](components/events.md)
 * [消息队列插件](../messaging.md)
 * [连接配置](../data/connections.md)
 * [插件文件与加载](../plugins/plugin-file.md)
