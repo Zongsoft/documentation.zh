@@ -44,6 +44,12 @@ foreach(var value in Enumerable.Enumerate<int>(new[] { 1, 2, 3 }))
 * `Enumerate<T>(object)`：把对象转换为 `IEnumerable<T>`。
 * `EnumerateAsync<T>(object)`：把对象转换为 `IAsyncEnumerable<T>`。
 
+这些方法优先把同步或异步集合识别为序列，只有非集合对象才按单值进行类型转换；单值枚举器只借用该对象，释放枚举器不会释放元素本身。
+
+`Asynchronize<T>` 和 `EnumerateAsync<T>` 只进行枚举形态适配，不会把同步枚举安排到后台线程。异步枚举器收到取消标记后会抛出 `OperationCanceledException`；`EnumerateAsync<T>` 同时收到方法级和枚举器级取消标记时，两者任一取消都会终止枚举。`Synchronize<T>` 会阻塞当前线程等待异步枚举，异步调用链中应优先直接使用 `await foreach`。
+
+当源序列实现 `IPageable` 时，`Asynchronize<T>`、`EnumerateAsync<T>` 和 `Synchronize<T>` 的适配结果继续实现 `IPageable`，并转发动态的 `Suppressed` 状态和 `Paginated` 事件；事件 sender 为调用方持有的外层结果对象。
+
 ## CollectionUtility
 
 `CollectionUtility` 用于目标对象类型不确定，但可能实现了 `ICollection<T>` 或非泛型 `IList` 的场景。

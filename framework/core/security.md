@@ -126,10 +126,10 @@ protected override bool OnTransform(UserIdentity user, Claim claim)
 `Password` 是核心库推荐的密码摘要结构。它把算法、指数、随机数和派生值打包在同一个值中，文本格式类似：
 
 ```text
-SHA1#10:1A2B3C4D5E6F7890|Base64String
+SHA256#10:1A2B3C4D5E6F7890|Base64String
 ```
 
-`Password.Generate(...)` 使用 PBKDF2 生成摘要，`Verify(...)` 根据摘要中保存的算法、随机数和指数重新计算后比对。旧的 `PasswordUtility` 已标记为过时，除兼容旧数据外，新的实现应优先使用 `Password` 或业务服务中的 `Passworder`。
+`Password.Generate(...)` 使用 PBKDF2 生成摘要；省略算法参数时默认使用 SHA256。`Verify(...)` 根据摘要中保存的算法、随机数和指数重新计算，因此已有 SHA1 摘要仍可继续验证。旧的 `PasswordUtility` 已标记为过时，新的实现应优先使用 `Password`；业务服务中的 `Passworder` 目前仍保留旧格式兼容路径，后续需要配合重哈希迁移。
 
 `ISecretor` 和 `Secretor` 用于一次性秘密，例如短信验证码、邮箱验证码、找回密码令牌或敏感操作二次确认。默认实现把秘密保存到分布式缓存，支持：
 

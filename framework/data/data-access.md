@@ -38,6 +38,33 @@ public class UserService(IDataAccessProvider provider)
 
 这些方法通常都有泛型实体重载和实体名字符串重载。泛型重载适合强类型业务代码；字符串重载适合动态模型、工具和跨模块场景。
 
+## 异步查询语义
+
+`SelectAsync` 在返回前完成 `selecting` 回调、`Selecting` 事件和查询前过滤器，然后立即启动异步查询准备。正常 Provider 路径返回一个内部异步结果句柄；第一次枚举会异步等待准备完成，而不会在调用 `SelectAsync` 时同步阻塞线程。
+
+查询准备成功后，系统依次执行查询后过滤器、`Selected` 事件和 `selected` 回调，再开始枚举 Provider 提供的结果。准备阶段或这些后置处理抛出的异常会在枚举结果时传播；调用返回前发生的预取消、查询前过滤器异常或短路处理异常则直接由 `SelectAsync` 抛出。
+
+传给 `SelectAsync` 的取消标记同时作用于查询准备和后续枚举。通过 `WithCancellation` 或 `GetAsyncEnumerator` 传入的枚举器取消标记只取消该次等待和枚举，不会取消同一结果句柄所共享的查询准备。顺序重复枚举会复用同一次准备结果，不会重复调用 Provider。
+
+正常 Provider 路径返回的句柄同时实现 `IPageable`，因此可以在枚举前订阅 `Paginated`：
+
+{% code title="PaginatedQuery.cs" %}
+```csharp
+var paging = Paging.Page(1, 20);
+var users = accessor.SelectAsync<User>(null, paging);
+
+if(users is IPageable pageable)
+	pageable.Paginated += (_, args) => Console.WriteLine(args.Paging.Total);
+
+await foreach(var user in users)
+	Console.WriteLine(user.Name);
+```
+{% endcode %}
+
+结果尚未准备完成时，`IPageable.Suppressed` 根据本次请求的 `Paging` 判断；准备完成后优先采用 Provider 结果的分页状态。如果 Provider 结果不支持分页，则该值为 `true`。分页事件的 sender 是调用方实际持有的结果句柄，可用于正确退订事件。
+
+为了保留真正的异步准备能力，正常路径返回的句柄与 Provider 写入查询上下文的结果对象不保证引用相同。只有 `selecting` 回调或 `Selecting` 事件短路查询时，事件提供的结果对象才会原样返回。
+
 ## 事件与过滤器
 
 访问器暴露了完整的数据操作事件，例如 `Selecting`、`Selected`、`Inserting`、`Inserted`、`Updating`、`Updated`、`Deleting`、`Deleted` 和 `Error`。这些事件可用于审计、诊断、租户条件追加或统一异常处理。
