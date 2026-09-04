@@ -1,6 +1,6 @@
 # Table of contents
 
-* [Zongsoft 开发框架](README.md)
+* [Zongsoft 开发框架](README.zh-Hans.md)
 
 ## 概览 <a href="#overview" id="overview"></a>
 
@@ -91,12 +91,12 @@
     * [命令](framework/core/terminals/commands.md)
   * [Zongsoft.Text](framework/core/text.md)
   * [Zongsoft.Versioning](framework/core/versioning/version.md)
-* [插件框架](framework/plugins/README.md)
+* [插件框架](framework/plugins/README.zh-Hans.md)
   * [插件应用模型](framework/plugins/application-model.md)
   * [插件文件与加载](framework/plugins/plugin-file.md)
   * [宿主集成](framework/plugins/hosting.md)
   * [构件与服务](framework/plugins/builtins-and-services.md)
-* [数据引擎](framework/data/README.md)
+* [数据引擎](framework/data/README.zh-Hans.md)
   * [数据模式](framework/data/schema.md)
   * [映射文件](framework/data/mapping.md)
   * [连接配置](framework/data/connections.md)
