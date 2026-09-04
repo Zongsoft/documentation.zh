@@ -48,6 +48,6 @@ dotnet-pack deb \
 ## 相关资源
 
 * [packager 源码目录](https://github.com/Zongsoft/tools/tree/main/packager)
-* [packager 中文 README](https://github.com/Zongsoft/tools/blob/main/packager/README-zh_CN.md)
+* [packager 中文 README](https://github.com/Zongsoft/tools/blob/main/packager/README.zh-Hans.md)
 * [packager 英文 README](https://github.com/Zongsoft/tools/blob/main/packager/README.md)
 * [Zongsoft.Tools.Packager NuGet 包](https://www.nuget.org/packages/Zongsoft.Tools.Packager)

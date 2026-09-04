@@ -36,4 +36,4 @@ GET /Modules
 GET /Events
 ```
 
-接口调试可使用 `web/.http` 目录中的 REST Client 或 HttpYac 文件。
+接口调试可使用 `web/.http` 目录中的 HttpYac 请求文件；环境参数通过 VS Code 的 `httpyac.environmentVariables` 配置，并可从 HttpYac 状态栏切换当前环境。

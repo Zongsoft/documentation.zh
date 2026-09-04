@@ -45,6 +45,6 @@ dotnet-upgrade pack \
 
 * [upgrading 源码目录](https://github.com/Zongsoft/framework/tree/main/upgrading)
 * [upgrader 工具源码目录](https://github.com/Zongsoft/framework/tree/main/upgrading/tool)
-* [upgrader 中文 README](https://github.com/Zongsoft/framework/blob/main/upgrading/tool/README-zh_CN.md)
+* [upgrader 中文 README](https://github.com/Zongsoft/framework/blob/main/upgrading/tool/README.zh-Hans.md)
 * [upgrader 英文 README](https://github.com/Zongsoft/framework/blob/main/upgrading/tool/README.md)
 * [Zongsoft.Tools.Upgrader NuGet 包](https://www.nuget.org/packages/Zongsoft.Tools.Upgrader)

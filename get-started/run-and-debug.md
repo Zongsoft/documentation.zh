@@ -25,7 +25,7 @@ GET /Modules
 GET /Events
 ```
 
-hosting 仓库的 `web/.http` 目录用于存放 REST Client 或 HttpYac 请求定义。
+hosting 仓库的 `web/.http` 目录用于存放 HttpYac 请求定义。使用前请在 VS Code 的 `settings.json` 中配置 `httpyac.environmentVariables`，并选择对应的运行环境。
 
 ## 常见检查点
 

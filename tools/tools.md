@@ -26,7 +26,7 @@ Zongsoft 工具链用于辅助部署、打包、升级和开发调试。
 ## 相关资源
 
 * [tools 仓库](https://github.com/Zongsoft/tools)
-* [tools 中文 README](https://github.com/Zongsoft/tools/blob/main/README-zh_CN.md)
+* [tools 中文 README](https://github.com/Zongsoft/tools/blob/main/README.zh-Hans.md)
 * [tools 英文 README](https://github.com/Zongsoft/tools/blob/main/README.md)
 * [Zongsoft.Tools.Deployer NuGet 包](https://www.nuget.org/packages/Zongsoft.Tools.Deployer)
 * [Zongsoft.Tools.Packager NuGet 包](https://www.nuget.org/packages/Zongsoft.Tools.Packager)
