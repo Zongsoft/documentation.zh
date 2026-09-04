@@ -9,7 +9,7 @@ https://gitbook.com/docs/skill.md
 - 保持已有文件的换行符；新增文本文件使用 CRLF 换行。
 - 使用 Tab 字符缩进。编辑现有文件时延续该文件当前缩进方式；`SUMMARY.md` 当前使用空格缩进层级，除非整体重排导航，否则不要改变它。
 - 不要修改与当前任务无关的文件，不要重排整篇文档，不要批量替换风格差异。
-- 所有正文优先使用简体中文，术语、包名、类型名、命令名和文件名保持原文。
+- `README.md` 作为英文入口，`README.zh-Hans.md` 作为简体中文入口；其他正文优先使用简体中文。术语、包名、类型名、命令名和文件名保持原文。
 - 文档面向 Zongsoft 使用者，解释应落在“如何用、何时用、注意事项”，避免写成源码逐行注释。
 
 ## GitBook 写作规则
@@ -18,7 +18,7 @@ https://gitbook.com/docs/skill.md
 - 页面文件使用 GitBook 支持的 Markdown：frontmatter、GitBook 自定义区块、相对链接、资源引用都必须保持可渲染。
 - 新增普通页面时，尽量添加 `description` 和合适的 `icon` frontmatter。
 - 新增页面后同步 `SUMMARY.md`，不要让同一个 Markdown 文件在 `SUMMARY.md` 中出现两次。
-- 内部链接使用相对路径，例如 `[部署工具](../../tools/deployer.md)`；移动文件时同步修复引用。
+- 内部链接使用相对路径，例如 `[部署工具](tools/deployer.md)`；移动文件时同步修复引用。
 - 图片和可下载资源放在 `.gitbook/assets/` 下，引用路径按页面位置写相对路径。
 - 导航入口或专题入口可使用 GitBook card table；一般说明优先使用段落、列表、hint、tabs、stepper、content-ref。
 - 代码块尽量使用 GitBook 的 code title 区块包裹并提供标题。
