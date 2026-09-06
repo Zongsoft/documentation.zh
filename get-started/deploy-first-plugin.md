@@ -23,7 +23,7 @@ nuget:Zongsoft.Discussions.Web@0.8.0
 
 ## 2. 区分宿主发布与业务构建
 
-宿主项目位于 hosting/web/default，入口是 Zongsoft.Hosting.Web.dll。默认从同级 framework 输出引用 Core、Web、Plugins、Plugins.Web，因此发布前要先构建这些项目的相同目标框架和配置。命令从 hosting/web/default 执行：
+宿主项目位于 hosting/web/default，入口是 Zongsoft.Hosting.Web.dll。默认从同级 framework 输出引用 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core)、Web、Plugins、Plugins.Web，因此发布前要先构建这些项目的相同目标框架和配置。命令从 hosting/web/default 执行：
 
 {% code title="发布真实 Web 宿主" %}
 ```powershell

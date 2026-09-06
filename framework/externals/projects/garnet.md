@@ -5,7 +5,7 @@ icon: plug
 
 # Garnet
 
-通过宿主工作器运行支持 Redis 协议的 Garnet 服务器。项目承担服务器托管职责，业务客户端仍需要相应的访问适配器。
+通过宿主[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)运行支持 Redis 协议的 Garnet 服务器。项目承担服务器托管职责，业务客户端仍需要相应的访问适配器。
 
 | 项目项 | 值 |
 | --- | --- |
@@ -24,11 +24,11 @@ nuget:Zongsoft.Externals.Garnet
 ```
 {% endcode %}
 
-设置位于 `/Externals/Garnet`，具名 server 的 value 转换为服务器选项。启动工作器会使用相应端口和存储目录。
+设置位于 `/Externals/Garnet`，具名 server 的 value 转换为服务器选项。启动[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)会使用相应端口和存储目录。
 
 ## 接入步骤
 
-1. 明确绑定地址、端口、认证和持久化目录后再启用工作器。
+1. 明确绑定地址、端口、认证和持久化目录后再启用[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)。
 2. 使用选定客户端验证应用实际依赖的命令和数据类型。
 3. 如启用 AOF 或检查点，验证停止、重新启动和数据恢复。
 

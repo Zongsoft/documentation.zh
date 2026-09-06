@@ -19,7 +19,7 @@ icon: circle-question
 
 ## 宿主入口可以直接写业务吗？
 
-应用组合和启动配置属于宿主职责，业务规则建议放入插件服务，再由命令、工作器或控制器调用。这样更容易在[终端与 Web](hosting/hosting.md)之间复用和验证。
+应用组合和启动配置属于宿主职责，业务规则建议放入插件服务，再由命令、[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)或控制器调用。这样更容易在[终端与 Web](hosting/hosting.md)之间复用和验证。
 
 ## `Resolve`、`Find`、`Locate` 为什么结果不同？
 

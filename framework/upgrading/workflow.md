@@ -37,7 +37,7 @@ Discussions 没有独立升级客户端配置。下面采用框架升级器随�
 
 当前随包 `.option` 默认选择 `Web`。不要仅凭旧 README 中 `default="File"` 的示例判断部署默认值。应用配置文件的名称与覆盖规则见[选项配置文件](../../references/option-files.md)。
 
-插件在启动工作器中注册升级器，默认周期为十分钟；周期大于等于五分钟时，还会在启动约十秒后安排一次检查。因此安装并启动插件之前，应先准备正确的发布源与停机策略。
+插件在启动[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)中注册升级器，默认周期为十分钟；周期大于等于五分钟时，还会在启动约十秒后安排一次检查。因此安装并启动插件之前，应先准备正确的发布源与停机策略。
 
 ## 3. 管理包与发布状态
 
@@ -102,6 +102,6 @@ public async Task<IActionResult> GetAsync(string name, string edition, [FromQuer
 
 全量部署会清理应用内日志，升级验收时应把日志输出或快照保存在应用目录外。最后同时确认 `.deployment` 生命周期结束、`.version` 内容和新进程的健康状态。
 
-失败后先保存描述文件、manifest、解压目录及日志的副本，判断停在哪个阶段。不要为了让工作器重新运行而直接删除所有交接信息；若文件已被部分替换，应依据已准备的恢复包和数据备份恢复到一致状态，再重新尝试。
+失败后先保存描述文件、manifest、解压目录及日志的副本，判断停在哪个阶段。不要为了让[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)重新运行而直接删除所有交接信息；若文件已被部分替换，应依据已准备的恢复包和数据备份恢复到一致状态，再重新尝试。
 
 源码入口：[客户端](https://github.com/Zongsoft/framework/tree/main/upgrading/upgrader)、[部署顺序](https://github.com/Zongsoft/framework/blob/main/upgrading/deployer/Deployer.Deploy.cs)、[Web 管理器](https://github.com/Zongsoft/framework/tree/main/upgrading/web)。

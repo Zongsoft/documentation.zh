@@ -103,7 +103,7 @@ Claims 应保存“认证后需要频繁读取的小事实”，例如用户编�
 * `Authentication.Transformer` 中的 `ClaimsPrincipalTransformer.Transformers`。
 * 当前应用服务容器中的 `IClaimsIdentityTransformer`。
 
-转换结果会以 `CredentialId` 和 _scheme_ 为键缓存；凭证主体释放时缓存随之失效。Discussions 的 UserIdentity.Current 按 Zongsoft.Discussions 方案读取模型：
+转换结果会以 `CredentialId` 和 _scheme_ 为键缓存；凭证主体释放时缓存随之失效。Discussions 的 UserIdentity.Current 按 [Zongsoft.Discussions](https://github.com/Zongsoft/discussions/tree/main/src) 方案读取模型：
 
 来源：[src/Security/UserIdentity.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Security/UserIdentity.cs#L110)（节选；上下文见源文件）。
 
@@ -178,7 +178,7 @@ private bool OnTransform(UserIdentity user, Claim claim)
 
 * 从主身份读取用户编号，并查询或创建 Discussions 用户资料。
 * 创建资料时从身份命名空间确定 SiteId；已有资料保留自己的站点信息。
-* 调用 OnVerify 扩展点，再创建 Zongsoft.Discussions 身份加入主体。
+* 调用 OnVerify 扩展点，再创建 [Zongsoft.Discussions](https://github.com/Zongsoft/discussions/tree/main/src) 身份加入主体。
 * 写入 SiteId、Gender、Avatar、Grade、TotalPosts 和 TotalThreads 声明。
 
 当前 OnVerify 是空实现，不能据此宣称已校验账号启用状态、站点状态或许可范围；这些业务准入规则需要由实际模块补充。资料统计声明也是签发时的快照，不会随每次发帖自动刷新。

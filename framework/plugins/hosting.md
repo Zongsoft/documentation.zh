@@ -87,7 +87,7 @@ static void Main(string[] args)
 
 ## 初始化与生命周期
 
-Host 构建完成后会初始化 `ApplicationContext`。应用上下文会解析所有 `IApplicationInitializer` 并执行初始化；当 Host 生命周期进入 Started、Stopping、Stopped 时，应用上下文会启动或停止已注册的工作器，并触发对应事件。
+Host 构建完成后会初始化 `ApplicationContext`。应用上下文会解析所有 [`IApplicationInitializer`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationInitializer.cs) 并执行初始化；当 Host 生命周期进入 Started、Stopping、Stopped 时，应用上下文会启动或停止已注册的[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)，并触发对应事件。
 
 插件式应用的推荐边界是：
 
@@ -99,7 +99,7 @@ Host 构建完成后会初始化 `ApplicationContext`。应用上下文会解析
 
 <summary>什么时候应该改宿主，什么时候应该写插件？</summary>
 
-如果改动影响进程启动、站点选择、Host 环境、服务托管方式或部署入口，通常属于宿主职责。如果改动是业务能力、数据库驱动、命令、Web API、后台工作器或模块内部服务，优先放入插件。
+如果改动影响进程启动、站点选择、Host 环境、服务托管方式或部署入口，通常属于宿主职责。如果改动是业务能力、数据库驱动、命令、Web API、后台[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)或模块内部服务，优先放入插件。
 
 </details>
 
@@ -113,4 +113,4 @@ Host 构建完成后会初始化 `ApplicationContext`。应用上下文会解析
 
 程序集引用扫描只处理当时已加载的入口引用，再处理入口程序集及已加载插件清单声明的程序集。不要以为放进目录的每个 DLL 都会自动参与服务扫描。
 
-Web 应用使用配套的 `Zongsoft.Web.Application.Web(...)` 入口，并额外完成控制器、初始化器和中间件装配，见[Web 基础](../web.md)。
+Web 应用使用配套的 `Zongsoft.Web.Application.Web(...)` 入口，并额外完成控制器、[初始化器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationInitializer.cs)和中间件装配，见[Web 基础](../web.md)。

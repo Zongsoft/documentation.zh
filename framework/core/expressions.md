@@ -78,7 +78,7 @@ Assert.Equal(2.0f, (float)token.Value);
 ```
 {% endcode %}
 
-Discussions 没有自行构造词法器；上面的 Core 测试依次断言整数常量 1、加号和单精度常量 2。完整测试继续覆盖标识符、字符串、负号和其他运算符。后续它是普通条件、数据查询条件还是命令参数条件，取决于调用方如何解释这些 token。
+Discussions 没有自行构造词法器；上面的 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 测试依次断言整数常量 1、加号和单精度常量 2。完整测试继续覆盖标识符、字符串、负号和其他运算符。后续它是普通条件、数据查询条件还是命令参数条件，取决于调用方如何解释这些 token。
 
 ## Token 规则
 

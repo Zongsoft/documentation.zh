@@ -42,7 +42,7 @@ flowchart LR
 | `IMessageQueueProvider` | 队列提供器，按名称从应用配置中发现并复用队列实例。 |
 | `MessageQueueBase<TSubscriber>` | 队列基类，实现发送和订阅重载、默认主题解析、订阅集合和释放流程。 |
 | `MessageConsumerBase<TQueue>` | 消费者基类，把订阅生命周期纳入 [Channel](communication/general.md) 关闭模型。 |
-| `MessageQueueGuarder` | 宿主工作器，根据配置启动一组订阅，并在停止时取消订阅。 |
+| `MessageQueueGuarder` | 宿主[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)，根据配置启动一组订阅，并在停止时取消订阅。 |
 
 处理器使用 [`IHandler<T>`](components/handler.md) 承接消息处理逻辑。这样订阅回调可以是简单委托，也可以是可复用、可注入、可组合的处理器对象。
 

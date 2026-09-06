@@ -7,7 +7,7 @@ icon: database
 
 ![数据引擎](../../.gitbook/assets/zongsoft-data-cover.png)
 
-`Zongsoft.Data` 是一个类 GraphQL 风格的 ORM 数据访问框架。它通过数据模式、映射文件、条件表达式和数据库驱动描述数据访问结构，目标是在不手写 SQL 的情况下完成复杂查询、导航、过滤、分页、分组、聚合和写入操作。
+[`Zongsoft.Data`](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Data) 是一个类 GraphQL 风格的 ORM 数据访问框架。它通过数据模式、映射文件、条件表达式和数据库驱动描述数据访问结构，目标是在不手写 SQL 的情况下完成复杂查询、导航、过滤、分页、分组、聚合和写入操作。
 
 它不是把 SQL 换成另一种字符串 SQL，而是把数据访问拆成四个稳定层次：
 

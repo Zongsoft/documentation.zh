@@ -9,7 +9,7 @@ icon: message
 
 Zongsoft 的消息队列体系由 [Zongsoft.Messaging](core/messaging.md) 核心抽象和四个具体插件组成。核心抽象负责统一生产、订阅、消息确认和队列发现；插件负责把这些抽象落到具体消息系统上。
 
-首次使用请先阅读[发布订阅与投递概念](messaging/concepts.md)，需要故障恢复时继续阅读[可靠投递与消息存储](messaging/reliability.md)。本页说明四个实现的设计差异、配置方式、使用范例和注意事项。业务代码通常只需要依赖 `Zongsoft.Core` 的消息抽象；应用启动、部署和连接参数才需要关心具体插件。
+首次使用请先阅读[发布订阅与投递概念](messaging/concepts.md)，需要故障恢复时继续阅读[可靠投递与消息存储](messaging/reliability.md)。本页说明四个实现的设计差异、配置方式、使用范例和注意事项。业务代码通常只需要依赖 [`Zongsoft.Core`](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 的消息抽象；应用启动、部署和连接参数才需要关心具体插件。
 
 ## 按项目阅读
 

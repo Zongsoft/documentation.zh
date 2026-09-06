@@ -6,7 +6,7 @@ icon: bolt
 # 事件
 
 
-模块事件为业务组件提供显式的事件入口。Discussions 的 Module 继承带事件注册表类型参数的 ApplicationModule，并在插件树中暴露 Events。
+模块事件为业务组件提供显式的事件入口。Discussions 的 Module 继承带事件注册表类型参数的 [ApplicationModule](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/ApplicationModule.cs)，并在插件树中暴露 Events。
 
 来源：[src/Module.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Module.cs#L56)（节选；上下文见源文件）。
 

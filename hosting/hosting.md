@@ -12,7 +12,7 @@ icon: server
 | 类型 | 主要入口 | 适合场景 | 阅读 |
 | --- | --- | --- | --- |
 | Terminal | 交互命令 | 开发调试、手工诊断、复现后台行为 | [终端宿主](terminal.md) |
-| Daemon | 长期工作器 | 消费消息、执行作业、系统服务 | [后台服务宿主](daemon.md) |
+| Daemon | 长期[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs) | 消费消息、执行作业、系统服务 | [后台服务宿主](daemon.md) |
 | Web | HTTP 管线 | 控制器、接口、网关 | [Web 宿主](web.md) |
 
 终端可模拟后台业务，但 Web 控制器和中间件仍需 Web 宿主；使用终端输入的插件也不应无条件在无交互服务中启动。
@@ -48,7 +48,7 @@ nuget:Zongsoft.Plugins/plugins/Main.plugin
 
 先确认进程正确启动，再检查插件加载、构件与服务注册，最后验证业务调用。某些提供者延迟建立连接，首次访问才会暴露端点、权限或 DLL 版本错误。
 
-停止时，宿主通知工作器停止并释放自己拥有的资源。业务工作器应停止接收新任务、传递取消、等待必要的在途操作；不应靠强制退出代替正常生命周期设计。
+停止时，宿主通知[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)停止并释放自己拥有的资源。业务工作器应停止接收新任务、传递取消、等待必要的在途操作；不应靠强制退出代替正常生命周期设计。
 
 下一步：[部署宿主](deployment.md)、[容器化环境](containerization.md)、[插件宿主集成](../framework/plugins/hosting.md)。
 

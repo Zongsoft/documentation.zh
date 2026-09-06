@@ -5,7 +5,7 @@ icon: cube
 
 # 核心类库
 
-`Zongsoft.Core` 是 Zongsoft 框架的核心类库，不依赖第三方类库。它提供框架中被其它模块共享的基础抽象、工具类、服务模型和运行时能力。
+[`Zongsoft.Core`](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 是 Zongsoft 框架的核心类库，不依赖第三方类库。它提供框架中被其它模块共享的基础抽象、工具类、服务模型和运行时能力。
 
 ## 主要能力
 
@@ -69,7 +69,7 @@ framework/Zongsoft.Core
 
 ## 何时阅读本节
 
-当你需要理解其它模块里的通用类型、服务抽象、命令模型、选项配置或终端能力时，应先回到核心类库。插件框架、数据引擎、Web 基础库等模块都会复用这里的基础抽象。
+当你需要理解其它模块里的通用类型、服务抽象、命令模型、选项配置或终端能力时，应先回到[核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core)。插件框架、数据引擎、Web 基础库等模块都会复用这里的基础抽象。
 
 ## 相关资源
 

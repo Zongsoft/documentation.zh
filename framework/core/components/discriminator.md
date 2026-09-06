@@ -50,7 +50,7 @@ object IDiscriminator.Discriminate(object argument)
 
 ## 插件装配中的用途
 
-`Zongsoft.Plugins` 中的 `BuiltinType` 会先询问拥有者或默认成员是否实现 `IDiscriminator`，如果返回 [`Type`](https://learn.microsoft.com/zh-cn/dotnet/api/system.type) _[源码](https://source.dot.net/#System.Private.CoreLib/Type.cs)_ 或集合，就用它判断构件类型。`ObjectBuilder` 在追加子对象时也会先调用容器的识别器，把子对象交给正确的集合。
+[`Zongsoft.Plugins`](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Plugins) 中的 `BuiltinType` 会先询问拥有者或默认成员是否实现 `IDiscriminator`，如果返回 [`Type`](https://learn.microsoft.com/zh-cn/dotnet/api/system.type) _[源码](https://source.dot.net/#System.Private.CoreLib/Type.cs)_ 或集合，就用它判断构件类型。`ObjectBuilder` 在追加子对象时也会先调用容器的识别器，把子对象交给正确的集合。
 
 {% stepper %}
 {% step %}
@@ -75,7 +75,7 @@ object IDiscriminator.Discriminate(object argument)
 这种设计特别适合“一个节点下可能包含多种子对象”的插件结构，例如权限分类下既能放权限项，也能放子分类。
 
 {% hint style="info" %}
-识别器返回值可以是目标类型、目标集合或目标容器，具体解释由调用方决定。插件装配中的行为以 `Zongsoft.Plugins` 的构件构建流程为准。
+识别器返回值可以是目标类型、目标集合或目标容器，具体解释由调用方决定。插件装配中的行为以 [`Zongsoft.Plugins`](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Plugins) 的构件构建流程为准。
 {% endhint %}
 
 `IDiscriminator` 适合容器内部有清晰分类规则的场景。如果子对象只有一个固定集合属性，直接公开集合或属性通常更简单。识别规则也应保持可预测，尽量不要依赖外部状态或会频繁变化的运行时条件。

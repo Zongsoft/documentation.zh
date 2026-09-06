@@ -5,17 +5,21 @@ icon: globe
 
 # Web 基础
 
-Zongsoft.Web 提供通用控制器、绑定、格式化、路由、凭据认证及文件访问等能力；Zongsoft.Plugins.Web 把这些能力接入插件宿主，负责 Web 部件发现和应用生命周期。业务控制器放在插件中，宿主负责承载与装配。
+[Zongsoft.Web](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Web) 提供通用控制器、绑定、格式化、路由、凭据认证及文件访问等能力；[Zongsoft.Plugins.Web](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Plugins.Web) 把这些能力接入插件宿主，负责 Web 部件发现和应用生命周期。业务控制器放在插件中，宿主负责承载与装配。
+
+{% hint style="info" %}
+设计和实现业务 HTTP 接口时，应遵守 [REST API 设计规范](https://github.com/Zongsoft/Guidelines/blob/main/zongsoft.rest-api.guidelines.md)。C# 编码规范及开发前的统一要求见[准备环境：开发规范](../get-started/prerequisites.md#开发规范)。
+{% endhint %}
 
 ## 先理解请求经过什么
 
 一个请求先由宿主中间件处理，再匹配控制器与操作；模型绑定把路径、查询、请求头和请求体转换为参数，控制器调用业务服务，格式化器输出响应。认证建立调用者身份，授权决定是否允许操作，二者各自承担职责。
 
-插件 Web 入口会初始化应用上下文和应用初始化器，再依次加入 CORS、本地化、方法覆盖、路由、认证、授权、响应压缩与静态文件，最后映射控制器及 Hub。扩展中间件时要检查相对顺序，而不是重复安装整条管线。
+插件 Web 入口会初始化应用上下文和应用[初始化器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationInitializer.cs)，再依次加入 CORS、本地化、方法覆盖、路由、认证、授权、响应压缩与静态文件，最后映射控制器及 Hub。扩展中间件时要检查相对顺序，而不是重复安装整条管线。
 
 ## 选择使用方式
 
-只需要框架的 MVC 辅助能力时引用 Zongsoft.Web；需要通过清单发现业务控制器时使用 Plugins.Web 宿主。现成启动器见[Web 宿主](../hosting/web.md)。
+只需要框架的 MVC 辅助能力时引用 [Zongsoft.Web](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Web)；需要通过清单发现业务控制器时使用 Plugins.Web 宿主。现成启动器见[Web 宿主](../hosting/web.md)。
 
 来源：[hosting/web/default/Program.cs](https://github.com/Zongsoft/hosting/blob/main/web/default/Program.cs#L12)（节选；上下文见源文件）。
 
@@ -34,7 +38,7 @@ static void Main(string[] args)
 ```
 {% endcode %}
 
-项目需要引用 `Zongsoft.Plugins.Web`，运行目录还需要基础插件清单与业务插件。这个入口本身不会生成业务 API 或数据库结构。
+项目需要引用 [`Zongsoft.Plugins.Web`](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Plugins.Web)，运行目录还需要基础插件清单与业务插件。这个入口本身不会生成业务 API 或数据库结构。
 
 ## 学习路径
 

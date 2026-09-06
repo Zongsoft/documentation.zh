@@ -19,7 +19,7 @@ public IDataAccess Accessor => _accessor ??= this.Services.ResolveRequired<IData
 ```
 {% endcode %}
 
-这里的名称是 Discussions。提供者管理访问器，业务方法不应在每次查询后将共享访问器释放。程序集只引用 Core 契约；数据引擎和驱动由宿主部署，见[首次查询](quickstart.md)。
+这里的名称是 Discussions。提供者管理访问器，业务方法不应在每次查询后将共享访问器释放。程序集只引用 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 契约；数据引擎和驱动由宿主部署，见[首次查询](quickstart.md)。
 
 ## 在服务内使用访问器
 

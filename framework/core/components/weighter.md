@@ -92,7 +92,7 @@ Assert.Equal(4, server.Weight);
 
 ## 相关实现
 
-`Zongsoft.Data` 的数据源选择器会分别为可读、可写数据源维护 `Weighter<T>`，并根据数据访问方法选择读库或写库。这个场景体现了 `Weighter<T>` 的典型边界：它只负责在已筛选出的候选集合中按权重选择，下游的数据访问上下文、命令可变性和数据源模式仍由数据框架判断。
+[`Zongsoft.Data`](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Data) 的数据源选择器会分别为可读、可写数据源维护 `Weighter<T>`，并根据数据访问方法选择读库或写库。这个场景体现了 `Weighter<T>` 的典型边界：它只负责在已筛选出的候选集合中按权重选择，下游的数据访问上下文、命令可变性和数据源模式仍由数据框架判断。
 
 ## 参考
 

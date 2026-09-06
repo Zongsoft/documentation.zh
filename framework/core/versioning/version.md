@@ -5,7 +5,7 @@ icon: code-commit
 
 # Zongsoft.Versioning
 
-`Zongsoft.Versioning` 提供 Zongsoft.Core 中的版本表达模型。它把“用于发布、展示和兼容性判断的语义化版本”和“用于排序、范围查询和持久化的数值版本号”分开，避免同一个类型同时承担文本语义和整数编码两种职责。
+`Zongsoft.Versioning` 提供 [Zongsoft.Core](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 中的版本表达模型。它把“用于发布、展示和兼容性判断的语义化版本”和“用于排序、范围查询和持久化的数值版本号”分开，避免同一个类型同时承担文本语义和整数编码两种职责。
 
 ## 何时使用
 
@@ -13,7 +13,7 @@ icon: code-commit
 
 `Version.Number` 表示四段式数值版本号，包含 `Major`、`Minor`、`Patch`、`Revision` 四个 `ushort` 字段。它适合保存到数据库、配置项或需要稳定排序的持久化字段中，也可以与旧的整数版本值协作。
 
-Discussions 没有直接操作此版本类型；下面采用 Core 的 VersionTest 和 VersionNumberTest，保留测试输入及输出断言。它们验证版本规则，不表示 Discussions 当前包版本。
+Discussions 没有直接操作此版本类型；下面采用 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 的 VersionTest 和 VersionNumberTest，保留测试输入及输出断言。它们验证版本规则，不表示 Discussions 当前包版本。
 
 ## 语义化版本
 

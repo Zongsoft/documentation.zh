@@ -5,7 +5,7 @@ icon: shapes
 
 # 基础概念与协作方式
 
-本页以“Discussions 论坛模块提供主题查询接口”为例，说明框架中的几个相似名词。先分清这些概念，再读配置和代码，会更容易判断一个问题发生在哪个环节。
+本页以“论坛模块提供主题查询接口”为例，说明框架中的几个相似名词。先分清这些概念，再读配置和代码，会更容易判断一个问题发生在哪个环节。
 
 ## 宿主与内容根 <a id="host"></a>
 
@@ -15,9 +15,9 @@ icon: shapes
 
 ## 插件与程序集 <a id="plugin"></a>
 
-**程序集**包含可执行的 .NET 类型。**插件**由 `.plugin` 清单描述，声明依赖、程序集和扩展贡献；一个插件可以包含多个程序集，也可以只贡献装配配置。
+**程序集**包含可执行的 .NET 类型。**插件**由 `.plugin` 清单描述，声明依赖、程序集和扩展点；一个插件可以包含多个程序集，也可以只贡献装配配置。
 
-项目引用让编译器看见类型；插件清单让运行时知道加载什么；部署文件让必要的文件出现在正确位置。这三个环节互不替代。比如 Discussions.Web 项目能编译，但漏部署 Zongsoft.Discussions.Web.plugin，运行时仍不会按清单加载其控制器。
+项目引用让编译器看见类型；插件清单让运行时知道加载什么；部署文件让必要的文件出现在正确位置。这三个环节互不替代。比如 [Discussions.Web](https://github.com/Zongsoft/discussions/tree/main/src/api) 项目能编译，但漏部署 [Zongsoft.Discussions.Web.plugin](https://github.com/Zongsoft/discussions/blob/main/src/api/Zongsoft.Discussions.Web.plugin)，运行时仍不会按清单加载其控制器。
 
 ## 插件树与构件 <a id="plugin-tree"></a>
 
@@ -39,7 +39,9 @@ icon: shapes
 
 ## 模块、服务与提供者 <a id="module-service-provider"></a>
 
-**模块**表达应用中的业务边界，例如 Discussions。一个模块可以由几个插件共同提供；插件加载也不会自动为每个插件创建业务模块。应用需要定义模块，并把模块对象挂载到 `/Workbench/Modules`。
+**模块**表达应用中的业务边界，例如 Discussions。一个模块可以由几个插件共同提供；插件加载也不会自动为每个插件创建业务模块。应用自行定义模块；需要将模块纳入[应用模块](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationModule.cs)集合时，可把模块对象挂载到 `/Workbench/Modules`。
+
+> 💡 把模块挂载到 `/Workbench/Modules` 等同于加入到 [`ApplicationContext.Current.Modules`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/ApplicationContext.cs) 集合，虽然这不是必须的，但统一归拢的模块集有利于系统提供通用一致的模块化能力输出。譬如 [Zongsoft.Web.OpenApi](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Web/openapi) 就会使用[应用模块](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationModule.cs)集进行 API 文档的模块化分类。
 
 **服务**是通过契约提供某种操作的对象。**服务容器**负责按类型、别名或匹配参数解析这些对象。模块容器优先查找模块服务，再回退应用共享服务；其生命周期不等于 Web 请求生命周期。
 
@@ -72,7 +74,7 @@ Discussions 插件的清单可以保持稳定，测试和生产环境使用不�
 
 ## 工作器、初始化器与普通服务 <a id="lifetime"></a>
 
-初始化器用于应用初始化阶段的配置或装配；工作器用于需要启动、持续运行并在关闭时停止的任务；普通服务用于按调用执行某项操作。将“订阅消息并保持监听”写进构造函数，会让对象装配、外部连接和故障处理纠缠在一起，通常应交由工作器管理。
+[初始化器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationInitializer.cs)用于应用初始化阶段的配置或装配；[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)用于需要启动、持续运行并在关闭时停止的任务；普通服务用于按调用执行某项操作。将“订阅消息并保持监听”写进构造函数，会让对象装配、外部连接和故障处理纠缠在一起，通常应交由工作器管理。
 
 通过服务特性扫描注册的普通类型默认是单例。共享实例的创建与释放由注册和提供者约定决定。需要每次调用独立状态时，应明确作用域或使用工厂，不要从“具名”“模块化”推导出“每次新建”。
 

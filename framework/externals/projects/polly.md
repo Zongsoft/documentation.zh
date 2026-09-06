@@ -5,7 +5,7 @@ icon: plug
 
 # Polly
 
-把重试、超时、熔断、限流和回退接入 Core 执行管线，用于处理一次操作遇到的暂时故障。
+把重试、超时、熔断、限流和回退接入 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 执行管线，用于处理一次操作遇到的暂时故障。
 
 | 项目项 | 值 |
 | --- | --- |
@@ -24,7 +24,7 @@ nuget:Zongsoft.Externals.Polly
 ```
 {% endcode %}
 
-通过插件树把管线构建器绑定到执行器，策略使用 Core 的相应特性表达。应针对具体操作决定策略及其组合顺序。
+通过插件树把管线构建器绑定到执行器，策略使用 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 的相应特性表达。应针对具体操作决定策略及其组合顺序。
 
 ## 接入步骤
 

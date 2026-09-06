@@ -35,7 +35,7 @@ icon: magnifying-glass
 
 ## 成员访问
 
-Discussions 没有直接调用 Reflector；它通过映射与配置间接使用这些机制。本页从 Core 的现有测试读取 API 形状，其中 MyValue、ClassEntity 都是测试夹具类型。
+Discussions 没有直接调用 Reflector；它通过映射与配置间接使用这些机制。本页从 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 的现有测试读取 API 形状，其中 MyValue、ClassEntity 都是测试夹具类型。
 
 `Reflector` 是最常用的入口。它既可以接收已经解析好的 System.Reflection.MemberInfo，也可以直接按成员名称查找对象的公开字段或属性。
 

@@ -9,7 +9,7 @@ icon: play
 
 ## 1. 核对真实数据契约
 
-同时阅读 Discussions 的 Models/Forum.cs、Zongsoft.Discussions.mapping 和 database 下所选数据库脚本。Forum 使用 SiteId 与 ForumId 复合键；外部序号需要相应服务；Message 还有 ClickHouse 驱动标记。这些约束不能靠只修改数据库连接字符串解决。
+同时阅读 Discussions 的 Models/Forum.cs、[Zongsoft.Discussions.mapping](https://github.com/Zongsoft/discussions/blob/main/src/Zongsoft.Discussions.mapping) 和 database 下所选数据库脚本。Forum 使用 SiteId 与 ForumId 复合键；外部序号需要相应服务；Message 还有 ClickHouse 驱动标记。这些约束不能靠只修改数据库连接字符串解决。
 
 数据库脚本可能重建对象，应先审阅并只在临时数据库执行。映射文件不会自动创建这些表。
 

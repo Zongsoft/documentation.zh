@@ -26,7 +26,7 @@
 | 10 | 自动升级 | [升级流程](framework/upgrading/workflow.md)：配置、包发现、部署、失败恢复与清理范围 |
 | 11 | 外部扩展 | [按能力阅读](framework/externals.md)：缓存、锁、执行、脚本、表格、云存储与 OPC UA |
 | 12 | 宿主与工具 | [宿主](hosting/hosting.md)、[部署器](tools/deployer.md)、[打包器](tools/packager.md)、[升级器](tools/upgrader.md)、[正则工具](tools/regular.md) |
-| 13 | Core 与参考 | 集合、配置、IO、序列化、命令、事件、过滤、服务、通讯等真实源码范例；同步 [包索引](references/packages.md)、[选项格式](references/option-files.md)、[术语](references/glossary.md)及 FAQ |
+| 13 | [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 与参考 | 集合、配置、IO、序列化、命令、事件、过滤、服务、通讯等真实源码范例；同步 [包索引](references/packages.md)、[选项格式](references/option-files.md)、[术语](references/glossary.md)及 FAQ |
 | 14 | 校验 | 导航、相对路径、锚点、代码来源、类型链接、GitBook 区块、XML、换行、图片及代表性页面预览 |
 
 上述内容已完成本轮编辑与核对。具有外部依赖的功能明确保留部署验收条件，不以静态校验代替实际集成结果。
@@ -70,11 +70,11 @@ externals/velopack 与 externals/grapecity 按维护者要求不再收录。对�
 | 长正文失败后遗留文件 | 主题、帖子、反馈、私信统一处理内容转换和新增文件失败补偿；短文本替换恢复内嵌标志 |
 | 文件名碰撞及重复正文转换 | 消息/反馈使用随机后缀；反馈不再重复把已转成路径的内容写一次 |
 | 私信主记录失败仍写接收者 | 主记录未写入时直接返回，避免继续创建接收关系 |
-| 重复实现 Core 的枚举能力 | 5 处查询改用 Core 的 FirstOrDefault；过滤适配层复用 Pageable.Filter 和 Enumerable，移除业务层迭代实现 |
+| 重复实现 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 的枚举能力 | 5 处查询改用 核心类库 的 FirstOrDefault；过滤适配层复用 Pageable.Filter 和 Enumerable，移除业务层迭代实现 |
 
 补充复核：取消 7 个服务文件中的 CancellationToken 别名，统一引用 System.Threading；模型重名处明确使用 Models.Thread。保留的正文转换与失败文件补偿属于 Discussions 的业务规则，不能由数据库事务替代。新增验证覆盖分页通知订阅/退订、分页抑制状态以及异步过滤取消与释放。
 
-Discussions 的 Core 依赖已升级为 7.59.0。2026-09-06 核对 NuGet 时最新仍为 7.58.0，后者的分页过滤将错误的当前元素传给回调；本地 7.59.0 已修复。当前按本地 framework 引用验证，发布前不能把旧版包路径的验证结果沿用到最新修改。构建方式已同步至 Discussions 的中英文 README 和本库准备环境页面。
+Discussions 的 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 依赖已升级为 7.59.0。2026-09-06 核对 NuGet 时最新仍为 7.58.0，后者的分页过滤将错误的当前元素传给回调；本地 7.59.0 已修复。当前按本地 framework 引用验证，发布前不能把旧版包路径的验证结果沿用到最新修改。构建方式已同步至 Discussions 的中英文 README 和本库准备环境页面。
 
 回归入口为 discussions/test/Zongsoft.Discussions.Regression.csproj，是使用 dotnet run 执行的控制台检查程序，不是 dotnet test 项目。检查覆盖隔离身份、站点条件、同步/异步、正文内嵌/外置、审核策略、失败补偿、提前取消、迭代释放及上传空请求。
 
@@ -84,12 +84,12 @@ Discussions 的 Core 依赖已升级为 7.59.0。2026-09-06 核对 NuGet 时最�
 
 这些差异已在对应页面说明，未修改 framework：
 
-- 当前具名数据提供者注册与 Core 默认访问器解析契约存在差异；Discussions 使用模块访问器。
+- 当前具名数据提供者注册与 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 默认访问器解析契约存在差异；Discussions 使用模块访问器。
 - XSD 与加载器的部分默认值不一致；不能只看格式定义推断运行行为。
 - Kafka 自动提交和自动位点记录影响手动确认保证；Redis 锁的租约与 fencing 不等同完整共识协议，演示文件计数器也不是原子业务提交。
 - ZeroMQ README 与公共基类的重复订阅兼容性检查存在差异，正文以当前实现为准。
 - Scriban 可选变量参数仍被直接访问 Count；使用真实的变量字典调用方式。
-- Learning 的 TextFileLoader.Settings.Populate 与 Core 虚方法签名不同，Pipeline.Build 还有组合缺陷，Web 入口存在骨架内容；不提供声称完整可运行的训练教程。
+- Learning 的 TextFileLoader.Settings.Populate 与 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 虚方法签名不同，Pipeline.Build 还有组合缺陷，Web 入口存在骨架内容；不提供声称完整可运行的训练教程。
 - Reporting 的部分定位/渲染实现尚未完成；升级清单与选项中的默认方案也须按实际文件区分。
 
 ## 最终验证
@@ -99,8 +99,8 @@ Discussions 的 Core 依赖已升级为 7.59.0。2026-09-06 核对 NuGet 时最�
 - frontmatter 的简单键值、GitBook 区块配对、代码围栏、语言与标题检查通过；正文简写的 .NET 类型补充官方文档及源码链接，已区分同名框架类型与属性名。
 - 297 段登记摘录通过源文件、行范围与正文一致性检查；38 段 XML 在临时根元素中通过语法解析，不等同全部映射的数据库运行验证。
 - 六张图片已检查。首页、数据入门、MySQL、Kafka、分布式锁、数据服务经过本地内容渲染检查，并检查窄屏数据入门；无图片缺失或整页横向溢出。此预览不模拟全部 GitBook 自定义渲染，未在线发布 GitBook。
-- Discussions 以本地 Core 7.59.0 引用通过 275 项离线回归检查；API 项目的 net8.0、net9.0、net10.0 构建均通过，零错误、零警告。Core 7.59.0 尚待 NuGet 发布，当前默认包还原路径未完成验证。
-- 按新增 README 命令重新构建本地 Core 与 Web 的 net10.0 输出后，275 项回归再次通过。Core 自身有 4 个既有警告（过时的 PasswordUtility 和未使用的 category 参数），Web 无警告；framework 工作树未修改。
+- Discussions 以本地 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 7.59.0 引用通过 275 项离线回归检查；API 项目的 net8.0、net9.0、net10.0 构建均通过，零错误、零警告。核心类库 7.59.0 尚待 NuGet 发布，当前默认包还原路径未完成验证。
+- 按新增 README 命令重新构建本地 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 与 Web 的 net10.0 输出后，275 项回归再次通过。核心类库 自身有 4 个既有警告（过时的 PasswordUtility 和未使用的 category 参数），Web 无警告；framework 工作树未修改。
 - 本地 dotnet pack 生成 Web 包，验证 .deploy、Web 插件及 5 个 HTTP 文件，重新检查包内主题请求内容。打包提示既有包缺少 README；未推送包。
 - 本次修改涉及的文本统一使用 CRLF；代码使用 Tab，并清理连续两个及以上空行，SUMMARY 保留空格层级。`.cmd` 必须使用 CRLF，`.sh` 遵循 `.gitattributes` 使用 LF。文档与 discussions 的 git diff --check 通过。
 

@@ -191,7 +191,7 @@ nuget:Zongsoft.Data
 ```
 {% endcode %}
 
-它会得到 plugins / zongsoft / data 三层节，nuget:Zongsoft.Data 是该节下没有值的条目。Profile 只负责解析这个结构，NuGet 定位、复制和版本选择由部署工具解释。
+它会得到 plugins / zongsoft / data 三层节，nuget:[Zongsoft.Data](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Data) 是该节下没有值的条目。Profile 只负责解析这个结构，NuGet 定位、复制和版本选择由部署工具解释。
 
 Discussions 的包内清单使用相对产物路径和 Framework 变量：
 

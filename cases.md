@@ -14,7 +14,7 @@ Discussions 将站点、论坛、主题、帖子、私信、用户资料和附�
 
 | 阅读任务 | 真实入口 | 对应指南 |
 | --- | --- | --- |
-| 理解业务模块怎样装配 | Module.cs、Zongsoft.Discussions.plugin | [业务插件](get-started/first-business-plugin.md) |
+| 理解业务模块怎样装配 | Module.cs、[Zongsoft.Discussions.plugin](https://github.com/Zongsoft/discussions/blob/main/src/Zongsoft.Discussions.plugin) | [业务插件](get-started/first-business-plugin.md) |
 | 查询论坛主题并分页 | ForumService.GetPinnedThreads | [查询与导航](framework/data/querying.md) |
 | 创建主题并维护统计 | ThreadService.OnInsert | [事务与一致性](framework/data/transactions.md) |
 | 投票并重新统计票数 | PostService.Upvote、SetPostVotes | [写入操作](framework/data/writing.md) |

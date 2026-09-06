@@ -5,7 +5,7 @@ icon: database
 
 # Zongsoft.Caching
 
-`Zongsoft.Caching` 提供核心类库中的缓存抽象和内存缓存实现，用于支撑进程内缓存、缓存过期、容量控制、缓冲刷新和缓存事件通知。
+`Zongsoft.Caching` 提供[核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core)中的缓存抽象和内存缓存实现，用于支撑进程内缓存、缓存过期、容量控制、缓冲刷新和缓存事件通知。
 
 ## 主要职责
 

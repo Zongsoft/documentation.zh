@@ -11,7 +11,7 @@ Zongsoft 是面向 .NET 应用开发的一组开源框架、宿主程序与工�
 
 ### Framework
 
-[`Zongsoft/framework`](https://github.com/Zongsoft/framework) 是框架代码仓库，包含核心类库、插件框架、数据引擎、Web 基础库、安全、诊断、消息队列、自动升级和第三方服务适配。
+[`Zongsoft/framework`](https://github.com/Zongsoft/framework) 是框架代码仓库，包含[核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core)、插件框架、数据引擎、Web 基础库、安全、诊断、消息队列、自动升级和第三方服务适配。
 
 ### Hosting
 
@@ -26,13 +26,13 @@ Zongsoft 是面向 .NET 应用开发的一组开源框架、宿主程序与工�
 Zongsoft 更适合需要长期演进、模块边界清晰、部署形态多样的业务系统。例如：
 
 - 多业务模块组合的后台服务。
-- 需要按站点、环境、客户或部署方案组合功能的 Web API 应用。
+- 需要按站点、环境、客户或部署方案组合功能的大型应用。
 - 需要将通用能力沉淀为插件并跨项目复用的系统。
 - 需要部署、安装包和自动升级流程配套的 .NET 应用。
 
 ## 与常见框架的关系
 
-Zongsoft 与 ABP 一样属于偏完整应用框架与工具链的体系，但它的组织重心更偏向“插件式应用运行时”。阅读本文档时，可以先把 Zongsoft 理解为：
+Zongsoft 与 [ABP](https://abp.io) 一样属于偏完整应用框架与工具链的体系，但它的组织重心更偏向“插件式应用运行时”。阅读本文档时，可以先把 Zongsoft 理解为：
 
 1. 一套基础开发抽象。
 2. 一套插件化应用模型。

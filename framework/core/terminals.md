@@ -95,7 +95,7 @@ protected override ValueTask<object> OnExecuteAsync(CommandContext context, Canc
 ```
 {% endcode %}
 
-这种方式适合把插件应用变成可交互的管理控制台。应用启动后，终端工作台会运行执行器；终端退出后，工作台随之关闭。
+这种方式适合把插件应用变成可交互的管理控制台。应用启动后，终端[工作台](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/IWorkbenchBase.cs)会运行执行器；终端退出后，工作台随之关闭。
 
 ## 子命名空间
 

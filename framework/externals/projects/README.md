@@ -17,12 +17,12 @@ icon: folders
 | [Amazon (amazon)](amazon.md) | 通过框架文件系统接入 Amazon S3 及兼容对象存储 | [云服务与回调](../cloud.md) |
 | [ClosedXml (closedxml)](closedxml.md) | 把业务模型接入 Excel 数据归档、提取与模板服务，适合导出业务记录、人工填写后再导入等流程 | [表格与模板扩展](../documents.md) |
 | [Etcd (etcd)](etcd.md) | 提供基础键值操作、序号和租约锁，适合需要原子序号分配或协调共享资源访问的场景 | [缓存与分布式协作](../caching.md) |
-| [Garnet (garnet)](garnet.md) | 通过宿主工作器运行支持 Redis 协议的 Garnet 服务器 | [缓存与分布式协作](../caching.md) |
+| [Garnet (garnet)](garnet.md) | 通过宿主[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)运行支持 Redis 协议的 Garnet 服务器 | [缓存与分布式协作](../caching.md) |
 | [Hangfire (hangfire)](hangfire.md) | 将持久后台作业与框架调度契约连接起来，适合延迟执行和周期任务 | [任务调度与弹性执行](../execution.md) |
 | [Lua (lua)](lua.md) | 通过 NLua 与 KeraLua 提供 Lua 表达式求值 | [脚本与表达式](../scripting.md) |
 | [Opc (opc)](opc.md) | 提供 OPC UA 客户端、服务端及读写订阅适配，用于连接工业数据服务 | [OPC UA 设备协议](../integration.md) |
 | [OpenXml (openxml)](openxml.md) | 提供显式工作簿和单元格操作，适合需要直接控制表格结构的程序 | [表格与模板扩展](../documents.md) |
-| [Polly (polly)](polly.md) | 把重试、超时、熔断、限流和回退接入 Core 执行管线，用于处理一次操作遇到的暂时故障 | [任务调度与弹性执行](../execution.md) |
+| [Polly (polly)](polly.md) | 把重试、超时、熔断、限流和回退接入 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 执行管线，用于处理一次操作遇到的暂时故障 | [任务调度与弹性执行](../execution.md) |
 | [Python (python)](python.md) | 通过 IronPython 提供 Python 求值能力，适合在受控规则中使用与该运行时兼容的语言及库 | [脚本与表达式](../scripting.md) |
 | [Redis (redis)](redis.md) | 把 Redis 接入缓存、序号、分布式锁、消息流、配置和可靠消息存储 | [缓存与分布式协作](../caching.md) |
 | [Scriban (scriban)](scriban.md) | 提供 Scriban 纯脚本表达式求值，适合把小范围规则按名称和配置接入业务插件 | [脚本与表达式](../scripting.md) |

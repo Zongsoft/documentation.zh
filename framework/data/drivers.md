@@ -24,7 +24,7 @@ icon: hard-drive
 
 ## 插件注册
 
-驱动以插件方式部署。以 MySQL 为例，插件会依赖 `Zongsoft.Data`，并向两个扩展点注册对象：
+驱动以插件方式部署。以 MySQL 为例，插件会依赖 [`Zongsoft.Data`](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Data)，并向两个扩展点注册对象：
 
 来源：[framework/Zongsoft.Data/drivers/mysql/src/Zongsoft.Data.MySql.plugin](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Data/drivers/mysql/src/Zongsoft.Data.MySql.plugin#L19)（节选；上下文见源文件）。
 
@@ -43,7 +43,7 @@ icon: hard-drive
 使用某个数据库前，检查三件事：
 
 - 插件目录中有对应驱动的 `.plugin` 和 `.dll`。
-- 驱动插件声明了对 `Zongsoft.Data` 的依赖。
+- 驱动插件声明了对 [`Zongsoft.Data`](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Data) 的依赖。
 - 连接配置的 `driver` 名称与插件注册名称一致。
 
 如果访问器无法创建，优先检查连接配置路径、默认连接名和驱动插件是否加载。

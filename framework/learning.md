@@ -42,7 +42,7 @@ Discussions 没有机器学习用例，Learning 也没有独立的完整训练�
 
 ## 当前实现限制
 
-当前 TextFileLoader.Settings 的 Populate 重写仍采用 System.Reflection.PropertyInfo，而 Core 的对应虚方法已使用 System.Reflection.MemberInfo；两者源码版本组合存在签名不兼容，应先核对构建结果和引用版本。PipelineController 也仅声明 Area 与 HttpGet，不能仅靠默认 MapControllers 推断已有完整可达路由。
+当前 TextFileLoader.Settings 的 Populate 重写仍采用 System.Reflection.PropertyInfo，而 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 的对应虚方法已使用 System.Reflection.MemberInfo；两者源码版本组合存在签名不兼容，应先核对构建结果和引用版本。PipelineController 也仅声明 Area 与 HttpGet，不能仅靠默认 MapControllers 推断已有完整可达路由。
 
 {% hint style="warning" %}
 🚨 当前源码的 `Pipeline.Build` 在后续步骤中调用 `estimator.Append(estimator)`，没有把结果累积回管线；因此多步骤配置不能据此认定已正确串接。空步骤列表返回空结果，未知步骤名称也缺少完整的错误转换。正式训练前需要先修复并验证这些路径。

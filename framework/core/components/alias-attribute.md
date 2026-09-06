@@ -34,7 +34,7 @@ public enum Gender : byte
 ```
 {% endcode %}
 
-Discussions 没有直接声明 AliasAttribute；这里引用 Core 测试模型中的 Gender 枚举。F、M 是枚举成员别名，读取时应对相应成员调用 GetAliases，而不是读取枚举类型就假定能获得所有成员的别名。该测试枚举与 Discussions.Models.Gender 是不同类型。
+Discussions 没有直接声明 AliasAttribute；这里引用 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 测试模型中的 Gender 枚举。F、M 是枚举成员别名，读取时应对相应成员调用 GetAliases，而不是读取枚举类型就假定能获得所有成员的别名。该测试枚举与 Discussions.Models.Gender 是不同类型。
 
 ## 使用建议
 

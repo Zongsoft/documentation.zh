@@ -7,7 +7,7 @@ icon: puzzle-piece
 
 ![插件框架](../../.gitbook/assets/zongsoft-plugins-cover.png)
 
-`Zongsoft.Plugins` 是 Zongsoft 插件化应用的核心库。它把应用拆成可独立部署、可声明依赖、可挂载能力的插件模块，让终端程序、后台服务、Web 应用和富客户端共享一套扩展模型。
+[`Zongsoft.Plugins`](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Plugins) 是 Zongsoft 插件化应用的核心库。它把应用拆成可独立部署、可声明依赖、可挂载能力的插件模块，让终端程序、后台服务、Web 应用和富客户端共享一套扩展模型。
 
 ## 核心概念
 
@@ -15,8 +15,8 @@ icon: puzzle-piece
 * 插件目录：宿主启动时默认扫描应用目录下的 `plugins/` 目录。
 * 插件树：所有扩展点会被组织为一棵路径树，例如 `/Workbench/Data/Drivers`。
 * 构件：插件树上的可构建对象，由 `object`、`lazy`、`expose` 等构建器创建或暴露。
-* 应用上下文：运行时中表示应用、环境、模块、服务、事件和工作器的上下文。
-* 应用模块：由应用显式定义并挂载的业务或基础设施边界，可以拥有自己的服务域和事件注册表；不与插件自动一一对应。
+* 应用上下文：运行时中表示应用、环境、模块、服务、事件和[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)的上下文。
+* [应用模块](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationModule.cs)：由应用显式定义并挂载的业务或基础设施边界，可以拥有自己的服务域和事件注册表；不与插件自动一一对应。
 
 ## 与宿主程序的关系
 
@@ -45,7 +45,7 @@ flowchart LR
 
 {% tabs %}
 {% tab title="应用开发者" %}
-关注插件能提供什么能力：服务、命令、Web API、后台工作器、数据驱动或业务模块。通常只需要理解插件目录和部署结果。
+关注插件能提供什么能力：服务、命令、Web API、后台[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)、数据驱动或业务模块。通常只需要理解插件目录和部署结果。
 {% endtab %}
 
 {% tab title="插件作者" %}

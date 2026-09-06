@@ -117,7 +117,7 @@ private static void Cache_Evicted(object sender, CacheEvictedEventArgs e)
 ```
 {% endcode %}
 
-这段输出来自 Core 的 memorycache 交互样例，Now 是同一类的时间文本属性，e 来自缓存淘汰事件。命令内部通常优先使用 `context.Output`，这样同一命令既可以在终端中输出，也可以被其它命令执行器复用。只有确定输出目标就是当前默认终端时，才直接使用 `Terminal.WriteLine(...)`。
+这段输出来自 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 的 memorycache 交互样例，Now 是同一类的时间文本属性，e 来自缓存淘汰事件。命令内部通常优先使用 `context.Output`，这样同一命令既可以在终端中输出，也可以被其它命令执行器复用。只有确定输出目标就是当前默认终端时，才直接使用 `Terminal.WriteLine(...)`。
 
 ## 终端扩展方法
 

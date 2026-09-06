@@ -46,7 +46,7 @@ public void TestSlice()
 ```
 {% endcode %}
 
-上面直接引用 Core 的分片测试，覆盖空白、连续分隔符和带状态的分隔判断。RemoveAny、Trim、IsDigits 的实际输入与断言也在同一文件。`Slice` 会忽略空白分片，适合解析简单分隔文本。
+上面直接引用 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 的分片测试，覆盖空白、连续分隔符和带状态的分隔判断。RemoveAny、Trim、IsDigits 的实际输入与断言也在同一文件。`Slice` 会忽略空白分片，适合解析简单分隔文本。
 
 ## 时间扩展
 

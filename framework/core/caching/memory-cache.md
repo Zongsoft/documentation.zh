@@ -25,7 +25,7 @@ icon: database
 
 ## 创建缓存
 
-Discussions 通过数据访问器间接使用框架的缓存复用机制。缓存本身的独立演示来自 Core 的 memorycache 交互程序：频率一秒、滑动过期三十秒、数量提醒阈值五项。可以直接创建独立缓存实例，也可以使用共享实例。
+Discussions 通过数据访问器间接使用框架的缓存复用机制。缓存本身的独立演示来自 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 的 memorycache 交互程序：频率一秒、滑动过期三十秒、数量提醒阈值五项。可以直接创建独立缓存实例，也可以使用共享实例。
 
 来源：[framework/Zongsoft.Core/samples/memorycache/Program.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/samples/memorycache/Program.cs#L13)（节选；上下文见源文件）。
 

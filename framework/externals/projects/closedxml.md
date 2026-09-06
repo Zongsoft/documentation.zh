@@ -24,7 +24,7 @@ nuget:Zongsoft.Externals.ClosedXml
 ```
 {% endcode %}
 
-通过 Core 的归档或模板契约按 `Spreadsheet` 格式匹配服务。实际数据服务优先提供自身描述器，让映射中的主键、长度和语义进入归档过程。
+通过 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 的归档或模板契约按 `Spreadsheet` 格式匹配服务。实际数据服务优先提供自身描述器，让映射中的主键、长度和语义进入归档过程。
 
 ## 接入步骤
 

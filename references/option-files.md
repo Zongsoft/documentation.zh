@@ -46,7 +46,7 @@ Utility 实际读取的是 BasePath。配置中出现 SiteId，并不等于所�
 
 ## 清单和选项的主名
 
-Discussions 的 Zongsoft.Discussions.plugin 与 Zongsoft.Discussions.option 主文件名一致。插件配置提供程序以已加载清单的文件名匹配选项，不是按 plugin 的 name 属性任意搜索。文件未部署或清单未加载时，仅有正确 XML 也不会生效。
+Discussions 的 [Zongsoft.Discussions.plugin](https://github.com/Zongsoft/discussions/blob/main/src/Zongsoft.Discussions.plugin) 与 [Zongsoft.Discussions.option](https://github.com/Zongsoft/discussions/blob/main/src/Zongsoft.Discussions.option) 主文件名一致。插件配置提供程序以已加载清单的文件名匹配选项，不是按 plugin 的 name 属性任意搜索。文件未部署或清单未加载时，仅有正确 XML 也不会生效。
 
 环境、host、site 参数还会影响附属文件匹配。宿主级与插件级规则不同，插件级某些环境附属模式包含连字符；需要新增环境文件时，应核对[插件配置提供程序](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/Configuration/PluginConfigurationProvider.cs)，不能把文档中的候选规则当成仓库已经存在的文件。
 

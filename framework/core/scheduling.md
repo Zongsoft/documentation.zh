@@ -5,7 +5,7 @@ icon: calendar
 
 # Zongsoft.Scheduling
 
-调度把“什么时候执行”与“执行什么”分开。Core 提供调度公共契约，具体实现决定延迟、周期、持久化和失败处理方式。Discussions 没有现成调度业务，本页沿用框架的 MyHandler 范例。
+调度把“什么时候执行”与“执行什么”分开。[核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 提供调度公共契约，具体实现决定延迟、周期、持久化和失败处理方式。Discussions 没有现成调度业务，本页沿用框架的 MyHandler 范例。
 
 ## 从处理器开始
 
@@ -56,7 +56,7 @@ public class MyHandler : HandlerBase<object>
 | 持久作业 | 存储可用性、重启恢复、参数兼容性 |
 | 多实例执行 | 分配机制、重复执行与幂等 |
 
-具体能力以实现为准。Hangfire 集成及存储插件见[项目说明](../externals/projects/hangfire.md)，不能把 Core 契约理解为自动具备全部持久化能力。
+具体能力以实现为准。Hangfire 集成及存储插件见[项目说明](../externals/projects/hangfire.md)，不能把 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 契约理解为自动具备全部持久化能力。
 
 ## 验证与停止
 

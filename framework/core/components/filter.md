@@ -27,10 +27,10 @@ public void OnFiltered(DataSelectContextBase context)
 ```
 {% endcode %}
 
-查询前不包装结果，因为底层操作尚未产生最终集合。查询后以 [FilteredResult](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Data/FilteredResult.cs) 包装，处理仍在枚举阶段发生。这个薄适配层同时满足查询上下文的非泛型集合要求和调用方的泛型异步枚举要求，并转发分页通知；实际枚举、过滤、取消与释放交给 Core 的 [集合扩展](../collections/extensions.md) 和 [Pageable](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Data/Pageable.cs)。
+查询前不包装结果，因为底层操作尚未产生最终集合。查询后以 [FilteredResult](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Data/FilteredResult.cs) 包装，处理仍在枚举阶段发生。这个薄适配层同时满足查询上下文的非泛型集合要求和调用方的泛型异步枚举要求，并转发分页通知；实际枚举、过滤、取消与释放交给 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 的 [集合扩展](../collections/extensions.md) 和 [Pageable](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Data/Pageable.cs)。
 
 {% hint style="warning" %}
-🚨 Discussions 的这一实现要求 Core 7.59.0 中的分页过滤修复。该版本发布前需按[准备环境](../../../get-started/prerequisites.md)使用本地 framework 引用；Core 7.58.0 的分页过滤会传入错误的当前元素，不能仅凭编译通过判断兼容。
+🚨 Discussions 的这一实现要求 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 7.59.0 中的分页过滤修复。该版本发布前需按[准备环境](../../../get-started/prerequisites.md)使用本地 framework 引用；核心类库 7.58.0 的分页过滤会传入错误的当前元素，不能仅凭编译通过判断兼容。
 {% endhint %}
 
 ## 处理正文而不改变记录数量

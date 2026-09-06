@@ -11,7 +11,7 @@ icon: shield-check
 
 通常先完成业务处理和幂等记录，再确认消息。若业务提交成功而 ACK 丢失，消息可能再次出现，因此去重记录应与业务更新放入同一个数据库事务。对外部支付、邮件或其他系统调用，还需利用对方的幂等键或建立可恢复的状态流程。
 
-发送消息和写业务数据库同样可能只成功一边。需要保证业务提交后最终发布时，可以由应用实现事务发件箱：在业务事务中保存待发事件，再由后台工作器发送和记录结果。这是一种应用设计，不是安装消息存储插件后自动获得的能力。
+发送消息和写业务数据库同样可能只成功一边。需要保证业务提交后最终发布时，可以由应用实现事务发件箱：在业务事务中保存待发事件，再由后台[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)发送和记录结果。这是一种应用设计，不是安装消息存储插件后自动获得的能力。
 
 ## 各实现的关键差异
 
@@ -33,7 +33,7 @@ icon: shield-check
 
 准备顺序如下：
 
-1. 部署 ZeroMQ Broker 宿主、`Zongsoft.Data`、所选数据库驱动和 `Zongsoft.Messaging.Storages.Data`。
+1. 部署 ZeroMQ Broker 宿主、[`Zongsoft.Data`](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Data)、所选数据库驱动和 `Zongsoft.Messaging.Storages.Data`。
 2. 按[对应数据库的建表说明](https://github.com/Zongsoft/framework/tree/main/messaging/.storages/database)创建 `Messaging_Message`；保留插件的 `.mapping` 和 `scripts` 目录。
 3. 配置与 Broker **严格同名**的数据连接。守护插件创建的 Broker 名为 `QueueServer`。
 4. 在进程启动前确定稳定存储身份，并把所选存储工厂注入 Broker。

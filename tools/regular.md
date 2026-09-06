@@ -23,7 +23,7 @@ dotnet build ./regular/src/Zongsoft.Tools.Regular.csproj
 
 在输入区域放入测试文本，在表达式区域填写正则，执行匹配后观察结果树。匹配表示一次整体命中，组表示表达式中命名或编号的子部分，捕获表示重复分组在一次匹配中的各次结果。
 
-Discussions 没有独立的正则调试样例，可用 Core 的 TextRegular.Web.Email 定义观察命名组。下面摘录实际规则；复制到工具的表达式框时，仅取 C# 逐字字符串中的内容，不包含 @、引号或字段声明。
+Discussions 没有独立的正则调试样例，可用 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 的 TextRegular.Web.Email 定义观察命名组。下面摘录实际规则；复制到工具的表达式框时，仅取 C# 逐字字符串中的内容，不包含 @、引号或字段声明。
 
 来源：[framework/Zongsoft.Core/src/Text/TextRegular.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Text/TextRegular.cs#L115)（节选；上下文见源文件）。
 

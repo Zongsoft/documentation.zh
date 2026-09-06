@@ -50,7 +50,7 @@ dotnet ./Zongsoft.Hosting.Terminal.dll
 
 附加调试器时，应匹配运行 DLL、PDB 和源码版本；修改源码后只重建而未复制输出，断点可能仍对应旧实现。手工替换文件前停止宿主，保留目标目录和部署版本记录。
 
-退出可使用 `exit -yes`。如果停止很慢，检查工作器是否仍等待外部请求、消息处理或未响应取消，不要先把所有后台任务改为强制退出。
+退出可使用 `exit -yes`。如果停止很慢，检查[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)是否仍等待外部请求、消息处理或未响应取消，不要先把所有后台任务改为强制退出。
 
 自动升级测试必须使用实际应用名 `zongsoft.terminal` 匹配发布，并检查 `.deployer` 是否仍在部署目录。详见[升级接入](../framework/upgrading/workflow.md)。
 

@@ -34,7 +34,7 @@ static void Main(string[] args)
 
 ## 构建与部署
 
-项目默认引用相邻 framework 的输出，当前 Web 项目还需核对其 Release 引用路径。插件报 `Zongsoft.Web` 程序集版本不匹配时，先核对框架输出和最终 DLL，再重新部署宿主。
+项目默认引用相邻 framework 的输出，当前 Web 项目还需核对其 Release 引用路径。插件报 [`Zongsoft.Web`](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Web) 程序集版本不匹配时，先核对框架输出和最终 DLL，再重新部署宿主。
 
 运行目录需要宿主自身的依赖文件、`appsettings.json`、插件清单及资源。仅复制业务控制器 DLL 无法代替完整插件部署。一个独立探针控制器的完整示例见[部署控制器插件](../framework/web/controllers.md)。
 

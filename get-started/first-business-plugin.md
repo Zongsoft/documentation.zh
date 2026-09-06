@@ -10,7 +10,7 @@ icon: puzzle-piece
 
 ## 1. 构建现有业务库
 
-项目支持 .NET 8、9、10；NuGet 版本来自根目录 Directory.Packages.props。当前源码依赖的 Core 版本及本地引用要求见[准备环境](prerequisites.md)。下面从 discussions 根目录先构建相邻 framework 的 Core 和 Web，再以本地引用构建 Discussions；统一使用默认 Debug 配置和 .NET 10，并关闭构建时打包：
+项目支持 .NET 8、9、10；NuGet 版本来自根目录 Directory.Packages.props。源码目录和 SDK 的准备见[准备环境](prerequisites.md)。下面演示本地引用方式：从 discussions 根目录先构建相邻 framework 的[核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core)和 Web，再以本地引用构建 Discussions；统一使用默认 Debug 配置和 .NET 10，并关闭构建时打包：
 
 {% code title="构建 Discussions" %}
 ```powershell
@@ -21,7 +21,7 @@ dotnet build src/api/Zongsoft.Discussions.Web.csproj -f net10.0 -p:ZongsoftFrame
 ```
 {% endcode %}
 
-`-p:ZongsoftFrameworkPathReferenced=true` 选择本地程序集，但不会自动构建 framework，目录、配置和目标框架必须与其输出一致。所需 Core 版本发布到所用 NuGet 源后，可省略本地引用参数并使用默认包引用路径；此前不要把本地引用仅当作可选的源码调试设置。
+`-p:ZongsoftFrameworkPathReferenced=true` 选择本地程序集，但不会自动构建 framework，目录、配置和目标框架必须与其输出一致。如果所用 NuGet 源已包含项目要求的[核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core)等依赖版本，可省略本地引用参数并使用默认包引用方式。
 
 ## 2. 模块是装配入口
 

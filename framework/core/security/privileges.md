@@ -99,7 +99,7 @@ Discussions 当前没有声明独立的权限定义树。它在主题读取中�
 ```
 {% endcode %}
 
-Discussions 的 UserChallenger 追加站点身份，并写入 SiteId、头像、等级和发帖统计等声明。UserIdentity.Transformer 仅识别 Zongsoft.Discussions 认证方案，把这些声明转换为业务身份；业务代码通过 UserIdentity.Current 读取。完整源码与字段含义见[安全基础](../security.md)。
+Discussions 的 UserChallenger 追加站点身份，并写入 SiteId、头像、等级和发帖统计等声明。UserIdentity.Transformer 仅识别 [Zongsoft.Discussions](https://github.com/Zongsoft/discussions/tree/main/src) 认证方案，把这些声明转换为业务身份；业务代码通过 UserIdentity.Current 读取。完整源码与字段含义见[安全基础](../security.md)。
 
 ## 授权记录
 

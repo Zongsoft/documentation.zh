@@ -78,7 +78,7 @@ public void OnFiltered(DataSelectContextBase context)
 ```
 {% endcode %}
 
-OnFiltering 发生在查询前；此时尚无可供包装的最终结果。OnFiltered 才对结果建立延迟过滤，[FilteredResult](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Data/FilteredResult.cs) 只适配同步/异步接口并转发分页通知，枚举和过滤直接使用 Core 的实现。其版本要求与生命周期见[过滤器](../core/components/filter.md)。不能在 Current 属性中重复读文件，否则多次读取同一元素可能把正文误当路径。
+OnFiltering 发生在查询前；此时尚无可供包装的最终结果。OnFiltered 才对结果建立延迟过滤，[FilteredResult](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Data/FilteredResult.cs) 只适配同步/异步接口并转发分页通知，枚举和过滤直接使用 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 的实现。其版本要求与生命周期见[过滤器](../core/components/filter.md)。不能在 Current 属性中重复读文件，否则多次读取同一元素可能把正文误当路径。
 
 ## 接入 HTTP
 

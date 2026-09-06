@@ -13,7 +13,7 @@ OPC UA 以服务端地址空间组织设备数据。**NodeId** 标识节点，�
 
 **Session** 是与服务器交互的会话；**Subscription** 及监视项用于持续接收变化。订阅不是永久有效对象，断线重连、服务器重启和证书变更后，都需要验证其恢复状态。
 
-`Zongsoft.Externals.Opc` 提供相关客户端、服务端及读写订阅适配。插件让程序集和 SDK 可用，实际端点、证书信任、会话建立和工作器生命周期由应用组织。
+`Zongsoft.Externals.Opc` 提供相关客户端、服务端及读写订阅适配。插件让程序集和 SDK 可用，实际端点、证书信任、会话建立和[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)生命周期由应用组织。
 
 ## 从本地示例开始
 

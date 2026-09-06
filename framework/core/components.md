@@ -5,14 +5,14 @@ icon: cubes
 
 # Zongsoft.Components
 
-`Zongsoft.Components` 是核心类库中的组件模型命名空间，覆盖命令、执行管线、处理器、过滤器、转换器、可监管对象、工作者、标识和事件交换等基础构件。它的目标不是提供某个具体业务能力，而是为不同领域的业务对象提供一组可组合、可扩展、可被宿主程序复用的运行时抽象。
+`Zongsoft.Components` 是[核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core)中的组件模型命名空间，覆盖命令、执行管线、处理器、过滤器、转换器、可监管对象、工作者、标识和事件交换等基础构件。它的目标不是提供某个具体业务能力，而是为不同领域的业务对象提供一组可组合、可扩展、可被宿主程序复用的运行时抽象。
 
 ## 主要职责
 
 * 定义组件标识、别名、权重、命名对象和服务描述，让组件可以被发现、描述和选择。
 * 提供命令模式、命令树、命令表达式解析、命令出口和参数绑定，用于跨领域、低耦合地触发业务动作。
 * 提供执行管线、处理器和过滤器，把上下文、执行逻辑和横切特性组织为可扩展的执行单元。
-* 提供工作器、监视器、均衡器、尝试器等运行时组件模式，用于后台任务、状态观测和失败控制。
+* 提供[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)、监视器、均衡器、尝试器等运行时组件模式，用于后台任务、状态观测和失败控制。
 * 提供常用转换器、状态机和组件特性扩展，降低基础设施代码的重复实现。
 
 ## 命令模式
@@ -30,7 +30,7 @@ icon: cubes
 | 命名空间 | 说明 |
 | --- | --- |
 | `Zongsoft.Components` | 命令模型的核心类型，例如 `ICommand`、`CommandBase`、`CommandContext`、`CommandNode`、`CommandLine` 和 `CommandExecutor`。 |
-| `Zongsoft.Components.Commands` | 基于命令模型实现的内置组件命令，例如工作器的启动、停止、暂停、恢复和状态查询命令。 |
+| `Zongsoft.Components.Commands` | 基于命令模型实现的内置组件命令，例如[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)的启动、停止、暂停、恢复和状态查询命令。 |
 | `Zongsoft.Components.Converters` | 布尔、枚举、版本、架构等常用转换器。 |
 | `Zongsoft.Components.Features` | Retry、Fallback、Breaker、Throttle、Timeout 等执行特性模型。 |
 | `Zongsoft.Components.States` | 状态机、状态图、状态上下文、状态处理器和状态流转。 |

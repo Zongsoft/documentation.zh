@@ -11,11 +11,11 @@ icon: boxes-stacked
 
 | 包 | 源码目录 | 用途 |
 | --- | --- | --- |
-| `Zongsoft.Core` | `framework/Zongsoft.Core` | 核心抽象与基础类库 |
-| `Zongsoft.Plugins` | `framework/Zongsoft.Plugins` | 插件框架 |
-| `Zongsoft.Plugins.Web` | `framework/Zongsoft.Plugins.Web` | Web 插件化支持 |
-| `Zongsoft.Data` | `framework/Zongsoft.Data` | 数据引擎 |
-| `Zongsoft.Web` | `framework/Zongsoft.Web` | Web 基础能力 |
+| [`Zongsoft.Core`](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) | `framework/Zongsoft.Core` | 核心抽象与基础类库 |
+| [`Zongsoft.Plugins`](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Plugins) | `framework/Zongsoft.Plugins` | 插件框架 |
+| [`Zongsoft.Plugins.Web`](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Plugins.Web) | `framework/Zongsoft.Plugins.Web` | Web 插件化支持 |
+| [`Zongsoft.Data`](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Data) | `framework/Zongsoft.Data` | 数据引擎 |
+| [`Zongsoft.Web`](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Web) | `framework/Zongsoft.Web` | Web 基础能力 |
 | `Zongsoft.Security` | `framework/Zongsoft.Security` | 安全能力 |
 | `Zongsoft.Diagnostics` | `framework/Zongsoft.Diagnostics` | 诊断能力 |
 

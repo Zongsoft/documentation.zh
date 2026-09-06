@@ -5,7 +5,7 @@ icon: wrench
 
 # Zongsoft.Common
 
-`Zongsoft.Common` 放置核心类库中最通用的工具类型和扩展方法，包括类型转换、随机、校验、序列、时间、字符串、URI 和类型别名等基础能力。
+`Zongsoft.Common` 放置[核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core)中最通用的工具类型和扩展方法，包括类型转换、随机、校验、序列、时间、字符串、URI 和类型别名等基础能力。
 
 ## 主要职责
 

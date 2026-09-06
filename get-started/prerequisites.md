@@ -17,6 +17,15 @@ icon: list-check
 | 调试框架与现有宿主 | Git、framework/hosting 源码、匹配编译输出 | [宿主概览](../hosting/hosting.md) |
 | 连接数据库或消息系统 | 前面内容及所选外部服务 | 对应驱动与连接专题 |
 
+## 开发规范
+
+开始编写业务插件或 Web 接口前，开发者应阅读并遵守以下规范：
+
+- [C# 编码规范](https://github.com/Zongsoft/Guidelines/blob/main/zongsoft.csharp.guidelines.md)：编写和审查 C# 代码时遵守统一的命名、格式与编码约定。
+- [REST API 设计规范](https://github.com/Zongsoft/Guidelines/blob/main/zongsoft.rest-api.guidelines.md)：设计和实现 HTTP 接口时遵守资源命名、HTTP 方法、状态码与参数约定。
+
+规范以链接中的最新内容为准；学习示例时也应结合规范理解，开发与代码审查时按规范核对。
+
 ## SDK 版本
 
 当前 hosting 根配置为 .NET 10；本库最小教程也以 `net10.0` 编写。framework 多个类库支持 .NET 8、9、10，但具体项目、示例和工具需以自己的 `.csproj`、`Directory.Build.props` 及包依赖为准。
@@ -59,10 +68,6 @@ git -C framework submodule update --init --recursive
 framework 的 OpenTelemetry 协议来源使用子模块；构建相关诊断项目时需要对应内容。hosting 默认引用 framework 的相邻输出，源码目录存在还不够，必须先编译所需类库的对应配置和目标。
 
 ## 工具与可选环境
-
-{% hint style="warning" %}
-🚨 当前 Discussions 要求 Core 7.59.0 的分页过滤修复。截至 2026-09-06，该版本尚未发布到 NuGet；先构建相邻 framework 的 Core 与 Web，再使用 `-p:ZongsoftFrameworkPathReferenced=true` 构建 Discussions。对应配置和目标框架必须一致。完整命令见 [Discussions 本地构建说明](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/README.zh-Hans.md#本地构建与回归)。版本发布前，默认 NuGet 还原不能满足这一依赖，也不应降回 7.58.0。
-{% endhint %}
 
 安装步骤见[安装包](install.md)。编辑器可使用支持 .NET 的 IDE，Shell 命令应按 PowerShell 或 Bash 的各自语法执行，不能混用续行和变量插值。
 

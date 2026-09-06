@@ -6,7 +6,7 @@ icon: table
 # 映射文件
 
 
-.mapping 把领域模型映射到数据库结构。它声明表、键、字段与导航关系，可以随业务插件交付；它本身不创建数据库，也不执行迁移。Discussions 的映射放在单个 Zongsoft.Discussions.mapping 中，容器名是 Discussions。
+.mapping 把领域模型映射到数据库结构。它声明表、键、字段与导航关系，可以随业务插件交付；它本身不创建数据库，也不执行迁移。Discussions 的映射放在单个 [Zongsoft.Discussions.mapping](https://github.com/Zongsoft/discussions/blob/main/src/Zongsoft.Discussions.mapping) 中，容器名是 Discussions。
 
 ## 论坛编号属于站点
 

@@ -5,11 +5,11 @@ icon: server
 
 # Zongsoft.Services
 
-`Zongsoft.Services` 是 Zongsoft 运行时的服务模型。它连接标准 .NET 依赖注入、应用上下文、应用模块和插件树，让宿主程序、插件程序集和声明式构件可以把能力注册到同一个运行时，并按应用、模块或插件树位置解析出来。
+`Zongsoft.Services` 是 Zongsoft 运行时的服务模型。它连接标准 .NET 依赖注入、应用上下文、[应用模块](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationModule.cs)和插件树，让宿主程序、插件程序集和声明式构件可以把能力注册到同一个运行时，并按应用、模块或插件树位置解析出来。
 
 它不是要替代 .NET DI，而是在 [`IServiceCollection`](https://learn.microsoft.com/zh-cn/dotnet/api/microsoft.extensions.dependencyinjection.iservicecollection) _[源码](https://source.dot.net/#Microsoft.Extensions.DependencyInjection.Abstractions/IServiceCollection.cs)_、`System.IServiceProvider` 和 [`IServiceProviderFactory<TContainerBuilder>`](https://learn.microsoft.com/zh-cn/dotnet/api/microsoft.extensions.dependencyinjection.iserviceproviderfactory-1) _[源码](https://source.dot.net/#Microsoft.Extensions.DependencyInjection.Abstractions/IServiceProviderFactory.cs)_ 之上补充这些能力：
 
-* 应用上下文：用 [`IApplicationContext`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationContext.cs) 表示当前应用实例，统一暴露配置、环境、模块、服务、事件、工作器和生命周期。
+* 应用上下文：用 [`IApplicationContext`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationContext.cs) 表示当前应用实例，统一暴露配置、环境、模块、服务、事件、[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)和生命周期。
 * 应用模块：用 [`IApplicationModule`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationModule.cs) 表示一个子系统或插件模块，并为模块提供自己的服务解析域。
 * 服务发现：通过服务名称、标签、匹配参数、模块名和插件树表达式寻找服务，而不只按类型解析。
 * 服务构建：通过 [`ServiceAttribute`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/ServiceAttribute.cs)、[`IServiceRegistration`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IServiceRegistration.cs)、[`ServiceDependencyAttribute`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/ServiceDependencyAttribute.cs) 和 [`ServiceProviderFactory`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/ServiceProviderFactory.cs) 把声明式注册、代码注册和属性注入串起来。
@@ -126,12 +126,12 @@ Discussions 的插件声明把模块挂到 /Workbench/Modules，再暴露数据�
 
 ### 按类型解析
 
-按类型解析适合普通依赖：调用方知道需要哪个契约，不关心具体实现是谁。`Resolve<T>()` 适合可选依赖，`ResolveRequired<T>()` 适合缺失即失败的强依赖，`ResolveAll<T>()` 适合初始化器、处理器、过滤器这类多实现集合。
+按类型解析适合普通依赖：调用方知道需要哪个契约，不关心具体实现是谁。`Resolve<T>()` 适合可选依赖，`ResolveRequired<T>()` 适合缺失即失败的强依赖，`ResolveAll<T>()` 适合[初始化器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationInitializer.cs)、处理器、过滤器这类多实现集合。
 
 [`ApplicationContext`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/ApplicationContext.cs) 中有两个典型用法：
 
 * `Exit(...)` 通过 `Resolve<IHost>()` 查找当前 [`IHost`](https://learn.microsoft.com/zh-cn/dotnet/api/microsoft.extensions.hosting.ihost) _[源码](https://source.dot.net/#Microsoft.Extensions.Hosting.Abstractions/IHost.cs)_。只有宿主与生命周期服务都存在、且宿主尚未停止时，才等待停止流程；随后仍会调用 System.Environment.Exit 退出进程。因此不能把此方法当作“没有宿主就什么也不做”的查询。
-* `Initialize()` 通过 `ResolveAll<IApplicationInitializer>()` 收集所有应用初始化器，然后逐个执行。
+* `Initialize()` 通过 `ResolveAll<IApplicationInitializer>()` 收集所有应用[初始化器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationInitializer.cs)，然后逐个执行。
 
 来源：[framework/Zongsoft.Core/src/Services/ApplicationContext.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/ApplicationContext.cs#L150)（节选；上下文见源文件）。
 
@@ -286,7 +286,7 @@ bool IMatchable<string>.Match(string argument) => this.OnMatch(argument);
 
 静态成员及其 Service 注解见上文“静态成员注册”的真实源码片段。
 
-`ServiceCollectionExtension` 扫描到这个注解时，会把 `Metrics` 成员值注册为服务，并把该服务类型归入 `gRPC` 标签。到了 [`GrpcInitializer`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Web/grpc/GrpcInitializer.cs)，初始化器不需要知道有哪些诊断或业务 gRPC 服务，只要读取标签下的服务类型即可：
+`ServiceCollectionExtension` 扫描到这个注解时，会把 `Metrics` 成员值注册为服务，并把该服务类型归入 `gRPC` 标签。到了 [`GrpcInitializer`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Web/grpc/GrpcInitializer.cs)，[初始化器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationInitializer.cs)不需要知道有哪些诊断或业务 gRPC 服务，只要读取标签下的服务类型即可：
 
 来源：[framework/Zongsoft.Web/grpc/GrpcInitializer.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Web/grpc/GrpcInitializer.cs#L57)（节选；上下文见源文件）。
 
@@ -307,7 +307,7 @@ public void Initialize(IApplicationBuilder builder)
 ```
 {% endcode %}
 
-这个例子的适用场景很明确：插件或模块负责声明“我是一个 gRPC 服务”，Web gRPC 初始化器负责统一映射所有带 `gRPC` 标签的服务。双方不需要互相引用具体实现。
+这个例子的适用场景很明确：插件或模块负责声明“我是一个 gRPC 服务”，Web gRPC [初始化器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationInitializer.cs)负责统一映射所有带 `gRPC` 标签的服务。双方不需要互相引用具体实现。
 
 ### 按标签解析
 
@@ -362,7 +362,7 @@ private static ProviderScope CreateProvider()
 ```
 {% endcode %}
 
-Discussions 在程序集上声明 ApplicationModule，并把 Module.NAME 定义为 Discussions。MessageSendCommand 的属性注入明确选择同一模块服务域。
+Discussions 在程序集上声明 [ApplicationModule](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/ApplicationModule.cs)，并把 Module.NAME 定义为 Discussions。MessageSendCommand 的属性注入明确选择同一模块服务域。
 
 当对象位于某个模块或插件树节点下时，框架会尽量根据对象所属模块选择服务容器。这样业务插件可以声明自己的模块服务，同时仍能复用应用级公共服务。
 
@@ -391,7 +391,7 @@ public MessageService Service { get; set; }
 
 ## 插件中的服务发现
 
-插件文件里的 `{service:...}` 表达式由 `Zongsoft.Plugins` 中的 [`ServicesParser`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/Services/ServicesParser.cs) 处理。它不是单纯从全局容器取对象，而会结合当前构件位置和显式容器名选择服务域。
+插件文件里的 `{service:...}` 表达式由 [`Zongsoft.Plugins`](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Plugins) 中的 [`ServicesParser`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/Services/ServicesParser.cs) 处理。它不是单纯从全局容器取对象，而会结合当前构件位置和显式容器名选择服务域。
 
 | 表达式 | 结果 |
 | --- | --- |
@@ -424,9 +424,9 @@ public MessageService Service { get; set; }
 6. 注册默认 `System.Net.Http.HttpClient` 服务。
 7. 把 `/Workspace/Environment/Services` 下的构件注册为单例服务。
 8. 构建 Host，并通过 `Initialize()` 初始化 [`PluginApplicationContext`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/PluginApplicationContext.cs)。
-9. 应用启动时打开工作台，加载 `/Workbench/Startup` 下的工作器。
+9. 应用启动时打开[工作台](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/IWorkbenchBase.cs)，加载 `/Workbench/Startup` 下的[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)。
 
-`Daemon` 和 `Terminal` 会先注册各自的应用上下文实现，再映射为 `PluginApplicationContext` 和 `IApplicationContext`。这意味着应用代码通常只依赖 `IApplicationContext`，而插件宿主内部仍能使用更具体的插件上下文访问插件树和工作台。
+`Daemon` 和 `Terminal` 会先注册各自的应用上下文实现，再映射为 [`PluginApplicationContext`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/PluginApplicationContext.cs) 和 [`IApplicationContext`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationContext.cs)。这意味着应用代码通常只依赖 `IApplicationContext`，而插件宿主内部仍能使用更具体的插件上下文访问插件树和[工作台](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/IWorkbenchBase.cs)。
 
 ## 使用建议
 
@@ -435,7 +435,7 @@ public MessageService Service { get; set; }
 * 需要在插件文件中声明、可由配置或路径表达式组装的对象，放到 `/Workspace/Environment/Services`。
 * 需要被其他插件按扩展点发现的对象，优先挂到约定插件树路径，而不是强行放进 DI 容器。
 * 同一契约有多个实现时，用 `Find<T>(argument)`、`IMatchable`、`IMatcher<T>` 或标签组织，不要把实现选择逻辑写死在调用方。
-* 模块内部服务尽量标注 `ApplicationModuleAttribute`，让模块容器可以优先解析本模块实现。
+* 模块内部服务尽量标注 [`ApplicationModuleAttribute`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/ApplicationModuleAttribute.cs)，让模块容器可以优先解析本模块实现。
 
 {% hint style="warning" %}
 `ServiceAttribute` 扫描注册的普通类型默认按单例注册。包含可变状态、请求状态或需要释放的短生命周期对象，应使用代码注册明确生命周期，或通过工厂服务创建。

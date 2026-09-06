@@ -5,11 +5,7 @@ icon: rotate
 
 # Zongsoft.Data.Transaction
 
-`Zongsoft.Data.Transaction` 提供核心类库中的轻量环境事务对象，事务状态、事务信息、事务阶段和事务参与登记类型位于 `Zongsoft.Data.Transactions` 命名空间。它用于在数据服务、批处理或跨组件操作中表达一段可提交或回滚的应用层事务。
-
-{% hint style="warning" %}
-核心类库中的 `Zongsoft.Transactions` 命名空间已移除；新代码应改用 `Zongsoft.Data.Transaction` 和 `Zongsoft.Data.Transactions`。
-{% endhint %}
+`Zongsoft.Data.Transaction` 提供[核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core)中的轻量环境事务对象，事务状态、事务信息、事务阶段和事务参与登记类型位于 `Zongsoft.Data.Transactions` 命名空间。它用于在数据服务、批处理或跨组件操作中表达一段可提交或回滚的应用层事务。
 
 ## 主要职责
 

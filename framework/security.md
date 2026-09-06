@@ -1,11 +1,11 @@
 ---
-description: 连接 Core 安全契约、持久化身份权限、Web 接口与验证码，建立完整的安全调用链。
+description: 连接 核心类库 安全契约、持久化身份权限、Web 接口与验证码，建立完整的安全调用链。
 icon: shield-halved
 ---
 
 # 安全
 
-Zongsoft 的安全能力分为公共契约、默认持久化实现和可选 Web 接口。Core 定义身份、凭据和权限等模型；Zongsoft.Security 实现用户、角色、成员与权限服务，并通过数据引擎保存；Web 和 Captcha 插件分别提供 HTTP 接口与人机挑战。
+Zongsoft 的安全能力分为公共契约、默认持久化实现和可选 Web 接口。[核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 定义身份、凭据和权限等模型；Zongsoft.Security 实现用户、角色、成员与权限服务，并通过数据引擎保存；Web 和 Captcha 插件分别提供 HTTP 接口与人机挑战。
 
 ## 先分清三个问题
 

@@ -13,7 +13,7 @@ icon: database
 | --- | --- | --- |
 | Redis | 缓存、序号、锁、消息流、配置和消息存储 | 注册的 `Redis` 提供者及相关插件树节点 |
 | etcd | 基础 KV、序号、租约锁 | 序号/锁提供者；不是公共分布式缓存实现 |
-| Garnet | 随宿主启动的 Redis 协议服务器 | 工作器及服务器设置；客户端仍需相应适配器 |
+| Garnet | 随宿主启动的 Redis 协议服务器 | [工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)及服务器设置；客户端仍需相应适配器 |
 
 ## Redis 缓存闭环
 
@@ -65,7 +65,7 @@ Redis 和 etcd 的锁都需要理解**租约**与**栅栏令牌**：租约失效
 
 ## Garnet 服务器
 
-`Zongsoft.Externals.Garnet` 通过工作器托管 Garnet 服务器。配置路径为 `/Externals/Garnet`，具名 `server` 的 `value` 转换为服务器选项。插件工作器启动可能打开监听端口，所以应在启用前明确绑定地址、认证和持久化目录。
+`Zongsoft.Externals.Garnet` 通过[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)托管 Garnet 服务器。配置路径为 `/Externals/Garnet`，具名 `server` 的 `value` 转换为服务器选项。插件工作器启动可能打开监听端口，所以应在启用前明确绑定地址、认证和持久化目录。
 
 相对目录通常从适配器程序集位置解析，`~/` 从应用根目录解析。启用 AOF 或检查点后，应测试停止、重启和恢复；进程内服务器与宿主共享资源及故障边界。Redis 协议兼容不等于全部 Redis 命令和持久化行为相同。
 

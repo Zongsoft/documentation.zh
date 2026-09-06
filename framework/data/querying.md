@@ -79,7 +79,7 @@ protected virtual ValueTask<UserProfile> GetUserAsync(uint userId, CancellationT
 ```
 {% endcode %}
 
-这是认证质询阶段的查询，取消令牌沿调用链传入。Paging.Limit(1) 限制读取量，FirstOrDefault 消费异步序列。这里使用 Core 的 [集合扩展](../core/collections/extensions.md)，引入 `Zongsoft.Collections` 后即可调用 `.FirstOrDefault(cancellation)`；它处理空序列并释放枚举器，无需在业务项目中另写首元素辅助方法。不要把这一条身份初始化路径当作对外开放的用户搜索接口。
+这是认证质询阶段的查询，取消令牌沿调用链传入。Paging.Limit(1) 限制读取量，FirstOrDefault 消费异步序列。这里使用 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 的 [集合扩展](../core/collections/extensions.md)，引入 `Zongsoft.Collections` 后即可调用 `.FirstOrDefault(cancellation)`；它处理空序列并释放枚举器，无需在业务项目中另写首元素辅助方法。不要把这一条身份初始化路径当作对外开放的用户搜索接口。
 
 ## 用计数还原投票统计
 

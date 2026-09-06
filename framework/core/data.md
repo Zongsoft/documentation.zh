@@ -5,7 +5,7 @@ icon: database
 
 # Zongsoft.Data
 
-`Zongsoft.Data` 在核心类库中定义数据访问的基础抽象、数据服务模型、条件、操作元、模式、分页、排序、事务、数据字典和数据元数据。完整的数据引擎实现由 `Zongsoft.Data` 模块继续扩展。
+[`Zongsoft.Data`](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Data) 在[核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core)中定义数据访问的基础抽象、数据服务模型、条件、操作元、模式、分页、排序、事务、数据字典和数据元数据。完整的数据引擎实现由 `Zongsoft.Data` 模块继续扩展。
 
 ## 主要职责
 

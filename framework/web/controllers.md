@@ -10,7 +10,7 @@ Discussions 的 API 项目是 Web 类库，OutputType 为 Library。它包含控
 
 ## 构建真实项目
 
-先按[业务插件](../../get-started/first-business-plugin.md)构建相邻 framework 的 Core 和 Web，并保持相同的配置与目标框架。当前源码的依赖要求见[准备环境](../../get-started/prerequisites.md)。
+先按[业务插件](../../get-started/first-business-plugin.md)构建相邻 framework 的 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 和 Web，并保持相同的配置与目标框架。源码目录和 SDK 的准备见[准备环境](../../get-started/prerequisites.md)。
 
 {% code title="从 discussions 根目录构建 API" %}
 ```powershell
@@ -18,7 +18,7 @@ dotnet build src/api/Zongsoft.Discussions.Web.csproj -f net10.0 -p:ZongsoftFrame
 ```
 {% endcode %}
 
-这会同时构建领域库。本地引用不会自动构建 framework；所需 Core 版本发布到所用 NuGet 源后，才可省略该开关并恢复默认包引用路径。
+这会同时构建领域库。本地引用不会自动构建 framework；如果所用 NuGet 源已包含项目要求的[核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core)等依赖版本，可省略该开关并使用默认包引用方式。
 
 ## Web 清单依赖领域插件
 
@@ -58,6 +58,6 @@ artifacts/templates/*.xlsx
 
 ## 验证路径
 
-先确认 Discussions 和 Discussions.Web 清单加载，再确认 Threads、Forums、Users 等控制器进入应用模型。随后检查认证、站点、连接、映射和外部文件配置，最后验证查询与业务动作。
+先确认 Discussions 和 [Discussions.Web](https://github.com/Zongsoft/discussions/tree/main/src/api) 清单加载，再确认 Threads、Forums、Users 等控制器进入应用模型。随后检查认证、站点、连接、映射和外部文件配置，最后验证查询与业务动作。
 
 公开动作以控制器当前路由为准。仓库早期 docs/api.md 是历史接口草稿；未经核对，不应将其中的单数路径视为当前可执行范例。主题审核的具体代码见[请求与数据服务接口](data-services.md)。

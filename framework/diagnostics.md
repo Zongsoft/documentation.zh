@@ -5,7 +5,7 @@ icon: stethoscope
 
 # 诊断
 
-Zongsoft.Diagnostics 将 Core 诊断选项接到实际导出器。Discussions 没有独立定义诊断方案，使用时由宿主选择和部署；本页采用框架随包配置作为参考。
+Zongsoft.Diagnostics 将 [核心类库](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core) 诊断选项接到实际导出器。Discussions 没有独立定义诊断方案，使用时由宿主选择和部署；本页采用框架随包配置作为参考。
 
 ## 指标导出配置
 
@@ -31,7 +31,7 @@ Zongsoft.Diagnostics 将 Core 诊断选项接到实际导出器。Discussions �
 
 ## 追踪与日志不是同一个配置对象
 
-同一文件还有 traces 节，配置 OTLP 和 Zipkin。日志输出另由[Core 日志体系](core/diagnostics.md)组织；启用指标导出不等于应用日志也会发送到相同目标。
+同一文件还有 traces 节，配置 OTLP 和 Zipkin。日志输出另由[核心类库 日志体系](core/diagnostics.md)组织；启用指标导出不等于应用日志也会发送到相同目标。
 
 ## 从业务测量到后端
 

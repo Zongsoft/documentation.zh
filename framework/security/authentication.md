@@ -69,7 +69,7 @@ public static UserIdentity Current => ClaimsIdentityModeling.GetModel<UserIdenti
 ```
 {% endcode %}
 
-Scheme 是 Zongsoft.Discussions。只有建立该方案并注册转换器，当前模型才可用；普通 ClaimsPrincipal 或匿名访问并不自动带有这份身份。
+Scheme 是 [Zongsoft.Discussions](https://github.com/Zongsoft/discussions/tree/main/src)。只有建立该方案并注册转换器，当前模型才可用；普通 ClaimsPrincipal 或匿名访问并不自动带有这份身份。
 
 ## 站点范围与资源权限
 
