@@ -5,7 +5,7 @@ icon: power-off
 
 # 宿主集成
 
-宿主集成的目标是把标准 .NET Host 与 Zongsoft 插件框架连接起来。宿主仍然使用 `IHost`、配置、依赖注入和生命周期事件；插件框架负责在 Host 构建过程中加载插件树、注册插件程序集服务，并创建应用上下文。
+宿主集成的目标是把标准 .NET Host 与 Zongsoft 插件框架连接起来。宿主仍然使用 [`IHost`](https://learn.microsoft.com/zh-cn/dotnet/api/microsoft.extensions.hosting.ihost) _[源码](https://source.dot.net/#Microsoft.Extensions.Hosting.Abstractions/IHost.cs)_、配置、依赖注入和生命周期事件；插件框架负责在 Host 构建过程中加载插件树、注册插件程序集服务，并创建应用上下文。
 
 ## 启动入口
 
@@ -13,6 +13,7 @@ icon: power-off
 
 {% code title="Program.cs" %}
 ```csharp
+using Microsoft.Extensions.Hosting;
 using Zongsoft.Plugins.Hosting;
 
 var host = Application.Daemon(args, builder =>
@@ -47,11 +48,11 @@ await host.RunAsync();
 
 构建 Host 时，框架会执行以下动作：
 
-1. 创建 `PluginOptions`，确定应用目录、环境名和 `plugins` 目录。
+1. 创建 `PluginOptions`，确定内容根、环境名和插件目录，并将插件配置源加入应用配置。
 2. 通过 `PluginTree.Get(options).Load()` 加载插件树。
 3. 注册宿主程序集、宿主引用程序集和插件清单程序集中的服务类型。
-4. 添加默认 `HttpClient` 服务。
-5. 将插件配置源加入应用配置。
+4. 添加默认 `System.Net.Http.HttpClient` 服务。
+5. 注册 `/Workspace/Environment/Services` 下的声明式服务。
 6. 构建 Host 并调用 `Initialize()` 初始化应用上下文。
 
 如果 `plugins` 目录不存在，插件加载会失败并抛出目录不存在异常。部署宿主时应确保插件目录与宿主应用目录匹配。
@@ -90,3 +91,11 @@ Host 构建完成后会初始化 `ApplicationContext`。应用上下文会解析
 {% content-ref url="../../get-started/deploy-first-plugin.md" %}
 [deploy-first-plugin.md](../../get-started/deploy-first-plugin.md)
 {% endcontent-ref %}
+
+## 内容根与配置匹配
+
+默认插件目录由内容根与 `plugins` 组合。启动 DLL 的绝对路径不会自动更改工作目录，因此应从已部署目录启动，并确认其中包含基础清单。宿主配置与插件配置使用不同的后缀匹配规则，详见[选项配置文件](../../references/option-files.md)。
+
+程序集引用扫描只处理当时已加载的入口引用，再处理入口程序集及已加载插件清单声明的程序集。不要以为放进目录的每个 DLL 都会自动参与服务扫描。
+
+Web 应用使用配套的 `Zongsoft.Web.Application.Web(...)` 入口，并额外完成控制器、初始化器和中间件装配，见[Web 基础](../web.md)。

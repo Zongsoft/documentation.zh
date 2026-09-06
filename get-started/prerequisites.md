@@ -1,5 +1,5 @@
 ---
-description: 准备本地开发、构建、部署和调试 Zongsoft 应用所需环境。
+description: 根据所选教程准备 SDK、工具和源码输出，区分包使用与框架源码开发。
 icon: list-check
 ---
 
@@ -7,57 +7,59 @@ icon: list-check
 
 ![准备环境](../.gitbook/assets/zongsoft-start-cover.svg)
 
-开始使用 Zongsoft 前，建议先准备 .NET SDK、Git、可选容器环境和常用命令行工具。
+学习插件使用可以直接从 NuGet 获取框架，不必先构建全部仓库。只有需要调试框架源码、使用本地未发布改动或构建现有 hosting 时，才需要准备相邻源码输出。
 
-{% stepper %}
-{% step %}
-## 安装必需工具
+## 先选择一条路径
 
-- Git
-- .NET SDK 8、9 或 10
-- PowerShell 或 Bash
-- 一个支持 .NET 的 IDE，例如 Visual Studio、Visual Studio Code 或 JetBrains Rider
+| 目标 | 必需内容 | 起点 |
+| --- | --- | --- |
+| 创建最小插件应用 | 匹配 SDK、部署工具、可用包源 | [第一个插件](deploy-first-plugin.md) |
+| 调试框架与现有宿主 | Git、framework/hosting 源码、匹配编译输出 | [宿主概览](../hosting/hosting.md) |
+| 连接数据库或消息系统 | 前面内容及所选外部服务 | 对应驱动与连接专题 |
 
-{% hint style="info" %}
-framework 仓库当前面向 .NET 8、.NET 9、.NET 10 等版本。具体项目可能声明不同目标框架，构建前应以对应 `.csproj` 或 `Directory.Build.props` 为准。
-{% endhint %}
-{% endstep %}
+## SDK 版本
 
-{% step %}
-## 建立推荐目录
+当前 hosting 根配置为 .NET 10；本库最小教程也以 `net10.0` 编写。framework 多个类库支持 .NET 8、9、10，但具体项目、示例和工具需以自己的 `.csproj`、`Directory.Build.props` 及包依赖为准。
 
-建议把相关仓库 clone 到同一个根目录下，例如：
-
-```text
-D:\Zongsoft
-  framework
-  hosting
-  tools
-  documentation.zh
+{% code title="CheckDotnet.ps1" %}
+```powershell
+dotnet --info
+dotnet --list-sdks
+dotnet --list-runtimes
 ```
+{% endcode %}
 
-这样可以让文档、宿主、工具和源码中的相对引用更容易对应。
-{% endstep %}
+SDK 用于编译，运行时用于执行。安装较新运行时不代表机器已具备所有旧目标所需运行时；Web 和 Windows 桌面工具还各有运行环境要求。
 
-{% step %}
-## 拉取源码
+## 源码目录
 
-```bash
+需要源码路径时，建议把仓库放在同一个父目录：
+
+{% code title="Workspace.layout" %}
+```text
+Zongsoft/
+	framework/
+	hosting/
+	tools/
+	documentation.zh/
+```
+{% endcode %}
+
+{% code title="CloneRepositories.ps1" %}
+```powershell
 git clone https://github.com/Zongsoft/framework.git
 git clone https://github.com/Zongsoft/hosting.git
 git clone https://github.com/Zongsoft/tools.git
+git -C framework submodule update --init --recursive
 ```
+{% endcode %}
 
-framework 仓库包含子模块，clone 后需要更新：
+framework 的 OpenTelemetry 协议来源使用子模块；构建相关诊断项目时需要对应内容。hosting 默认引用 framework 的相邻输出，源码目录存在还不够，必须先编译所需类库的对应配置和目标。
 
-```bash
-git submodule update --init --recursive
-```
-{% endstep %}
+## 工具与可选环境
 
-{% step %}
-## 准备可选容器环境
+安装步骤见[安装包](install.md)。编辑器可使用支持 .NET 的 IDE，Shell 命令应按 PowerShell 或 Bash 的各自语法执行，不能混用续行和变量插值。
 
-如果需要本地运行 Redis、MySQL、PostgreSQL 或 RustFS，可以使用 hosting 仓库提供的 Podman 容器文件。Windows 环境建议先确认 WSL 2 可用。
-{% endstep %}
-{% endstepper %}
+数据库、Redis、MQTT 和模型服务器并非最小插件教程的前置条件。按需要准备依赖服务，并先检查端点就绪；使用 Podman 时阅读[容器化环境](../hosting/containerization.md)。
+
+准备完成后，应能明确回答：目标框架是什么、包从哪里来、输出目录在哪里、实际启动哪个程序。接着[选择宿主](hosting.md)并完成第一个运行闭环。

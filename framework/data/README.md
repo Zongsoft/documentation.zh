@@ -16,6 +16,8 @@ icon: database
 * 访问层：`IDataAccess` 暴露统一的查询、写入、聚合、导入和执行接口。
 * 驱动层：各数据库驱动把统一表达式转换为对应数据库语法并执行。
 
+先理解[对象关系与数据访问](concepts.md)，再按[首次查询](quickstart.md)完成一个不需要建表的 SQLite 验证。业务规则组织见[数据服务](services.md)。
+
 ## 特性
 
 * 支持严格 POCO 对象。
@@ -109,7 +111,9 @@ icon: database
 
 {% code title="SelectUsers.cs" %}
 ```csharp
-var accessor = dataAccessProvider.GetAccessor("Security");
+var provider = ApplicationContext.Current.Services
+	.ResolveRequired<Zongsoft.Services.IServiceProvider<IDataAccess>>();
+var accessor = provider.GetService("Security");
 
 var users = accessor.Select<User>(
 	Condition.Equal(nameof(User.Enabled), true),

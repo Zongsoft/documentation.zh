@@ -52,13 +52,13 @@ Zongsoft 是一组面向 .NET 的开源框架、宿主程序和开发工具，�
 		<tr>
 			<td><strong>理解插件化应用</strong></td>
 			<td>理解插件树、构件、服务注册和宿主集成。</td>
-			<td><a href="framework/plugins/">plugins</a></td>
+			<td><a href="framework/plugins/README.md">plugins</a></td>
 			<td><a href=".gitbook/assets/zongsoft-plugins-cover.svg">zongsoft-plugins-cover.svg</a></td>
 		</tr>
 		<tr>
 			<td><strong>学习数据访问</strong></td>
 			<td>用数据模式、映射文件和驱动完成对象图读写。</td>
-			<td><a href="framework/data/">data</a></td>
+			<td><a href="framework/data/README.md">data</a></td>
 			<td><a href=".gitbook/assets/zongsoft-data-cover.svg">zongsoft-data-cover.svg</a></td>
 		</tr>
 	</tbody>
@@ -71,9 +71,16 @@ Zongsoft 是一组面向 .NET 的开源框架、宿主程序和开发工具，�
 1. 从 [什么是 Zongsoft](overview/what-is-zongsoft.md) 了解整体边界。
 2. 阅读 [插件化](overview/pluginization.md)，理解业务能力为什么以插件方式组织。
 3. 按 [准备环境](get-started/prerequisites.md) 和 [安装包](get-started/install.md) 完成本地准备。
-4. 选择一个 [宿主程序](get-started/hosting.md)，再部署第一个插件。
+4. 选择一个 [宿主程序](get-started/hosting.md)，完成[最小部署](get-started/deploy-first-plugin.md)和[首个业务插件](get-started/first-business-plugin.md)。
 5. 进入框架指南，按需要阅读核心类库、插件框架、数据引擎、Web 基础等主题。
 
 {% hint style="info" %}
 本文档优先以“如何构建一个插件式应用”的路径组织内容，而不是按 NuGet 包逐个罗列。包名、源码路径和模块关系可以在 [包与模块索引](references/packages.md) 中查阅。
 {% endhint %}
+
+## 按问题深入
+
+- 不清楚宿主、模块、服务与提供者的关系：阅读[基础概念](overview/concepts.md)和[服务定位](framework/core/services/locating.md)。
+- 需要业务数据与 HTTP 接口：从[首次查询](framework/data/quickstart.md)到[数据服务](framework/data/services.md)，再连接[Web 控制器](framework/web/controllers.md)。
+- 需要异步工作和外部基础设施：阅读[消息投递概念](framework/messaging/concepts.md)、[任务调度](framework/externals/execution.md)及[扩展索引](framework/externals.md)。
+- 需要模型调用、诊断或应用交付：进入[智能化](framework/intelligences.md)、[诊断](framework/diagnostics.md)和[升级流程](framework/upgrading/workflow.md)。

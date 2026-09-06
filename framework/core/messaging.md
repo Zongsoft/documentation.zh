@@ -16,7 +16,7 @@ icon: message
 * 统一入口：发布方通过 `IMessageProducer` 发送字节或文本消息；订阅方通过 `IMessageQueue` 订阅主题并获得 `IMessageConsumer`。
 * 统一消息：所有实现最终交给处理器的是 `Message`，包含主题、标签、消息体、标识符、发送者身份、时间戳和确认回调。
 * 统一配置：插件把连接设置驱动注册到 `/Workbench/Configuration/ConnectionSettings/Drivers`，队列提供器再从 `/Messaging/ConnectionSettings` 读取连接项。
-* 保留边界：`MessageReliability`、标签、延迟、过期、优先级等选项是框架意图，不代表每个底层产品都支持同样语义。实现不支持的能力通常会被忽略或降级。
+* 保留边界：`MessageReliability`、标签、延迟、过期、优先级等选项是框架意图，不代表每个底层产品都支持同样语义。核心层会检查可靠性上限、正数延迟和非空压缩设置；不支持时拒绝调用。其他选项的具体映射仍需核对驱动。
 
 ```mermaid
 flowchart LR
@@ -41,7 +41,7 @@ flowchart LR
 | `IMessageQueueFactory` | 队列工厂，根据连接设置或连接字符串创建队列实例。 |
 | `IMessageQueueProvider` | 队列提供器，按名称从应用配置中发现并复用队列实例。 |
 | `MessageQueueBase<TSubscriber>` | 队列基类，实现发送和订阅重载、默认主题解析、订阅集合和释放流程。 |
-| `MessageConsumerBase<TQueue>` | 消费者基类，把订阅生命周期纳入 [Channel](communication/general.md#channel-she-ji-si-xiang) 关闭模型。 |
+| `MessageConsumerBase<TQueue>` | 消费者基类，把订阅生命周期纳入 [Channel](communication/general.md) 关闭模型。 |
 | `MessageQueueGuarder` | 宿主工作器，根据配置启动一组订阅，并在停止时取消订阅。 |
 
 处理器使用 [`IHandler<T>`](components/handler.md) 承接消息处理逻辑。这样订阅回调可以是简单委托，也可以是可复用、可注入、可组合的处理器对象。
@@ -60,7 +60,7 @@ flowchart LR
 | `Timestamp` | 消息时间戳；新建消息默认使用 UTC 时间，部分实现会使用底层消息时间。 |
 | `IsEmpty` | 数据为空时为真；轮询器用它表示未取到有效消息。 |
 
-`Message.Acknowledge()` 和 `Message.AcknowledgeAsync()` 调用消息内携带的确认回调。确认的具体效果由实现决定：Kafka 提交 offset，RabbitMQ 发送 `BasicAck`，MQTT 调用 MQTTnet 的确认方法，ZeroMQ 当前消息没有确认回调。
+`Message.Acknowledge()` 和 `Message.AcknowledgeAsync()` 调用消息内携带的确认回调。确认的具体效果由实现决定：Kafka 提交 offset，RabbitMQ 发送 `BasicAck`，MQTT 调用 MQTTnet 的确认方法，ZeroMQ 的 `LeastOnce` 通过 Control 通道确认，`MostOnce` 没有可靠确认。Kafka 当前配置未关闭客户端自动提交，显式 Commit 不保证未确认消息必然重投。
 
 {% hint style="warning" %}
 不要把“收到消息”和“消息已经被中间件确认”混为一谈。订阅处理器如果需要至少一次处理语义，应在业务处理成功后再调用 `AcknowledgeAsync()`；如果处理器从不确认，Kafka、RabbitMQ、MQTT 等实现可能按各自协议保留未确认状态或重新投递。
@@ -92,11 +92,12 @@ await queue.ProduceAsync(
 
 | 选项 | 说明 |
 | --- | --- |
-| `Delay` | 延迟投递。当前四个实现没有完整映射该选项。 |
-| `Expiration` | 消息有效期。RabbitMQ 会映射到消息过期属性。 |
+| `Delay` | 延迟投递。正值要求队列声明 Delay 能力，否则在进入驱动前拒绝。 |
+| `Expiration` | 消息有效期。RabbitMQ、MQTT 5、ZeroMQ 可靠通道等分别实现自己的过期语义。 |
 | `Priority` | 优先级。RabbitMQ 会写入消息优先级。 |
-| `Reliability` | 发布可靠性意图。MQTT 会映射为 QoS；其它实现按自身配置处理。 |
-| `Properties` | 扩展属性。RabbitMQ 写入 headers，MQTT 写入 user properties。 |
+| `Reliability` | 不得超过驱动声明的上限；MQTT 映射为 QoS，ZeroMQ 区分广播与可靠通道。 |
+| Properties | 扩展属性。RabbitMQ 写入 headers，MQTT 5 写入 user properties。 |
+| Compression | 算法与字节阈值；非空设置要求队列声明 Compression 能力。 |
 
 ## 订阅消息
 
@@ -115,18 +116,14 @@ var queue = MessageQueueUtility.Queue("Orders");
 
 var consumer = await queue.SubscribeAsync(
 	"Orders.Created",
-	async message =>
-	{
-		var text = Encoding.UTF8.GetString(message.Data);
-		Console.WriteLine($"[{message.Topic}] {text}");
-
-		await message.AcknowledgeAsync();
-	},
+	new ConsoleMessageHandler(),
 	new MessageSubscribeOptions(
 		MessageReliability.LeastOnce,
 		MessageFallbackBehavior.Backoff));
 ```
 {% endcode %}
+
+示例中的 `ConsoleMessageHandler` 实现见[消息处理器示例](../messaging.md)。异步处理必须使用 `IHandler<Message>`，不要把异步 lambda 传给同步委托重载。
 
 `IMessageConsumer` 是一次订阅的句柄。保留它可以在应用运行中主动取消订阅：
 
@@ -136,7 +133,7 @@ await consumer.UnsubscribeAsync();
 ```
 {% endcode %}
 
-`MessageQueueBase<TSubscriber>` 以主题为键保存订阅者。同一个队列实例对同一主题重复订阅时，会复用已有订阅者；如果需要多个独立处理器，应使用不同主题、不同队列实例，或在一个处理器内部进行分发。
+`MessageQueueBase<TSubscriber>` 以主题为键保存订阅者。只有同一主题的处理器、标签及规范化选项一致时才会复用初始化任务和订阅者；不兼容的重复订阅会抛出冲突异常。初始化失败的项不会作为活动消费者暴露。需要多个处理器时，应明确设计分发或使用独立订阅范围。
 
 ## 可靠性和失败退避
 
@@ -246,3 +243,9 @@ Local@ZeroMQ
 * [连接配置](../data/connections.md)
 * [插件文件与加载](../plugins/plugin-file.md)
 * [Messaging 源码目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core/src/Messaging)
+
+## 消息存储与负载所有权
+
+`IMessageStorage` 是独立于传输驱动的持久消息契约。存储保存消息元数据和负载快照，不持久化确认委托；恢复后的确认行为由 Broker 重新建立。配置及身份迁移见[可靠消息存储](../messaging/reliability.md)。
+
+`Message.Data` 当前仍是字节数组。框架 `IsEmpty` 将空数组也视为空消息，但部分协议允许合法空业务负载；驱动适配不能简单把所有空载荷丢弃为无消息。延迟执行或持久化时应按实现契约快照借用数据，避免调用者修改数组影响已接受消息。

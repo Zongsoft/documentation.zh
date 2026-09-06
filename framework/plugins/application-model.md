@@ -49,3 +49,21 @@ Web 宿主中的 `/Modules` 接口可用于查看当前加载的模块信息。
 - `/Workbench/Startup`：启动时需要加载或运行的工作器集合。
 
 这使插件之间可以通过稳定路径发现能力，而不是直接引用彼此的实现类型。
+
+## 从业务边界到运行实例
+
+插件和模块没有自动的一一对应关系。模块对象由应用定义，并通过 `/Workbench/Modules` 加入应用；程序集上的 `ApplicationModuleAttribute` 则参与类型的模块归属。两者应使用一致的模块名。完整声明和调用见[第一个业务插件](../../get-started/first-business-plugin.md)。
+
+模块容器优先解析模块服务，再回退应用共享服务，适合业务局部实现与公共基础设施协作。它不会自动建立独立进程、数据库或请求作用域，详见[基础概念](../../overview/concepts.md#module-service-provider)。
+
+## 启动与停止的职责
+
+构建宿主期间先加载插件树并注册服务，随后初始化应用上下文。工作台首次构建时组织其子节点，并将 Startup 子树后置；宿主进入启动、停止阶段时打开和关闭工作台。
+
+对象构造、应用初始化和持续工作是不同阶段。需要保持消息订阅或周期任务的组件应使用[工作器](../core/components/worker.md)管理启动、取消和释放；不要依靠构造函数启动无法停止的后台任务。
+
+{% hint style="warning" %}
+🚨 插件节点构建失败不代表所有已发生的外部操作都能回滚。组件应控制构造副作用，并实现明确的停止和清理路径。
+{% endhint %}
+
+源码定位：[应用上下文](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/PluginApplicationContext.cs)、[模块容器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/ApplicationModule.cs)。

@@ -7,7 +7,7 @@ icon: message
 
 Zongsoft 的消息队列体系由 [Zongsoft.Messaging](core/messaging.md) 核心抽象和四个具体插件组成。核心抽象负责统一生产、订阅、消息确认和队列发现；插件负责把这些抽象落到具体消息系统上。
 
-本页说明四个实现的设计差异、配置方式、使用范例和注意事项。业务代码通常只需要依赖 `Zongsoft.Core` 的消息抽象；应用启动、部署和连接参数才需要关心具体插件。
+首次使用请先阅读[发布订阅与投递概念](messaging/concepts.md)，需要故障恢复时继续阅读[可靠投递与消息存储](messaging/reliability.md)。本页说明四个实现的设计差异、配置方式、使用范例和注意事项。业务代码通常只需要依赖 `Zongsoft.Core` 的消息抽象；应用启动、部署和连接参数才需要关心具体插件。
 
 ## 插件一览
 
@@ -15,8 +15,8 @@ Zongsoft 的消息队列体系由 [Zongsoft.Messaging](core/messaging.md) 核心
 | --- | --- | --- | --- |
 | `Zongsoft.Messaging.Kafka` | `Confluent.Kafka` | 高吞吐日志流、事件流、消费组处理。 | 发布到 Kafka topic，订阅后轮询消费，确认时提交 offset。 |
 | `Zongsoft.Messaging.RabbitMQ` | `RabbitMQ.Client` | 传统消息队列、路由、工作队列和可靠投递。 | 使用 topic exchange，支持消息过期、优先级、headers 和手动 ACK。 |
-| `Zongsoft.Messaging.Mqtt` | `MQTTnet` | 设备消息、轻量发布订阅、网络不稳定环境。 | 使用 managed client 入队发布，支持自动重连、重新订阅和 QoS 映射。 |
-| `Zongsoft.Messaging.ZeroMQ` | `NetMQ` | 进程间或局域网内轻量消息转发、内部事件通道。 | 自带 `ZeroQueueServer` 转发器，支持实例过滤、分组主题和事件/请求应答适配。 |
+| `Zongsoft.Messaging.Mqtt` | `MQTTnet` | 设备消息、轻量发布订阅、网络不稳定环境。 | 通过连接管理器直接发布，支持重连、重新订阅和 QoS 映射。 |
+| `Zongsoft.Messaging.ZeroMQ` | `NetMQ` | 进程间或局域网内轻量消息转发、内部事件通道。 | 自带 Broker，支持最多一次广播、至少一次持久接纳和事件/请求应答适配。 |
 
 {% hint style="info" %}
 这些插件共享 `IMessageQueue` 接口，但底层协议并不等价。主题、标签、确认、重试、事务、顺序性和持久化都要按具体实现理解。
@@ -140,7 +140,7 @@ var queue = new KafkaQueue("Kafka", settings);
 
 ## 通用范例
 
-四个实现都遵循同一个核心用法：创建或解析队列，订阅主题，发送消息，在处理成功后确认。
+四个实现都遵循同一个核心用法：创建或解析队列，订阅主题，发送消息，在处理成功后确认。以下片段运行在持续存活的宿主中；独立控制台程序必须等待接收完成再退出。MQTT 和 ZeroMQ 默认过滤自身发布，验证时使用两个客户端或按实现配置自接收。
 
 {% code title="PublishSubscribe.cs" %}
 ```csharp
@@ -149,13 +149,7 @@ using Zongsoft.Messaging;
 
 var queue = MessageQueueUtility.Queue("Orders");
 
-var consumer = await queue.SubscribeAsync("Orders.Created", async message =>
-{
-	var text = Encoding.UTF8.GetString(message.Data);
-	Console.WriteLine($"Received: [{message.Topic}] {text}");
-
-	await message.AcknowledgeAsync();
-});
+var consumer = await queue.SubscribeAsync("Orders.Created", new ConsoleMessageHandler());
 
 var identifier = await queue.ProduceAsync(
 	"Orders.Created",
@@ -170,6 +164,27 @@ Console.WriteLine($"Sent: {identifier}");
 示例中的 `AcknowledgeAsync()` 是有意放在处理逻辑之后。生产环境应先完成业务处理、落库或幂等记录，再确认消息。
 {% endhint %}
 
+以下处理器用于本页的订阅片段，应放入示例项目中。异步处理不能直接传给同步 `System.Action<Message>` 重载，否则会形成 `async void`，框架无法等待其完成或正确观察异常。
+
+{% code title="ConsoleMessageHandler.cs" %}
+```csharp
+using System.Text;
+using Zongsoft.Messaging;
+using Zongsoft.Components;
+using Zongsoft.Collections;
+
+public sealed class ConsoleMessageHandler : HandlerBase<Message>
+{
+	protected override async ValueTask OnHandleAsync(Message message,
+		Parameters parameters, CancellationToken cancellation)
+	{
+		Console.WriteLine($"[{message.Topic}] {Encoding.UTF8.GetString(message.Data)}");
+		await message.AcknowledgeAsync(cancellation);
+	}
+}
+```
+{% endcode %}
+
 ## Kafka 实现
 
 `KafkaQueue` 使用 `ProducerBuilder<Null, byte[]>` 发布消息，使用 `ConsumerBuilder<string, byte[]>` 创建消费者。订阅成功后，`KafkaSubscriber` 启动一个 `MessagePollerBase` 轮询器，调用 Kafka consumer 的 `Consume(...)` 获取消息。
@@ -178,7 +193,7 @@ Console.WriteLine($"Sent: {identifier}");
 
 * 发布必须指定非空主题；默认主题来自连接设置的 `topic`。
 * 发布返回 Kafka 的 `TopicPartition` 字符串，不是业务消息 ID。
-* 收到消息后构造 `Message`，确认回调会执行 `_consumer.Commit(result)`。
+* 收到消息后构造 `Message`，确认回调会执行 `_consumer.Commit(result)`。当前连接配置没有关闭客户端自动提交/自动记录位点，因此显式确认并不保证“未确认一定重投”；严格业务确认需求必须验证实际消费配置和重启恢复。
 * `group` 映射为 Kafka `GroupId`；未指定时会生成随机消费组。
 * `client` 映射为 Kafka `ClientId`；未指定时会生成随机客户端 ID。
 * `heartbeat`、`timeout`、`transactionId`、`transactionTimeout` 等连接属性会映射到 Kafka 配置。
@@ -196,11 +211,7 @@ var settings = KafkaConnectionSettingsDriver.Instance.GetSettings(
 
 var queue = new KafkaQueue("Kafka", settings);
 
-await queue.SubscribeAsync("Orders.Created", async message =>
-{
-	Console.WriteLine(Encoding.UTF8.GetString(message.Data));
-	await message.AcknowledgeAsync();
-});
+await queue.SubscribeAsync("Orders.Created", new ConsoleMessageHandler());
 
 await queue.ProduceAsync("Orders.Created", Encoding.UTF8.GetBytes("Order #1001"));
 ```
@@ -233,11 +244,7 @@ var settings = RabbitConnectionSettingsDriver.Instance.GetSettings(
 
 var queue = new RabbitQueue("RabbitMQ", settings);
 
-await queue.SubscribeAsync("Orders.Created", async message =>
-{
-	Console.WriteLine(Encoding.UTF8.GetString(message.Data));
-	await message.AcknowledgeAsync();
-});
+await queue.SubscribeAsync("Orders.Created", new ConsoleMessageHandler());
 
 await queue.ProduceAsync(
 	"Orders/Created",
@@ -252,15 +259,15 @@ await queue.ProduceAsync(
 
 ## MQTT 实现
 
-`MqttQueue` 使用 MQTTnet 的普通客户端接收消息，同时使用 `ManagedMqttClient` 发布消息。构造队列后会启动 managed client；订阅和发布前会调用连接确保逻辑。断线后会串行重连，并对已有订阅重新订阅。
+`MqttQueue` 通过连接管理器取得 MQTTnet 客户端，直接调用发布与订阅方法，并在完成后释放连接使用权。连接管理器负责连接、重连和恢复订阅；消息处理采用有界并发，因此不能假定业务处理完成顺序等同于网络接收顺序。
 
 关键行为：
 
 * `server` 可写成 `host:port` 或包含协议的连接 URI。
 * 未指定 `client` 时会生成随机客户端 ID。
-* 发布使用 `ManagedMqttClient.EnqueueAsync(...)`，返回值为空。
+* 发布等待 `PublishAsync(...)` 返回；失败结果转换为异常，成功时返回可用的 MQTT 报文标识。该标识不是业务全局唯一 ID，也不代表消费者处理完成。
 * `MessageReliability` 会映射到 MQTT QoS。
-* `MessageEnqueueOptions.Properties` 会映射到 MQTT user properties。
+* MQTT 5 下，`Properties` 映射为 user properties，正 `Expiration` 映射为消息过期间隔；不能假定 MQTT 3 具有这些属性。
 * 订阅使用 `NoLocal = true`，避免收到本客户端发布的同主题消息。
 * 收到消息时关闭自动确认，处理器调用 `AcknowledgeAsync()` 后才确认。
 * `tags` 当前不参与 MQTT topic filter。
@@ -278,11 +285,7 @@ var settings = MqttConnectionSettingsDriver.Instance.GetSettings(
 
 var queue = new MqttQueue("MQTT", settings);
 
-await queue.SubscribeAsync("devices/+/events", async message =>
-{
-	Console.WriteLine($"[{message.Topic}] {Encoding.UTF8.GetString(message.Data)}");
-	await message.AcknowledgeAsync();
-});
+await queue.SubscribeAsync("devices/+/events", new ConsoleMessageHandler());
 
 await queue.ProduceAsync(
 	"devices/device-001/events",
@@ -293,50 +296,49 @@ await queue.ProduceAsync(
 
 ## ZeroMQ 实现
 
-`ZeroQueue` 是基于 NetMQ 的轻量消息转发实现。它不是连接外部消息中间件，而是需要运行 `ZeroQueueServer` 作为转发器。客户端启动时先连接服务器默认端口 `7969` 获取发布端口和订阅端口，然后通过 `PublisherSocket` 和 `SubscriberSocket` 进行消息收发。
+`ZeroQueueServer` 现在包含两个投递通道：`MostOnce` 通过 XPUB/XSUB 广播，`LeastOnce` 通过 Control 通道登记消费者、持久接纳消息、竞争投递并处理确认。可靠通道只在 Broker 配置消息存储后启动，发布端不保存待投递消息。
 
-关键行为：
+| 模式 | `ProduceAsync` 完成意味着什么 | 没有在线匹配订阅时 |
+| --- | --- | --- |
+| `MostOnce` | 当前发布端可见匹配订阅，并完成一次本地发送 | 返回 `null`，不会等待未来订阅或补发 |
+| `LeastOnce` | Broker 已把 Pending 消息写入存储 | 返回 `null`，不写入存储 |
+| `ExactlyOnce` | 不支持 | 请求在建立传输状态前被拒绝 |
 
-* `server` 必填；`port` 未指定时默认为 `7969`。
-* `ZeroQueueServer` 默认随机绑定内部发布/订阅端口，也可以通过 `/Messaging/ZeroMQ/Servers` 固定端口。
-* `group` 不为空时，主题会变成 `group:topic`，用于简单隔离同一服务器上的不同消息域。
-* 主题为 `*` 时会转为空主题；发布空主题时会向当前队列实例的所有订阅主题发送。
-* 队列实例有 `Instance` 标识；默认过滤掉自己发布的消息，避免本实例收到自己的消息。
-* `filter` 可控制接收哪些实例的消息：`*` 表示接收全部，`.` 或 `~` 表示只接收自身，`!id` 表示排除指定实例。
-* 发布选项中的扩展属性可通过内部 packetizer 携带，压缩选项会在收发时执行压缩和解压。
-* 当前 ZeroMQ 消息没有确认回调，`AcknowledgeAsync()` 通常不会产生底层效果。
+两种模式的非空返回值都不是处理器完成通知。至少一次模式下，处理器必须显式调用 `AcknowledgeAsync()`；未确认会沿用同一消息标识重投，也可能交给另一个在线消费者。
 
-{% code title="ZeroQueueServerSample.cs" %}
-```csharp
-using Zongsoft.Messaging.ZeroMQ;
+### 端口与部署
 
-using var server = new ZeroQueueServer();
-await server.StartAsync(args);
+发现端口默认 `7969`。运行端口通过发现协议取得，配置三个值时依次为 `Control,Incoming,Outgoing`；两个值时为 `Incoming,Outgoing`，启用存储后随机绑定 Control。未指定或指定 `*` 的运行端口可以随机分配。
+
+{% code title="Application.option" %}
+```xml
+<configuration>
+	<option path="/Messaging/ZeroMQ">
+		<servers port="32100,32101,32102">
+			<server server.name="unnamed" />
+		</servers>
+	</option>
+</configuration>
 ```
 {% endcode %}
 
-{% code title="ZeroQueueClientSample.cs" %}
-```csharp
-using System.Text;
-using Zongsoft.Messaging.ZeroMQ;
-using Zongsoft.Messaging.ZeroMQ.Configuration;
+主插件注册客户端、事件通道与请求应答适配；守护插件负责启动 Broker。需要可靠通道时，继续配置[消息存储](messaging/reliability.md)，仅填写 Control 端口不会启用持久化。
 
-using var queue = new ZeroQueue(
-	"ZeroMQ",
-	ZeroConnectionSettingsDriver.Instance.GetSettings(
-		"ZeroMQ",
-		"server=127.0.0.1;client=zero-sample;group=Demo;"));
+### 路由与生命周期
 
-await queue.SubscribeAsync("Orders.Created", message =>
-{
-	Console.WriteLine(Encoding.UTF8.GetString(message.Data));
-});
+* `group` 为物理主题添加 `group:` 前缀，处理器仍取得逻辑主题。订阅使用前缀匹配。
+* 默认过滤掉自身实例发布的消息；同进程演示可设置 `filter=*`，正式隔离仍应使用合适的实例及组配置。
+* 同一主题、处理器、标签和规范化选项一致时复用订阅；同一主题存在不兼容订阅时会抛出冲突异常，不会替换原处理器。
+* 单个订阅的处理器按接收顺序串行执行，有界队列形成该订阅的背压。处理器应及时处理取消，停止时取消自己的订阅。
+* 提供者可能复用队列，不要在一次业务操作结束后释放共享队列。直接构造队列的独立程序则负责完整生命周期。
 
-await queue.ProduceAsync("Orders.Created", Encoding.UTF8.GetBytes("Order #1001"));
-```
-{% endcode %}
+`Compression` 支持 Brotli、GZip、ZLib、Deflate，阈值表示负载字节数，例如 `new MessageCompression("Brotli", 4096)`。正数 `Delay` 不受支持，会由核心能力检查拒绝；选项存在不代表每个驱动都实现了它。
 
-ZeroMQ 插件还注册了 `ZeroRequester` 和 `ZeroResponder`，并通过 `ZeroQueue.EventChannel` 适配事件通道。它适合框架内部通信、开发环境或轻量部署场景；如果需要跨机房持久化、消费进度和成熟的消息治理，应优先考虑 Kafka 或 RabbitMQ。
+{% hint style="warning" %}
+🚨 当前线协议为 `1.0`，不能与旧协议客户端、Broker 或旧 Pending 信封混用。升级时应先停止发布、处理原有待投递消息，并制定存储迁移或切换方案；不要直接清空生产存储。Broker 端点绑定所有网络接口，适配器自身不配置认证和传输加密。
+{% endhint %}
+
+需要独立验证时，使用下表的服务器和客户端交互样例，保持进程存活并等待明确接收结果。不要通过固定延迟或不断重复发布来证明首条消息已经可靠送达。
 
 ## 示例项目
 
@@ -346,7 +348,7 @@ ZeroMQ 插件还注册了 `ZeroRequester` 和 `ZeroResponder`，并通过 `ZeroQ
 | --- | --- | --- |
 | Kafka | `messaging/kafka/samples/Program.cs` | 创建 Kafka 队列，订阅 `TopicX`，并并行发布 200 条消息。 |
 | RabbitMQ | `messaging/rabbit/samples/Program.cs` | 创建 RabbitMQ 队列，订阅默认队列，并按多个主题发布消息。 |
-| MQTT | `messaging/mqtt/samples/Program.cs` | 创建 MQTT 队列并发布消息；当前示例主要演示发布。 |
+| MQTT | `messaging/mqtt/samples/server/Program.cs`、`messaging/mqtt/samples/client/Program.cs` | 交互式 Broker 与客户端，可验证发布、订阅、重连和确认。 |
 | ZeroMQ | `messaging/zero/samples/server/Program.cs`、`messaging/zero/samples/client/Program.cs` | 服务端启动转发器；客户端通过终端命令订阅、取消订阅和发布消息。 |
 
 ## 使用建议

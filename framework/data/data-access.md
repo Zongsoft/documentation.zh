@@ -9,17 +9,21 @@ icon: code
 
 ## 获取访问器
 
-访问器通常通过 `IDataAccessProvider` 获取：
+当前数据引擎插件通过静态提供者注册具名消费契约，推荐从应用或模块容器取得 `Zongsoft.Services.IServiceProvider<IDataAccess>`：
 
-{% code title="UserService.cs" %}
+{% code title="ResolveDataAccess.cs" %}
 ```csharp
-public class UserService(IDataAccessProvider provider)
-{
-	private readonly IDataAccess _data = provider.GetAccessor("Security");
-}
+using Zongsoft.Data;
+using Zongsoft.Services;
+
+var provider = ApplicationContext.Current.Services
+	.ResolveRequired<Zongsoft.Services.IServiceProvider<IDataAccess>>();
+var accessor = provider.GetService("Security")
+	?? throw new InvalidOperationException("未取得数据访问器。");
 ```
 {% endcode %}
 
+`IDataAccessProvider` 仍是存在的核心接口，但不能假定具体插件已将它注册到容器。上面的契约对应当前 `DataAccessProvider.Instance` 注册；普通消费方也不应逐次释放共享访问器。
 访问器名称与连接配置名称匹配。如果不传名称，或者指定名称不存在且配置了默认连接，则会使用默认连接。
 
 ## 操作类别
@@ -96,3 +100,11 @@ var users = accessor.Select<User>(
 每类操作都有对应的 Options 类型，例如 `DataSelectOptions`、`DataInsertOptions`、`DataUpdateOptions`、`DataDeleteOptions`。这些选项用于控制返回值、数据源选择、执行策略或特定操作行为。
 
 业务代码优先使用简洁重载；当需要细粒度行为时再使用 Options。
+
+## 从准备完成到读取完成
+
+查询后过滤器和 Selected 表示查询准备已完成，不表示所有行已经枚举完毕。处理逐行结果时，应把异常和取消处理包围实际的 `await foreach`，而不只包围取得结果的那一行。
+
+顺序重复枚举复用准备结果，不等于提供者结果必然可重放，更不承诺并发枚举安全。需要重复遍历时，应按数据量主动物化；需要重查数据库时，重新调用 SelectAsync。源码与回归依据见[异步实现](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Data/DataAccessBase.Select.cs)及[异步查询用例](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Data/DataAccessBaseSelectTest.cs)。
+
+完整装配示例见[首次查询](quickstart.md)，业务层规则见[数据服务](services.md)。

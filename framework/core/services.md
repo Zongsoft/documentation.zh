@@ -224,7 +224,7 @@ bool Services.IMatchable<string>.Match(string name) =>
 
 {% code title="FindExpressionEvaluator.cs" %}
 ```csharp
-var evaluator = ApplicationContext.Current.Services.Find<IExpressionEvaluator>("Jint");
+var evaluator = ApplicationContext.Current.Services.Find<IExpressionEvaluator>("Scriban");
 
 if(evaluator != null)
 	return evaluator.Evaluate("1 + 2");
@@ -425,3 +425,6 @@ public class ReportWorker
 * [Services 源码目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core/src/Services)
 * [Plugins Hosting 源码目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Plugins/src/Hosting)
 * [Plugins Services 源码目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Plugins/src/Services)
+
+
+关于按契约解析、按名称匹配、提供者定位以及共享实例所有权，参见[服务定位与所有权](services/locating.md)。表达式实现的语言与并发差异见[脚本与表达式](../externals/scripting.md)。

@@ -20,8 +20,8 @@ Zongsoft 工具链用于辅助部署、打包、升级和开发调试。
 
 1. 使用 `dotnet deploy` 把插件部署到宿主。
 2. 使用宿主程序完成运行验证。
-3. 使用 `dotnet-pack` 制作安装包。
-4. 使用 `dotnet-upgrade` 制作升级包。
+3. 初次安装交付可使用 `dotnet-pack` 制作安装包。
+4. 已有应用自升级可使用 `dotnet-upgrade` 制作升级包；不要求先生成 deb/rpm。
 
 ## 相关资源
 
@@ -31,3 +31,6 @@ Zongsoft 工具链用于辅助部署、打包、升级和开发调试。
 * [Zongsoft.Tools.Deployer NuGet 包](https://www.nuget.org/packages/Zongsoft.Tools.Deployer)
 * [Zongsoft.Tools.Packager NuGet 包](https://www.nuget.org/packages/Zongsoft.Tools.Packager)
 * [Zongsoft.Tools.Upgrader NuGet 包](https://www.nuget.org/packages/Zongsoft.Tools.Upgrader)
+
+
+各工具参数和格式：[部署器](deployer.md)、[安装打包器](packager.md)、[升级打包器](upgrader.md)、[正则测试器](regular.md)。命令示例区分 PowerShell 与 Bash，执行前确认源目录、目标目录和实际应用身份。

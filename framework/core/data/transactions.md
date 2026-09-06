@@ -15,7 +15,7 @@ icon: rotate
 
 * 通过 `Transaction.Current` 维护当前异步上下文中的环境事务。
 * 支持以 `ReadCommitted()`、`RepeatableRead()`、`Serializable()` 等工厂方法创建常用隔离级别的事务。
-* 提供 `Commit()` 和 `Rollback()` 操作，并在释放未提交事务时回滚。
+* 提供同步与异步提交/回滚，并在释放未提交事务时回滚。
 * 通过 `IEnlistment`、`EnlistmentContext` 和 `EnlistmentPhase` 支持事务参与者登记与阶段通知。
 * 为数据服务、批处理和跨组件操作提供统一事务抽象。
 
@@ -41,3 +41,23 @@ transaction.Commit();
 * [数据引擎](../../data/README.md)
 * [Transaction 源码](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Data/Transaction.cs)
 * [Transactions 源码目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core/src/Data/Transactions)
+
+## 异步完成与环境作用域
+
+异步数据操作可用 `await using` 管理事务，再等待 `CommitAsync`，让调用方观察真实完成或失败：
+
+{% code title="CompleteTransactionAsync.cs" %}
+```csharp
+using Zongsoft.Data;
+
+await using var transaction = Transaction.ReadCommitted();
+// await 执行参与当前事务的数据操作。
+await transaction.CommitAsync();
+```
+{% endcode %}
+
+异步参与者通过 `IEnlistment.OnEnlistAsync` 接收完成通知。事务开始终结后，后续取消不会中止已经进行的提交/回滚；取消请求不能作为数据库未提交的证明。
+
+`DisposeAsync` 会先退出当前环境事务作用域，再异步回滚未完成事务，防止旧作用域影响后续代码。它不会自动将任意 HTTP 请求、消息确认或外部系统操作纳入原子事务。
+
+数据引擎中的连接、隔离和跨系统边界见[事务与一致性](../../data/transactions.md)。

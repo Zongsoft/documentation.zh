@@ -1,51 +1,52 @@
 ---
-description: 宿主程序的部署文件、配置文件和手工部署方式。
+description: 将宿主、插件与环境配置组合成可运行目录，核对变量、版本和更新边界。
 icon: truck
 ---
 
 # 部署宿主
 
-宿主程序通过部署获得业务能力。部署就是把插件和附属文件复制到宿主目录下的 `plugins/` 目录。
+宿主部署包含宿主发布产物、插件程序集及清单、配置、映射和其他资源。`dotnet publish` 主要准备宿主运行产物，`dotnet deploy` 按部署清单组合插件；二者输出应汇合到同一个受控运行目录。
 
-## 部署文件
+## 先确认方案与变量
 
-每个宿主目录通常包含 `.deploy` 文件。部署文件会引用公共部署资源，例如：
+hosting 的部署脚本组合宿主 `.deploy` 与 `.deploy/{scheme}` 下的公共方案文件。
 
-```text
-hosting/.deploy/default/options
-```
+| 变量 | 意义 | 容易混淆之处 |
+| --- | --- | --- |
+| `scheme` | 部署方案 | 不是运行环境 |
+| `environment` | development/test/production 等配置环境 | 不等于 Debug/Release |
+| `edition` | 此部署工具调用中的编译输出配置 | 升级工具中的同名选项表示版本分发名 |
+| `framework` | 目标框架，例如 net10.0 | 需与已有编译输出匹配 |
+| `platform/architecture` | 原生资源及运行时选择 | 不是当前执行脚本机器的必然值 |
+| `host/site` | 宿主与站点的组合选择 | 终端使用 terminal/daemon 是有意安排 |
+| `debug` | 方案中定义的调试开关 | 可能选择附加配置，不只是生成 PDB |
 
-部署规则中常见变量包括：
+变量由脚本、命令行及部署定义共同使用，详见[部署文件格式](../references/deploy-files.md)。复制命令前应确认目标目录，避免误覆盖另一个宿主。
 
-- `scheme`
-- `environment`
-- `site`
-- `debug`
-- `framework`
-- `platform`
-- `architecture`
+## 配置应该放在哪里
 
-## 配置文件
+应用通用设置进入宿主应用选项，插件专属设置可用与清单文件基名匹配的 `.option`。环境变体如 `Zongsoft.Security.development.option`，附加调试变体如 `Zongsoft.Security.development-debug.option`。
 
-环境无关配置通常使用基础文件名：
+具体匹配和优先级见[选项文件](../references/option-files.md)。同一配置键尽量由明确的一处最终配置负责，避免依赖不同插件之间未承诺的覆盖顺序。
 
-```text
-Zongsoft.Security.option
-```
+## 部署后的检查
 
-环境相关配置通常在文件名中加入环境：
+1. 核对宿主入口、运行时配置和最终程序集版本。
+2. 核对 Main、宿主变体及业务清单，检查依赖名称与目标扫描目录。
+3. 核对 `.mapping`、SQL、标准库、原生库、模板等附属资源。
+4. 检查配置选中了预期环境、端点和站点。
+5. 启动后执行一次业务操作，确认延迟连接和服务调用正常。
 
-```text
-Zongsoft.Security.development.option
-Zongsoft.Security.production.option
-```
+首次学习建议采用[最小部署教程](../get-started/deploy-first-plugin.md)，现有业务方案则按仓库脚本的真实参数执行。
 
-调试环境配置可以使用：
+## 局部更新
 
-```text
-Zongsoft.Security.development-debug.option
-```
+开发时可以停止宿主后只复制变化的 DLL、PDB 和有关资源，但前提是确认依赖兼容。只替换 DLL 而遗漏新清单、映射或依赖，会造成“编译成功、运行失败”。
 
-## 手工部署
+手工复制没有自动撤销旧文件的语义。删除旧插件或拆分程序集时，应明确清理哪些旧产物，并核对其是否仍被其他插件使用。正式交付更适合由可重复的部署清单生成完整目录。
 
-开发调试时，如果只修改了某个插件，可以手工复制该插件的 `*.plugin`、`*.dll`、`*.option`、`*.mapping` 等文件到目标插件目录，以避免完整部署耗时过长。
+## 数据与升级边界
+
+环境秘密、持久数据和可替换程序文件应有明确所有权。完整程序目录不一定适合原样打包：运行日志、缓存数据库及临时文件可能被锁定或包含环境数据。
+
+使用[自动升级](../framework/upgrading.md)时，额外核对 `.deployer`、升级器插件、实际应用名和持久数据位置。重新执行部署脚本后，再确认手工补充的运行产物是否仍在目录中。
