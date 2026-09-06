@@ -121,10 +121,11 @@ public IDataAccess Accessor => _accessor ??= this.Services.ResolveRequired<IData
 
 在这个调用中：
 
-* `Security` 是数据访问名称，通常与业务模块或连接配置名称对应。
-* `Condition` 描述过滤条件。
-* `schema` 字符串描述返回字段和导航属性。
-* 排序由 `Sorting` 表达，最终由驱动转换为数据库方言；需要分页时可使用带 `Paging` 参数的重载。
+* `this.Services.ResolveRequired<IDataAccessProvider>()` 从模块服务中解析数据访问提供者。
+* `GetAccessor(this.Name)` 按当前模块名称获取访问器；所示源码属于 Discussions 模块。
+* `??=` 缓存访问器，供后续调用复用。
+
+查询条件、返回字段、导航、排序和分页的用法，见[数据访问接口](data-access.md)和[查询与导航](querying.md)。
 
 ## 下一步
 

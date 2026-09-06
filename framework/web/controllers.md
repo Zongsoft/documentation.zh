@@ -10,13 +10,15 @@ Discussions 的 API 项目是 Web 类库，OutputType 为 Library。它包含控
 
 ## 构建真实项目
 
+先按[业务插件](../../get-started/first-business-plugin.md)构建相邻 framework 的 Core 和 Web，并保持相同的配置与目标框架。当前源码的依赖要求见[准备环境](../../get-started/prerequisites.md)。
+
 {% code title="从 discussions 根目录构建 API" %}
 ```powershell
-dotnet build src/api/Zongsoft.Discussions.Web.csproj -f net10.0 -p:GeneratePackageOnBuild=false
+dotnet build src/api/Zongsoft.Discussions.Web.csproj -f net10.0 -p:ZongsoftFrameworkPathReferenced=true -p:GeneratePackageOnBuild=false
 ```
 {% endcode %}
 
-这会同时构建领域库。需要与当前框架联调时，先构建对应 Core/Web 程序集，再添加本地引用开关，见[业务插件](../../get-started/first-business-plugin.md)。
+这会同时构建领域库。本地引用不会自动构建 framework；所需 Core 版本发布到所用 NuGet 源后，才可省略该开关并恢复默认包引用路径。
 
 ## Web 清单依赖领域插件
 

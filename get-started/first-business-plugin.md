@@ -10,16 +10,18 @@ icon: puzzle-piece
 
 ## 1. 构建现有业务库
 
-项目支持 .NET 8、9、10；NuGet 版本来自根目录 Directory.Packages.props。下面从 discussions 根目录构建 .NET 10，关闭构建时打包以便先检查编译：
+项目支持 .NET 8、9、10；NuGet 版本来自根目录 Directory.Packages.props。当前源码依赖的 Core 版本及本地引用要求见[准备环境](prerequisites.md)。下面从 discussions 根目录先构建相邻 framework 的 Core 和 Web，再以本地引用构建 Discussions；统一使用默认 Debug 配置和 .NET 10，并关闭构建时打包：
 
 {% code title="构建 Discussions" %}
 ```powershell
-dotnet build src/Zongsoft.Discussions.csproj -f net10.0 -p:GeneratePackageOnBuild=false
-dotnet build src/api/Zongsoft.Discussions.Web.csproj -f net10.0 -p:GeneratePackageOnBuild=false
+dotnet build ../framework/Zongsoft.Core/src/Zongsoft.Core.csproj -f net10.0 -p:GeneratePackageOnBuild=false
+dotnet build ../framework/Zongsoft.Web/src/Zongsoft.Web.csproj -f net10.0 -p:GeneratePackageOnBuild=false
+dotnet build src/Zongsoft.Discussions.csproj -f net10.0 -p:ZongsoftFrameworkPathReferenced=true -p:GeneratePackageOnBuild=false
+dotnet build src/api/Zongsoft.Discussions.Web.csproj -f net10.0 -p:ZongsoftFrameworkPathReferenced=true -p:GeneratePackageOnBuild=false
 ```
 {% endcode %}
 
-如果要与同级 framework 的当前源码联调，应先构建对应目标框架的 Core 和 Web，再向上面的命令加入 -p:ZongsoftFrameworkPathReferenced=true。这个开关选择本地程序集，默认路径仍使用 NuGet 包。
+`-p:ZongsoftFrameworkPathReferenced=true` 选择本地程序集，但不会自动构建 framework，目录、配置和目标框架必须与其输出一致。所需 Core 版本发布到所用 NuGet 源后，可省略本地引用参数并使用默认包引用路径；此前不要把本地引用仅当作可选的源码调试设置。
 
 ## 2. 模块是装配入口
 
