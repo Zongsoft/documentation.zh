@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="850" viewBox="0 0 1200 850" role="img" aria-labelledby="title desc" xml:lang="zh-CN">
+	<title id="title">功能还是这些功能，变化有了各自的归属</title>
+	<desc id="desc">上方：创建订单、确认支付、发送指令等十二项职责散落在同一应用中。下方：同样的职责归入交易、支付、物联三个业务模块，应用边界保持不变。改编自 Hiisea 的 micro-module.png。</desc>
+	<defs>
+		<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#718698" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+		<filter id="shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#18354B" flood-opacity="0.06"/></filter>
+	</defs>
+	<g font-family="'Segoe UI', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif">
+		<rect x="0" y="0" width="1200" height="850" rx="0" fill="#F6F8FB" stroke="none" />
+		<text x="48" y="60" font-size="32" fill="#21364A" font-weight="700" text-anchor="start" >功能还是这些功能，变化有了各自的归属</text>
+		<text x="48" y="97" font-size="20" fill="#60758A" font-weight="400" text-anchor="start" >按业务聚合相关功能，让一次变化有明确的负责人</text>
+		<ellipse cx="600" cy="280" rx="552" ry="150" fill="#FFFFFF" stroke="#DFE6ED" filter="url(#shadow)"/>
+		<text x="600" y="175" font-size="24" fill="#21364A" font-weight="650" text-anchor="middle" >同一个应用 · 功能散落，业务边界模糊</text>
+		<rect x="166" y="205" width="208" height="40" rx="10" fill="#E6F4EF" stroke="none" />
+		<text x="270.0" y="232.0" font-size="20" fill="#287C68" font-weight="500" text-anchor="middle" >创建订单</text>
+		<rect x="386" y="205" width="208" height="40" rx="10" fill="#ECF0FB" stroke="none" />
+		<text x="490.0" y="232.0" font-size="20" fill="#5367A1" font-weight="500" text-anchor="middle" >支付确认</text>
+		<rect x="606" y="205" width="208" height="40" rx="10" fill="#FFF3DF" stroke="none" />
+		<text x="710.0" y="232.0" font-size="20" fill="#9C712F" font-weight="500" text-anchor="middle" >设备注册</text>
+		<rect x="826" y="205" width="208" height="40" rx="10" fill="#E6F4EF" stroke="none" />
+		<text x="930.0" y="232.0" font-size="20" fill="#287C68" font-weight="500" text-anchor="middle" >订单结算</text>
+		<rect x="166" y="262" width="208" height="40" rx="10" fill="#FFF3DF" stroke="none" />
+		<text x="270.0" y="289.0" font-size="20" fill="#9C712F" font-weight="500" text-anchor="middle" >发送指令</text>
+		<rect x="386" y="262" width="208" height="40" rx="10" fill="#E6F4EF" stroke="none" />
+		<text x="490.0" y="289.0" font-size="20" fill="#287C68" font-weight="500" text-anchor="middle" >计算金额</text>
+		<rect x="606" y="262" width="208" height="40" rx="10" fill="#ECF0FB" stroke="none" />
+		<text x="710.0" y="289.0" font-size="20" fill="#5367A1" font-weight="500" text-anchor="middle" >支付申请</text>
+		<rect x="826" y="262" width="208" height="40" rx="10" fill="#FFF3DF" stroke="none" />
+		<text x="930.0" y="289.0" font-size="20" fill="#9C712F" font-weight="500" text-anchor="middle" >上报状态</text>
+		<rect x="166" y="319" width="208" height="40" rx="10" fill="#ECF0FB" stroke="none" />
+		<text x="270.0" y="346.0" font-size="20" fill="#5367A1" font-weight="500" text-anchor="middle" >退款处理</text>
+		<rect x="386" y="319" width="208" height="40" rx="10" fill="#FFF3DF" stroke="none" />
+		<text x="490.0" y="346.0" font-size="20" fill="#9C712F" font-weight="500" text-anchor="middle" >协议解析</text>
+		<rect x="606" y="319" width="208" height="40" rx="10" fill="#E6F4EF" stroke="none" />
+		<text x="710.0" y="346.0" font-size="20" fill="#287C68" font-weight="500" text-anchor="middle" >组织履约</text>
+		<rect x="826" y="319" width="208" height="40" rx="10" fill="#ECF0FB" stroke="none" />
+		<text x="930.0" y="346.0" font-size="20" fill="#5367A1" font-weight="500" text-anchor="middle" >通道适配</text>
+		<path d="M600 441 V479" fill="none" stroke="#718698" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)" />
+		<rect x="661" y="441" width="361" height="34" rx="0" fill="#F6F8FB" stroke="none" />
+		<text x="674" y="465" font-size="20" fill="#60758A" font-weight="500" text-anchor="start" >按业务归属聚合</text>
+		<rect x="48" y="496" width="1104" height="278" rx="22" fill="#FFFFFF" stroke="#DFE6ED" filter="url(#shadow)"/>
+		<text x="600" y="535" font-size="24" fill="#21364A" font-weight="650" text-anchor="middle" >同一个应用 · 业务模块各自负责</text>
+		<rect x="70" y="557" width="344" height="193" rx="16" fill="#E6F4EF" stroke="none" />
+		<text x="90" y="594" font-size="24" fill="#287C68" font-weight="650" text-anchor="start" >交易模块</text>
+		<rect x="86" y="614" width="152" height="43" rx="10" fill="#FFFFFF" stroke="none" />
+		<text x="162.0" y="642.85" font-size="21" fill="#287C68" font-weight="500" text-anchor="middle" >创建订单</text>
+		<rect x="246" y="614" width="152" height="43" rx="10" fill="#FFFFFF" stroke="none" />
+		<text x="322.0" y="642.85" font-size="21" fill="#287C68" font-weight="500" text-anchor="middle" >计算金额</text>
+		<rect x="86" y="668" width="152" height="43" rx="10" fill="#FFFFFF" stroke="none" />
+		<text x="162.0" y="696.85" font-size="21" fill="#287C68" font-weight="500" text-anchor="middle" >订单结算</text>
+		<rect x="246" y="668" width="152" height="43" rx="10" fill="#FFFFFF" stroke="none" />
+		<text x="322.0" y="696.85" font-size="21" fill="#287C68" font-weight="500" text-anchor="middle" >组织履约</text>
+		<rect x="428" y="557" width="344" height="193" rx="16" fill="#ECF0FB" stroke="none" />
+		<text x="448" y="594" font-size="24" fill="#5367A1" font-weight="650" text-anchor="start" >支付模块</text>
+		<rect x="444" y="614" width="152" height="43" rx="10" fill="#FFFFFF" stroke="none" />
+		<text x="520.0" y="642.85" font-size="21" fill="#5367A1" font-weight="500" text-anchor="middle" >支付申请</text>
+		<rect x="604" y="614" width="152" height="43" rx="10" fill="#FFFFFF" stroke="none" />
+		<text x="680.0" y="642.85" font-size="21" fill="#5367A1" font-weight="500" text-anchor="middle" >支付确认</text>
+		<rect x="444" y="668" width="152" height="43" rx="10" fill="#FFFFFF" stroke="none" />
+		<text x="520.0" y="696.85" font-size="21" fill="#5367A1" font-weight="500" text-anchor="middle" >退款处理</text>
+		<rect x="604" y="668" width="152" height="43" rx="10" fill="#FFFFFF" stroke="none" />
+		<text x="680.0" y="696.85" font-size="21" fill="#5367A1" font-weight="500" text-anchor="middle" >通道适配</text>
+		<rect x="786" y="557" width="344" height="193" rx="16" fill="#FFF3DF" stroke="none" />
+		<text x="806" y="594" font-size="24" fill="#9C712F" font-weight="650" text-anchor="start" >物联模块</text>
+		<rect x="802" y="614" width="152" height="43" rx="10" fill="#FFFFFF" stroke="none" />
+		<text x="878.0" y="642.85" font-size="21" fill="#9C712F" font-weight="500" text-anchor="middle" >设备注册</text>
+		<rect x="962" y="614" width="152" height="43" rx="10" fill="#FFFFFF" stroke="none" />
+		<text x="1038.0" y="642.85" font-size="21" fill="#9C712F" font-weight="500" text-anchor="middle" >发送指令</text>
+		<rect x="802" y="668" width="152" height="43" rx="10" fill="#FFFFFF" stroke="none" />
+		<text x="878.0" y="696.85" font-size="21" fill="#9C712F" font-weight="500" text-anchor="middle" >上报状态</text>
+		<rect x="962" y="668" width="152" height="43" rx="10" fill="#FFFFFF" stroke="none" />
+		<text x="1038.0" y="696.85" font-size="21" fill="#9C712F" font-weight="500" text-anchor="middle" >协议解析</text>
+		<text x="48" y="818" font-size="19" fill="#60758A" font-weight="400" text-anchor="start" >改变的是责任边界；模块之间仍需通过明确契约协作。</text>
+		<metadata>Adapted from Hiisea, micro-module.png. Source: https://www.cnblogs.com/hiisea/p/16624472.html</metadata>
+	</g>
+</svg>

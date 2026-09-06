@@ -34,12 +34,13 @@ icon: puzzle-piece
 
 ## 插件化设计专题
 
-以下四篇文章结合论坛模块的实际实现，讨论设计选择及其代价。建议按顺序阅读，也可以从正在面对的问题进入。配图中的“设计示意”表示待设计的能力或方案，具体实现状态以正文说明为准。
+以下文章结合论坛模块的实际实现，讨论设计选择及其代价。建议按顺序阅读，也可以从正在面对的问题进入。配图中的“设计示意”表示待设计的能力或方案，具体实现状态以正文说明为准。
 
-1. [从业务变化确定模块边界](pluginization/business-boundaries.md)：以审核、正文和统计的共同变化判断业务归属。
-2. [让业务能力跨宿主复用](pluginization/host-independent-business.md)：明确业务动作、入口适配、身份和生命周期的分工。
-3. [把扩展点设计成协作契约](pluginization/extension-contracts.md)：设计扩展路径、服务调用、命名和失败语义。
-4. [从局部改造到可验证的插件交付](pluginization/evolutionary-delivery.md)：验证发布组合，并处理数据兼容与进程拆分的取舍。
+1. [为什么需要插件化](pluginization/why-pluginization.md)：巨石应用的痛点，分层、切块与按业务组织目录带来的变化。
+2. [从业务变化确定模块边界](pluginization/business-boundaries.md)：以审核、正文和统计的共同变化判断业务归属。
+3. [让业务能力跨宿主复用](pluginization/host-independent-business.md)：明确业务动作、入口适配、身份和生命周期的分工。
+4. [把扩展点设计成协作契约](pluginization/extension-contracts.md)：设计扩展路径、服务调用、命名和失败语义。
+5. [从局部改造到可验证的插件交付](pluginization/evolutionary-delivery.md)：验证发布组合，并处理数据兼容与进程拆分的取舍。
 
 ## 文档阅读建议
 

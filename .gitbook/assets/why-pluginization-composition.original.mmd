@@ -1,0 +1,26 @@
+flowchart LR
+	subgraph MODULES["业务模块（各自独立）"]
+		direction TB
+		m1["交易"]
+		m2["支付"]
+		m3["会员"]
+		m4["物联"]
+		m5["报表 · 统计 · 更多"]
+	end
+
+	subgraph SITE["站点（六类入口）"]
+		direction LR
+		st1["管理"] --- st2["商家"] --- st3["客户"] --- st4["网关"] --- st5["设备"]
+	end
+
+	subgraph DOMAIN["领域（通用/教育/医疗/健护/政府）"]
+		direction LR
+		d1["通用"] --- d2["教育"] --- d3["医疗"] --- d4["更多"]
+	end
+
+	MODULES --> COMBO["部署清单：按产品与部署方式组合"]
+	SITE --> COMBO
+	DOMAIN --> COMBO
+
+	COMBO --> PUB["公有云 SaaS：多租户组合"]
+	COMBO --> PRIV["私有部署：裁剪后组合"]

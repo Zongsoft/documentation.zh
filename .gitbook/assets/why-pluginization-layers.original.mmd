@@ -1,0 +1,23 @@
+flowchart TB
+	subgraph HOST["宿主（承载运行环境）"]
+		h["进程 / 配置 / 生命周期"]
+	end
+
+	subgraph SLICE1["交易模块"]
+		direction LR
+		s1a["入口适配"] --> s1b["业务规则"] --> s1c["数据与资源"]
+	end
+
+	subgraph SLICE2["支付模块"]
+		direction LR
+		s2a["入口适配"] --> s2b["业务规则"] --> s2c["数据与资源"]
+	end
+
+	subgraph SLICE3["物联模块"]
+		direction LR
+		s3a["入口适配"] --> s3b["业务规则"] --> s3c["数据与资源"]
+	end
+
+	h --> s1a
+	h --> s2a
+	h --> s3a

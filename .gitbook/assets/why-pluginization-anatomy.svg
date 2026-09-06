@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc" xml:lang="zh-CN">
+	<title id="title">每个业务模块，都负责一组完整的实现与资源</title>
+	<desc id="desc">应用由交易、支付、物联模块组成。每个模块归集自己的模型、服务、事件或处理器、站点接入、清单、选项、映射及资源，并包含相应产品扩展、支付提供者或设备协议。改编自 Hiisea 的 micro-domain.png，按服务端插件组织替换前端职责。</desc>
+	<defs>
+		<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#718698" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+		<filter id="shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#18354B" flood-opacity="0.06"/></filter>
+	</defs>
+	<g font-family="'Segoe UI', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif">
+		<rect x="0" y="0" width="1200" height="900" rx="0" fill="#F6F8FB" stroke="none" />
+		<text x="48" y="60" font-size="32" fill="#21364A" font-weight="700" text-anchor="start" >每个业务模块，都负责一组完整的实现与资源</text>
+		<text x="48" y="97" font-size="20" fill="#60758A" font-weight="400" text-anchor="start" >模块内部归集所需文件与能力，模块之间约定协作入口</text>
+		<rect x="346" y="124" width="508" height="80" rx="18" fill="#203A50" stroke="none" />
+		<text x="600" y="174" font-size="23" fill="#FFFFFF" font-weight="600" text-anchor="middle" >应用 · 由业务模块共同组成</text>
+		<path d="M600 207 V230" fill="none" stroke="#718698" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+		<path d="M224 253 V238 Q224 230 232 230 H968 Q976 230 976 238 V253" fill="none" stroke="#718698" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+		<path d="M600 230 V253" fill="none" stroke="#718698" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)" />
+		<path d="M224 243 V253" fill="none" stroke="#718698" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)" />
+		<path d="M976 243 V253" fill="none" stroke="#718698" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)" />
+		<rect x="48" y="256" width="352" height="532" rx="20" fill="#FFFFFF" stroke="#DFE6ED" filter="url(#shadow)"/>
+		<rect x="48" y="256" width="352" height="66" rx="18" fill="#E6F4EF" stroke="none" />
+		<rect x="48" y="300" width="352" height="22" rx="0" fill="#E6F4EF" stroke="none" />
+		<text x="70" y="298" font-size="25" fill="#287C68" font-weight="650" text-anchor="start" >交易模块</text>
+		<rect x="66" y="339" width="104" height="264" rx="10" fill="#F1F4F8" stroke="none" />
+		<text x="118" y="370" font-size="18" fill="#60758A" font-weight="600" text-anchor="middle" >配套文件</text>
+		<text x="118" y="416" font-size="17" fill="#526A7F" font-weight="500" text-anchor="middle" >.plugin</text>
+		<text x="118" y="461" font-size="17" fill="#526A7F" font-weight="500" text-anchor="middle" >.option</text>
+		<text x="118" y="506" font-size="17" fill="#526A7F" font-weight="500" text-anchor="middle" >.mapping</text>
+		<text x="118" y="551" font-size="17" fill="#526A7F" font-weight="500" text-anchor="middle" >资源</text>
+		<rect x="182" y="339" width="200" height="48" rx="10" fill="#E6F4EF" stroke="none" />
+		<text x="282.0" y="370.0" font-size="20" fill="#287C68" font-weight="500" text-anchor="middle" >订单与明细</text>
+		<rect x="182" y="393" width="200" height="48" rx="10" fill="#E6F4EF" stroke="none" />
+		<text x="282.0" y="424.0" font-size="20" fill="#287C68" font-weight="500" text-anchor="middle" >订单服务</text>
+		<rect x="182" y="447" width="200" height="48" rx="10" fill="#E6F4EF" stroke="none" />
+		<text x="282.0" y="478.0" font-size="20" fill="#287C68" font-weight="500" text-anchor="middle" >交易事件</text>
+		<rect x="182" y="501" width="200" height="48" rx="10" fill="#E6F4EF" stroke="none" />
+		<text x="282.0" y="532.0" font-size="20" fill="#287C68" font-weight="500" text-anchor="middle" >站点服务</text>
+		<rect x="182" y="555" width="200" height="48" rx="10" fill="#E6F4EF" stroke="none" />
+		<text x="282.0" y="586.0" font-size="20" fill="#287C68" font-weight="500" text-anchor="middle" >Web 接口</text>
+		<rect x="66" y="622" width="316" height="142" rx="12" fill="#E6F4EF" stroke="none" />
+		<text x="84" y="654" font-size="21" fill="#287C68" font-weight="650" text-anchor="start" >产品扩展</text>
+		<text x="84" y="693" font-size="19" fill="#287C68" font-weight="400" text-anchor="start" >贩售交易与物联衔接</text>
+		<rect x="424" y="256" width="352" height="532" rx="20" fill="#FFFFFF" stroke="#DFE6ED" filter="url(#shadow)"/>
+		<rect x="424" y="256" width="352" height="66" rx="18" fill="#ECF0FB" stroke="none" />
+		<rect x="424" y="300" width="352" height="22" rx="0" fill="#ECF0FB" stroke="none" />
+		<text x="446" y="298" font-size="25" fill="#5367A1" font-weight="650" text-anchor="start" >支付模块</text>
+		<rect x="442" y="339" width="104" height="264" rx="10" fill="#F1F4F8" stroke="none" />
+		<text x="494" y="370" font-size="18" fill="#60758A" font-weight="600" text-anchor="middle" >配套文件</text>
+		<text x="494" y="416" font-size="17" fill="#526A7F" font-weight="500" text-anchor="middle" >.plugin</text>
+		<text x="494" y="461" font-size="17" fill="#526A7F" font-weight="500" text-anchor="middle" >.option</text>
+		<text x="494" y="506" font-size="17" fill="#526A7F" font-weight="500" text-anchor="middle" >.mapping</text>
+		<text x="494" y="551" font-size="17" fill="#526A7F" font-weight="500" text-anchor="middle" >资源</text>
+		<rect x="558" y="339" width="200" height="48" rx="10" fill="#ECF0FB" stroke="none" />
+		<text x="658.0" y="370.0" font-size="20" fill="#5367A1" font-weight="500" text-anchor="middle" >支付与退款</text>
+		<rect x="558" y="393" width="200" height="48" rx="10" fill="#ECF0FB" stroke="none" />
+		<text x="658.0" y="424.0" font-size="20" fill="#5367A1" font-weight="500" text-anchor="middle" >支付服务</text>
+		<rect x="558" y="447" width="200" height="48" rx="10" fill="#ECF0FB" stroke="none" />
+		<text x="658.0" y="478.0" font-size="20" fill="#5367A1" font-weight="500" text-anchor="middle" >支付与退款事件</text>
+		<rect x="558" y="501" width="200" height="48" rx="10" fill="#ECF0FB" stroke="none" />
+		<text x="658.0" y="532.0" font-size="20" fill="#5367A1" font-weight="500" text-anchor="middle" >站点服务</text>
+		<rect x="558" y="555" width="200" height="48" rx="10" fill="#ECF0FB" stroke="none" />
+		<text x="658.0" y="586.0" font-size="20" fill="#5367A1" font-weight="500" text-anchor="middle" >Web 接口</text>
+		<rect x="442" y="622" width="316" height="142" rx="12" fill="#ECF0FB" stroke="none" />
+		<text x="460" y="654" font-size="21" fill="#5367A1" font-weight="650" text-anchor="start" >支付提供者</text>
+		<text x="460" y="693" font-size="19" fill="#5367A1" font-weight="400" text-anchor="start" >微信 · 支付宝</text>
+		<text x="460" y="724" font-size="19" fill="#5367A1" font-weight="400" text-anchor="start" >现金 · 储值卡</text>
+		<rect x="800" y="256" width="352" height="532" rx="20" fill="#FFFFFF" stroke="#DFE6ED" filter="url(#shadow)"/>
+		<rect x="800" y="256" width="352" height="66" rx="18" fill="#FFF3DF" stroke="none" />
+		<rect x="800" y="300" width="352" height="22" rx="0" fill="#FFF3DF" stroke="none" />
+		<text x="822" y="298" font-size="25" fill="#9C712F" font-weight="650" text-anchor="start" >物联模块</text>
+		<rect x="818" y="339" width="104" height="264" rx="10" fill="#F1F4F8" stroke="none" />
+		<text x="870" y="370" font-size="18" fill="#60758A" font-weight="600" text-anchor="middle" >配套文件</text>
+		<text x="870" y="416" font-size="17" fill="#526A7F" font-weight="500" text-anchor="middle" >.plugin</text>
+		<text x="870" y="461" font-size="17" fill="#526A7F" font-weight="500" text-anchor="middle" >.option</text>
+		<text x="870" y="506" font-size="17" fill="#526A7F" font-weight="500" text-anchor="middle" >.mapping</text>
+		<text x="870" y="551" font-size="17" fill="#526A7F" font-weight="500" text-anchor="middle" >资源</text>
+		<rect x="934" y="339" width="200" height="48" rx="10" fill="#FFF3DF" stroke="none" />
+		<text x="1034.0" y="370.0" font-size="20" fill="#9C712F" font-weight="500" text-anchor="middle" >设备与状态</text>
+		<rect x="934" y="393" width="200" height="48" rx="10" fill="#FFF3DF" stroke="none" />
+		<text x="1034.0" y="424.0" font-size="20" fill="#9C712F" font-weight="500" text-anchor="middle" >设备服务</text>
+		<rect x="934" y="447" width="200" height="48" rx="10" fill="#FFF3DF" stroke="none" />
+		<text x="1034.0" y="478.0" font-size="20" fill="#9C712F" font-weight="500" text-anchor="middle" >设备处理器</text>
+		<rect x="934" y="501" width="200" height="48" rx="10" fill="#FFF3DF" stroke="none" />
+		<text x="1034.0" y="532.0" font-size="20" fill="#9C712F" font-weight="500" text-anchor="middle" >站点服务</text>
+		<rect x="934" y="555" width="200" height="48" rx="10" fill="#FFF3DF" stroke="none" />
+		<text x="1034.0" y="586.0" font-size="20" fill="#9C712F" font-weight="500" text-anchor="middle" >Web / 设备接入</text>
+		<rect x="818" y="622" width="316" height="142" rx="12" fill="#FFF3DF" stroke="none" />
+		<text x="836" y="654" font-size="21" fill="#9C712F" font-weight="650" text-anchor="start" >协议与提供者</text>
+		<text x="836" y="693" font-size="19" fill="#9C712F" font-weight="400" text-anchor="start" >设备协议 · MQTT</text>
+		<text x="48" y="831" font-size="19" fill="#60758A" font-weight="400" text-anchor="start" >一个模块可由多个程序集与插件共同提供；配套文件按实际需要交付。</text>
+		<text x="48" y="866" font-size="19" fill="#60758A" font-weight="400" text-anchor="start" >这里表示业务归属，不要求每个模块独占进程或数据库。</text>
+		<metadata>Adapted from Hiisea, micro-domain.png. Source: https://www.cnblogs.com/hiisea/p/16624472.html</metadata>
+	</g>
+</svg>

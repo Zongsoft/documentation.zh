@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="850" viewBox="0 0 1200 850" role="img" aria-labelledby="title desc" xml:lang="zh-CN">
+	<title id="title">多维度选择，汇入同一份交付方案</title>
+	<desc id="desc">业务模块、站点类型与领域变体共同汇入部署清单，按产品与部署方式组合，形成公有云 SaaS 的多租户组合或私有部署的裁剪组合。领域为示例；所有组合都必须满足依赖关系。</desc>
+	<defs>
+		<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#718698" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
+		<filter id="shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#18354B" flood-opacity="0.06"/></filter>
+	</defs>
+	<g font-family="'Segoe UI', 'Microsoft YaHei', 'Noto Sans CJK SC', sans-serif">
+		<rect x="0" y="0" width="1200" height="850" rx="0" fill="#F6F8FB" stroke="none" />
+		<text x="48" y="60" font-size="32" fill="#21364A" font-weight="700" text-anchor="start" >多维度选择，汇入同一份交付方案</text>
+		<text x="48" y="97" font-size="20" fill="#60758A" font-weight="400" text-anchor="start" >业务模块 × 站点 × 领域 → 部署清单 → 公有或私有部署</text>
+		<rect x="48" y="130" width="324" height="188" rx="18" fill="#FFFFFF" stroke="#DFE6ED" filter="url(#shadow)"/>
+		<rect x="48" y="130" width="6" height="188" rx="3" fill="#287C68" stroke="none" />
+		<g transform="translate(68 147) scale(0.85)" fill="none" stroke="#287C68" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M3 3 H13 V13 H3 Z M19 3 H29 V13 H19 Z M3 19 H13 V29 H3 Z M19 19 H29 V29 H19 Z"/>
+		</g>
+		<text x="108" y="169" font-size="23" fill="#287C68" font-weight="650" text-anchor="start" >业务模块</text>
+		<rect x="68" y="188" width="138" height="30" rx="7" fill="#E6F4EF" stroke="none" />
+		<text x="137.0" y="209" font-size="19" fill="#287C68" font-weight="500" text-anchor="middle" id="m1">交易</text>
+		<rect x="214" y="188" width="138" height="30" rx="7" fill="#E6F4EF" stroke="none" />
+		<text x="283.0" y="209" font-size="19" fill="#287C68" font-weight="500" text-anchor="middle" id="m2">支付</text>
+		<rect x="68" y="225" width="138" height="30" rx="7" fill="#E6F4EF" stroke="none" />
+		<text x="137.0" y="246" font-size="19" fill="#287C68" font-weight="500" text-anchor="middle" id="m3">会员</text>
+		<rect x="214" y="225" width="138" height="30" rx="7" fill="#E6F4EF" stroke="none" />
+		<text x="283.0" y="246" font-size="19" fill="#287C68" font-weight="500" text-anchor="middle" id="m4">物联</text>
+		<rect x="68" y="262" width="284" height="30" rx="7" fill="#E6F4EF" stroke="none" />
+		<text x="210.0" y="283" font-size="19" fill="#287C68" font-weight="500" text-anchor="middle" id="m5">报表 · 统计 · 更多</text>
+		<path d="M374 224 C416 224 412 345 449 345" fill="none" stroke="#718698" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)" data-from="MODULES" data-to="COMBO"/>
+		<rect x="48" y="342" width="324" height="188" rx="18" fill="#FFFFFF" stroke="#DFE6ED" filter="url(#shadow)"/>
+		<rect x="48" y="342" width="6" height="188" rx="3" fill="#5367A1" stroke="none" />
+		<g transform="translate(68 359) scale(0.85)" fill="none" stroke="#5367A1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M4 4 H28 V20 H4 Z M16 20 V27 M10 28 H22"/>
+		</g>
+		<text x="108" y="381" font-size="23" fill="#5367A1" font-weight="650" text-anchor="start" >站点 · 六类入口</text>
+		<rect x="68" y="400" width="138" height="30" rx="7" fill="#ECF0FB" stroke="none" />
+		<text x="137.0" y="421" font-size="19" fill="#5367A1" font-weight="500" text-anchor="middle" id="st1">管理</text>
+		<rect x="214" y="400" width="138" height="30" rx="7" fill="#ECF0FB" stroke="none" />
+		<text x="283.0" y="421" font-size="19" fill="#5367A1" font-weight="500" text-anchor="middle" id="st2">商家</text>
+		<rect x="68" y="437" width="138" height="30" rx="7" fill="#ECF0FB" stroke="none" />
+		<text x="137.0" y="458" font-size="19" fill="#5367A1" font-weight="500" text-anchor="middle" id="st3">客户</text>
+		<rect x="214" y="437" width="138" height="30" rx="7" fill="#ECF0FB" stroke="none" />
+		<text x="283.0" y="458" font-size="19" fill="#5367A1" font-weight="500" text-anchor="middle" id="st4">伙伴</text>
+		<rect x="68" y="474" width="138" height="30" rx="7" fill="#ECF0FB" stroke="none" />
+		<text x="137.0" y="495" font-size="19" fill="#5367A1" font-weight="500" text-anchor="middle" id="st5">网关</text>
+		<rect x="214" y="474" width="138" height="30" rx="7" fill="#ECF0FB" stroke="none" />
+		<text x="283.0" y="495" font-size="19" fill="#5367A1" font-weight="500" text-anchor="middle" id="st6">设备</text>
+		<path d="M374 436 C416 436 412 401 449 401" fill="none" stroke="#718698" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)" data-from="SITE" data-to="COMBO"/>
+		<rect x="48" y="554" width="324" height="188" rx="18" fill="#FFFFFF" stroke="#DFE6ED" filter="url(#shadow)"/>
+		<rect x="48" y="554" width="6" height="188" rx="3" fill="#9C712F" stroke="none" />
+		<g transform="translate(68 571) scale(0.85)" fill="none" stroke="#9C712F" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M16 2 L29 9 V23 L16 30 L3 23 V9 Z M3 9 L16 16 L29 9 M16 16 V30"/>
+		</g>
+		<text x="108" y="593" font-size="23" fill="#9C712F" font-weight="650" text-anchor="start" >领域 · 变体示例</text>
+		<rect x="68" y="612" width="138" height="30" rx="7" fill="#FFF3DF" stroke="none" />
+		<text x="137.0" y="633" font-size="19" fill="#9C712F" font-weight="500" text-anchor="middle" id="d1">通用</text>
+		<rect x="214" y="612" width="138" height="30" rx="7" fill="#FFF3DF" stroke="none" />
+		<text x="283.0" y="633" font-size="19" fill="#9C712F" font-weight="500" text-anchor="middle" id="d2">教育</text>
+		<rect x="68" y="649" width="138" height="30" rx="7" fill="#FFF3DF" stroke="none" />
+		<text x="137.0" y="670" font-size="19" fill="#9C712F" font-weight="500" text-anchor="middle" id="d3">医疗</text>
+		<rect x="214" y="649" width="138" height="30" rx="7" fill="#FFF3DF" stroke="none" />
+		<text x="283.0" y="670" font-size="19" fill="#9C712F" font-weight="500" text-anchor="middle" id="d4">健护</text>
+		<rect x="68" y="686" width="138" height="30" rx="7" fill="#FFF3DF" stroke="none" />
+		<text x="137.0" y="707" font-size="19" fill="#9C712F" font-weight="500" text-anchor="middle" id="d5">政府</text>
+		<rect x="214" y="686" width="138" height="30" rx="7" fill="#FFF3DF" stroke="none" />
+		<text x="283.0" y="707" font-size="19" fill="#9C712F" font-weight="500" text-anchor="middle" id="d6">更多</text>
+		<path d="M374 648 C416 648 412 457 449 457" fill="none" stroke="#718698" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)" data-from="DOMAIN" data-to="COMBO"/>
+		<rect x="452" y="279" width="300" height="276" rx="22" fill="#203A50" stroke="none" filter="url(#shadow)" id="COMBO"/>
+		<g transform="translate(579 299) scale(1.25)" fill="none" stroke="#C8DDEA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M8 5 H26 V29 H4 V5 H8"/>
+		<path d="M10 2 H20 V8 H10 Z"/>
+		<path d="M9 15 L11 17 L15 13 M18 15 H22 M9 23 L11 25 L15 21 M18 23 H22"/>
+		</g>
+		<text x="602" y="371" font-size="25" fill="#FFFFFF" font-weight="650" text-anchor="middle" >部署清单</text>
+		<text x="602" y="403" font-size="18" fill="#CEDDE8" font-weight="400" text-anchor="middle" >按产品与部署方式组合</text>
+		<path d="M478 425 H726" fill="none" stroke="#466073" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+		<text x="602" y="464" font-size="18" fill="#E1ECF4" font-weight="400" text-anchor="middle" >选择能力与版本</text>
+		<text x="602" y="499" font-size="18" fill="#E1ECF4" font-weight="400" text-anchor="middle" >核对依赖，配套配置</text>
+		<rect x="827" y="237" width="325" height="180" rx="18" fill="#FFFFFF" stroke="#DFE6ED" filter="url(#shadow)"/>
+		<rect x="847" y="256" width="44" height="44" rx="12" fill="#E6F4EF" stroke="none" />
+		<g transform="translate(853 262) scale(1)" fill="none" stroke="#287C68" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M8 26 C-2 26 -1 12 8 12 C8 1 25 0 26 13 C36 13 35 26 26 26 Z"/>
+		</g>
+		<text x="906" y="285" font-size="23" fill="#287C68" font-weight="650" text-anchor="start" >公有云 SaaS</text>
+		<text x="847" y="340" font-size="24" fill="#21364A" font-weight="600" text-anchor="start" >多租户组合</text>
+		<text x="847" y="380" font-size="17" fill="#60758A" font-weight="400" text-anchor="start" >租户权限另行约定</text>
+		<path d="M754 369 C795 369 789 327 824 327" fill="none" stroke="#718698" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)" data-from="COMBO" data-to="PUB"/>
+		<rect x="827" y="480" width="325" height="180" rx="18" fill="#FFFFFF" stroke="#DFE6ED" filter="url(#shadow)"/>
+		<rect x="847" y="499" width="44" height="44" rx="12" fill="#ECF0FB" stroke="none" />
+		<g transform="translate(853 505) scale(1)" fill="none" stroke="#5367A1" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+		<path d="M3 3 H29 V13 H3 Z"/>
+		<path d="M3 19 H29 V29 H3 Z"/>
+		<path d="M8 8 H9 M8 24 H9 M15 8 H24 M15 24 H24"/>
+		</g>
+		<text x="906" y="528" font-size="23" fill="#5367A1" font-weight="650" text-anchor="start" >私有部署</text>
+		<text x="847" y="583" font-size="24" fill="#21364A" font-weight="600" text-anchor="start" >裁剪后的组合</text>
+		<text x="847" y="623" font-size="17" fill="#60758A" font-weight="400" text-anchor="start" >保留必要依赖与配置</text>
+		<path d="M754 447 C795 447 789 570 824 570" fill="none" stroke="#718698" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow)" data-from="COMBO" data-to="PRIV"/>
+		<text x="451" y="661" font-size="19" fill="#60758A" font-weight="400" text-anchor="start" >共同满足依赖，分别选择产物</text>
+		<text x="451" y="694" font-size="19" fill="#60758A" font-weight="400" text-anchor="start" >组合范围不等于租户授权范围</text>
+		<path d="M48 774 H1152" fill="none" stroke="#DFE6ED" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+		<text x="48" y="809" font-size="18" fill="#60758A" font-weight="400" text-anchor="start" >领域为候选示例，不表示每个模块都有全部实现；箭头表示装配选择。</text>
+	</g>
+</svg>
