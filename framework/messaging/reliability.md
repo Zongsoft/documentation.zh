@@ -38,28 +38,24 @@ icon: shield-check
 3. 配置与 Broker **严格同名**的数据连接。守护插件创建的 Broker 名为 `QueueServer`。
 4. 在进程启动前确定稳定存储身份，并把所选存储工厂注入 Broker。
 
-{% code title="Application.option" %}
+来源：[framework/messaging/.storages/test/options/SQLite.option](https://github.com/Zongsoft/framework/blob/main/messaging/.storages/test/options/SQLite.option#L3)（节选；上下文见源文件）。
+
+{% code title="SQLite.option" %}
 ```xml
 <options>
 	<option path="/Data">
 		<connectionSettings>
 			<connectionSetting connectionSetting.name="QueueServer" driver="SQLite"
-				value="DataSource=broker.db;PRAGMA:journal_mode=WAL;" />
+			                   value="DataSource=provider.db" />
 		</connectionSettings>
 	</option>
 </options>
 ```
 {% endcode %}
 
-以下片段放入应用自己的插件清单，并声明对实际部署的消息及存储插件的依赖。路径末段可选 `Sqlite`、`MySql`、`PostgreSql`、`MsSql`，按所选驱动匹配。
+上面是 .storages 测试已有的 SQLite 选项，使用 provider.db；Discussions 没有 Broker 或消息存储配置。实际默认契约测试使用自己创建的临时数据库，细节见[存储测试说明](https://github.com/Zongsoft/framework/blob/main/messaging/.storages/test/README.zh-Hans.md)。应用扩展清单还应声明对实际消息及存储插件的依赖。路径末段可选 `Sqlite`、`MySql`、`PostgreSql`、`MsSql`，按所选驱动匹配。
 
-{% code title="Broker.plugin（扩展片段）" %}
-```xml
-<extension path="/Workbench/Messaging/Zero">
-	<QueueServer.Storages>{path:/Workspace/Messaging/Storages/Sqlite}</QueueServer.Storages>
-</extension>
-```
-{% endcode %}
+现有存储插件将工厂注册到 /Workspace/Messaging/Storages，ZeroMQ 守护插件的 QueueServer 构件暴露 Storages 依赖。应用扩展清单应把实际选择的工厂路径赋给这个属性。注册源码分别见 [Data 存储插件](https://github.com/Zongsoft/framework/blob/main/messaging/.storages/src/Zongsoft.Messaging.Storages.Data.plugin) 与 [ZeroMQ 守护插件](https://github.com/Zongsoft/framework/blob/main/messaging/zero/src/Zongsoft.Messaging.ZeroMQ-daemon.plugin)。
 
 {% code title="StartBroker.ps1" %}
 ```powershell
@@ -91,3 +87,7 @@ $env:ZONGSOFT_MESSAGING_STORAGE_IDENTIFIER = 'broker-storage-01'
 验证业务成功、处理失败不确认、ACK 前后断线、Broker 重启、存储不可用、无在线消费者、重复消费及过期数据。记录每次实验中的业务标识、消息标识、Broker 接纳结果和存储记录，才能判断是哪一层保证生效。
 
 源码入口：[ZeroMQ 可靠协议](https://github.com/Zongsoft/framework/blob/main/messaging/zero/PROTOCOL.zh-Hans.md)、[数据库消息存储](https://github.com/Zongsoft/framework/tree/main/messaging/.storages)。
+
+## 按项目继续阅读
+
+[ZeroMQ](projects/zero.md) · [.storages 数据库存储](projects/storages.md) · [Redis 存储](../externals/projects/redis.md) · [全部消息项目](projects/README.md)

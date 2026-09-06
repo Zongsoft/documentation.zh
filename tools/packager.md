@@ -19,29 +19,47 @@ icon: box
 
 ## 制作一个包
 
-先安装 `Zongsoft.Tools.Packager` 全局工具，并把宿主及插件部署到 `publish`。下面是 Bash 示例：
+Discussions 通过宿主承载，不单独充当可执行入口。安装 Zongsoft.Tools.Packager 并部署业务插件后，使用 hosting/web/default/pack.cmd 制作 Web 宿主安装包。下面保留该脚本实际命令和变量；format、edition 等值由脚本前面的交互输入决定，应在脚本目录执行完整 pack.cmd，不能把这段片段直接粘贴到 PowerShell。
 
-{% code title="PackApplication.sh" %}
-```bash
-dotnet-pack deb \
-	--name:Acme.Service \
-	--title:"Acme Service" \
-	--version:1.0.0 \
-	--platform:linux \
-	--architecture:x64 \
-	--framework:net10.0 \
-	--source:./publish \
-	--output:./packages/
+来源：[hosting/web/default/pack.cmd](https://github.com/Zongsoft/hosting/blob/main/web/default/pack.cmd#L77)（节选；上下文见源文件）。
+
+{% code title="pack.cmd" %}
+```bat
+dotnet-pack %format%              ^
+	--name:Zongsoft.Hosting.Web   ^
+	--title:Zongsoft.Web          ^
+	--edition:%edition%           ^
+	--version:%version%           ^
+	--compilation:%compilation%   ^
+	--framework:%framework%       ^
+	--platform:%platform%         ^
+	--architecture:%architecture% ^
+	--Environment:%environment%   ^
+	--ASPNETCORE_ENVIRONMENT:%environment% ^
+	--daemon:zongsoft.web         ^
+	--daemon-bind:8069            ^
+	--daemon-environments:Environment,ASPNETCORE_ENVIRONMENT ^
+	--postinstalled:"../../.deploy/%scheme%/nginx/reload-nginx.sh" ^
+	--postuninstalled:"../../.deploy/%scheme%/nginx/reload-nginx.sh" ^
+	--exclude:**/logs/;bin/$(compilation)/$(framework)/*.staticwebassets.* ^
+	../../mime                    ^
+	appsettings.json              ^
+	web*.config                   ^
+	web*.option                   ^
+	wwwroot                       ^
+	plugins                       ^
+	bin/$(compilation)/$(framework):~ ^
+	"../../.deploy/%scheme%/nginx/zongsoft.web.conf:/etc/nginx/conf.d/zongsoft.web.conf"
 ```
 {% endcode %}
 
-PowerShell 中不要使用 Bash 的反斜杠续行，可以把参数写在同一行。`name` 应与实际应用入口相符，而不是仅填写产品展示名。
+这里的 ^ 是 cmd 续行符，%name% 是 cmd 变量，$(name) 则交由打包工具替换。脚本还包含 nginx 安装钩子，应确认目标环境。`name` 应与实际应用入口相符，而不是仅填写产品展示名。
 
 ## 文件和安装路径
 
 未显式选择打包项时按命令规则收集源目录；可以用文件、目录、末级通配符和 `source:target` 别名控制内容。`--exclude` 用于排除日志、缓存和测试配置，不能假定支持 deployer 的全部跨级通配语法。
 
-根路径别名如 `/etc/acme/app.conf` 表示安装到系统路径。deb/rpm 将它作为对应根路径项处理，tar 放到 `.root/` 并由安装脚本复制。应用文件与机器配置的更新、保留和删除策略应分别确认。
+根路径别名如 `/etc/nginx/conf.d/zongsoft.web.conf` 表示安装到系统路径。deb/rpm 将它作为对应根路径项处理，tar 放到 `.root/` 并由安装脚本复制。应用文件与机器配置的更新、保留和删除策略应分别确认。
 
 ## systemd 入口
 

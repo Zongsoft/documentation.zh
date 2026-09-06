@@ -17,10 +17,20 @@ Zongsoft.Web 提供通用控制器、绑定、格式化、路由、凭据认证�
 
 只需要框架的 MVC 辅助能力时引用 Zongsoft.Web；需要通过清单发现业务控制器时使用 Plugins.Web 宿主。现成启动器见[Web 宿主](../hosting/web.md)。
 
-{% code title="Program.cs（插件 Web 宿主入口）" %}
+来源：[hosting/web/default/Program.cs](https://github.com/Zongsoft/hosting/blob/main/web/default/Program.cs#L12)（节选；上下文见源文件）。
+
+{% code title="Program.cs" %}
 ```csharp
-var application = Zongsoft.Web.Application.Web(args);
-await application.RunAsync();
+static void Main(string[] args)
+{
+	var app = Zongsoft.Web.Application.Web([..args, "host=web", "site=default", "daemon=zongsoft.web"]);
+
+	//如果要启用私有部署模式则打开下行代码注释
+	//app.Configuration["Deployment"] = "private";
+
+	app.Map("/", ctx => { ctx.Response.Redirect("/Application"); return Task.CompletedTask; });
+	app.Run();
+}
 ```
 {% endcode %}
 

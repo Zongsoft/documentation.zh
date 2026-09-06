@@ -5,7 +5,7 @@ icon: shapes
 
 # 基础概念与协作方式
 
-本页以“订单模块使用缓存并提供查询接口”为例，说明框架中的几个相似名词。先分清这些概念，再读配置和代码，会更容易判断一个问题发生在哪个环节。
+本页以“Discussions 论坛模块提供主题查询接口”为例，说明框架中的几个相似名词。先分清这些概念，再读配置和代码，会更容易判断一个问题发生在哪个环节。
 
 ## 宿主与内容根 <a id="host"></a>
 
@@ -17,18 +17,20 @@ icon: shapes
 
 **程序集**包含可执行的 .NET 类型。**插件**由 `.plugin` 清单描述，声明依赖、程序集和扩展贡献；一个插件可以包含多个程序集，也可以只贡献装配配置。
 
-项目引用让编译器看见类型；插件清单让运行时知道加载什么；部署文件让必要的文件出现在正确位置。这三个环节互不替代。比如订单项目能编译，但漏部署 `Acme.Orders.plugin`，运行时仍不会发现其贡献的命令或控制器。
+项目引用让编译器看见类型；插件清单让运行时知道加载什么；部署文件让必要的文件出现在正确位置。这三个环节互不替代。比如 Discussions.Web 项目能编译，但漏部署 Zongsoft.Discussions.Web.plugin，运行时仍不会按清单加载其控制器。
 
 ## 插件树与构件 <a id="plugin-tree"></a>
 
-**插件树**是运行时扩展点的路径结构。一个插件可以向已有路径追加构件，不需要修改路径拥有者的源码。例如订单插件向 `/Workbench/Executor/Commands` 添加命令，数据驱动向 `/Workbench/Data/Drivers` 添加驱动。
+**插件树**是运行时扩展点的路径结构。一个插件可以向已有路径追加构件，不需要修改路径拥有者的源码。例如 Discussions 向数据验证器扩展点添加站点验证器，数据驱动向 `/Workbench/Data/Drivers` 添加驱动。
 
-**构件**是插件树上的可构建定义。构建器决定如何创建对象，解析器解释属性中的表达式。下面的代码表示“创建命令对象并加入命令扩展点”；命令类型必须由应用提供。
+**构件**是插件树上的可构建定义。构建器决定如何创建对象，解析器解释属性中的表达式。下面的真实清单创建 Discussions 数据验证器，并将它挂到数据扩展点。
 
-{% code title="Acme.Orders.plugin（扩展片段）" %}
+来源：[src/Zongsoft.Discussions.plugin](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Zongsoft.Discussions.plugin#L31)（节选；上下文见源文件）。
+
+{% code title="Zongsoft.Discussions.plugin" %}
 ```xml
-<extension path="/Workbench/Executor/Commands">
-	<object name="Orders" type="Acme.Orders.OrdersCommand, Acme.Orders" />
+<extension path="/Workbench/Data/Validators">
+	<object name="Discussions" type="Zongsoft.Discussions.Data.DataValidator, Zongsoft.Discussions" />
 </extension>
 ```
 {% endcode %}
@@ -37,7 +39,7 @@ icon: shapes
 
 ## 模块、服务与提供者 <a id="module-service-provider"></a>
 
-**模块**表达应用中的业务边界，例如 Orders、Inventory。一个模块可以由几个插件共同提供；插件加载也不会自动为每个插件创建业务模块。应用需要定义模块，并把模块对象挂载到 `/Workbench/Modules`。
+**模块**表达应用中的业务边界，例如 Discussions。一个模块可以由几个插件共同提供；插件加载也不会自动为每个插件创建业务模块。应用需要定义模块，并把模块对象挂载到 `/Workbench/Modules`。
 
 **服务**是通过契约提供某种操作的对象。**服务容器**负责按类型、别名或匹配参数解析这些对象。模块容器优先查找模块服务，再回退应用共享服务；其生命周期不等于 Web 请求生命周期。
 
@@ -46,13 +48,13 @@ icon: shapes
 | 名称 | 示例 | 决定什么 |
 | --- | --- | --- |
 | 插件名 | `Zongsoft.Externals.Redis` | 清单依赖指向哪个插件 |
-| 模块名 | `Orders` | 模块服务解析域 |
+| 模块名 | `Discussions` | 模块服务解析域 |
 | 提供者名 | `Redis` | 由哪种实现创建或查找实例 |
-| 连接/实例名 | `OrderCache` | 采用哪一组连接参数 |
-| 构件名 | `Orders` 命令节点 | 插件树中对象的位置 |
+| 连接/实例名 | 由实际环境选项定义 | 采用哪一组连接参数 |
+| 构件名 | `Discussions` 验证器节点 | 插件树中对象的位置 |
 
 {% hint style="warning" %}
-🚨 `Locate<T>("OrderCache@Redis")` 中的 `Redis` 是提供者；插件表达式 `{service:SomeService@Orders}` 中的 `Orders` 是模块。两种语法看起来相似，但不能互换。完整规则见[服务定位与所有权](../framework/core/services/locating.md)。
+🚨 服务定位表达式中的提供者与插件表达式指定的模块容器不是同一概念，名称不能互换。完整规则见[服务定位与所有权](../framework/core/services/locating.md)。
 {% endhint %}
 
 ## 配置、映射与部署 <a id="metadata"></a>
@@ -64,7 +66,7 @@ icon: shapes
 | `.mapping` | 业务实体如何对应数据源？ | 数据引擎元数据加载器 |
 | `.deploy` | 哪些文件或包复制到哪里？ | 部署工具 |
 
-订单插件的清单可以保持稳定，测试和生产环境使用不同连接配置。部署方案决定是否包含 Redis 和 MySQL，运行配置决定使用哪个已部署实现及连接。配置中的名称必须与注册、连接项和业务调用形成一致关系。
+Discussions 插件的清单可以保持稳定，测试和生产环境使用不同连接配置。部署方案决定是否包含 Redis 和 MySQL，运行配置决定使用哪个已部署实现及连接。配置中的名称必须与注册、连接项和业务调用形成一致关系。
 
 `.option` 并非任意放进目录就会加载。插件配置与已加载清单的文件主名关联，详见[选项配置文件](../references/option-files.md)。
 

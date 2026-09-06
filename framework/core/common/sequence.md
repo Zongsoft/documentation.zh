@@ -1,112 +1,42 @@
 ---
-description: Sequence、ISequence、ISequenceBase 的序列号和缓冲增长器。
-icon: list-check
+description: 以 Discussions 映射中的外部序号和站点分域说明生成责任。
+icon: arrow-up-1-9
 ---
 
-# Sequence
+# 序号器
 
-`Sequence` 相关类型用于生成递增或递减序列号。它不仅定义基础序列接口，还提供 `Variate` 包装器，用于降低远端序列服务调用频率。
+序号器负责按名称或业务范围生成编号。Discussions 没有自行实现一个演示序号服务，而是在映射中声明外部序号需求，由数据引擎和部署的提供者完成生成。
 
-## 类型关系
+## 主题使用外部序号
 
-| 类型 | 说明 |
-| --- | --- |
-| `ISequenceBase` | 基础序列接口，支持同步/异步增加、减少和重置。 |
-| `ISequence` | 序列服务接口，继承 `ISequenceBase`。 |
-| `Sequence` | 序列扩展入口，提供 `Variate`。 |
-| `Sequence.VariatorOptions` | 控制本地号段增长策略。 |
-| `Sequence.IVariator` | 带本地号段缓存的序列包装器。 |
-| `Sequence.IVariatorStatistics` | 提供当前号段、阈值、增长间隔等统计信息。 |
+来源：[src/Zongsoft.Discussions.mapping](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Zongsoft.Discussions.mapping#L293)（节选；上下文见源文件）。
 
-## 基础序列
-
-实现 `ISequenceBase` 后，可以按键生成序列值。
-
-{% code title="UseSequence.cs" %}
-```csharp
-using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
-using Zongsoft.Common;
-
-public sealed class OrderSequence : ISequenceBase
-{
-	private readonly Dictionary<string, long> _values = new();
-
-	public long Decrease(string key, int interval = 1, int seed = 0) =>
-		this.Increase(key, -interval, seed);
-
-	public ValueTask<long> DecreaseAsync(
-		string key,
-		int interval = 1,
-		int seed = 0,
-		CancellationToken cancellation = default) =>
-		this.IncreaseAsync(key, -interval, seed, cancellation);
-
-	public long Increase(string key, int interval = 1, int seed = 0)
-	{
-		lock(_values)
-		{
-			if(_values.TryAdd(key, seed))
-				return seed;
-
-			return _values[key] += interval;
-		}
-	}
-
-	public ValueTask<long> IncreaseAsync(
-		string key,
-		int interval = 1,
-		int seed = 0,
-		CancellationToken cancellation = default)
-	{
-		return ValueTask.FromResult(this.Increase(key, interval, seed));
-	}
-
-	public void Reset(string key, int value = 0)
-	{
-		lock(_values)
-		{
-			_values[key] = value;
-		}
-	}
-
-	public ValueTask ResetAsync(
-		string key,
-		int value = 0,
-		CancellationToken cancellation = default)
-	{
-		this.Reset(key, value);
-		return ValueTask.CompletedTask;
-	}
-}
+{% code title="Zongsoft.Discussions.mapping" %}
+```xml
+<property name="ThreadId" type="ulong" nullable="false" sequence="#" />
 ```
 {% endcode %}
 
-实际项目中的 `ISequenceBase` 实现通常会把递增结果持久化到 Redis、Etcd、数据库或其它分布式存储中。
+# 表示外部序号。调用业务新增方法时，编号可能尚未生成，所以不能依赖默认编号为新文件提供唯一名字；当前正文文件名还使用随机后缀，见[随机数](randomizer.md)。
 
-## Variate 包装器
+## 论坛按站点分域
 
-`Variate` 会为远端序列服务创建本地号段缓存。调用方频繁取号时，只有本地号段耗尽才访问底层序列。
+来源：[src/Zongsoft.Discussions.mapping](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Zongsoft.Discussions.mapping#L203)（节选；上下文见源文件）。
 
-{% code title="VariateSequence.cs" %}
-```csharp
-var remote = new OrderSequence();
-var sequence = remote.Variate(new Sequence.VariatorOptions(
-	initiate: 0,
-	growthLower: 32,
-	growthUpper: 512));
-
-var number = sequence.Increase("orders");
-var statistics = sequence.GetStatistics("orders");
+{% code title="Zongsoft.Discussions.mapping" %}
+```xml
+<property name="ForumId" type="ushort" nullable="false" sequence="#(SiteId)" />
 ```
 {% endcode %}
 
-这种设计适合底层序列服务存在网络延迟、数据库写入成本或分布式协调成本的场景。
+ForumId 的编号范围与 SiteId 关联。模型关系和数据库键也需要包含站点，否则不同站点内相同编号会发生混淆。
 
-## 相关资源
+## 基础序号与本地号段
 
-* [Sequence.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Common/Sequence.cs)
-* [ISequence.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Common/ISequence.cs)
-* [ISequenceBase.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Common/ISequenceBase.cs)
-* [SequenceTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Common/SequenceTest.cs)
+ISequenceBase 表达基础递增、重置等能力；框架还可通过 Variate 包装获得号段分配。号段降低远端调用次数，但进程退出可能留下未使用号码，不能据此承诺连续无间隙。
+
+Discussions 清单没有固定序号器实现，部署者必须核对实际提供者和名称。框架 [SequenceTest](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Common/SequenceTest.cs) 验证号段增长与重置，[Redis SequenceTest](https://github.com/Zongsoft/framework/blob/main/externals/redis/test/SequenceTest.cs) 提供具体实现参考。不要把测试中的固定区间作为生产配置。
+
+## 使用边界
+
+编号生成成功不代表业务写入已经提交。回滚、重试和跨节点并发都会影响编号使用情况。重置已有业务编号还可能导致键冲突，必须与持久化数据和缓存号段一起评估。

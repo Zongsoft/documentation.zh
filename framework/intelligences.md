@@ -20,7 +20,7 @@ icon: brain
 
 ## 接入本地模型服务
 
-首先准备可访问的 Ollama 服务及已安装的模型。这里的 `qwen3:0.6b` 只是配置示例，应替换为服务器实际提供的模型名。模型许可证、内存需求、上下文长度及工具调用支持由所选模型和服务决定。
+首先准备可访问的 Ollama 服务及已安装的模型。Discussions 没有模型调用用例；下方采用框架智能化插件随包选项，其中 qwen3:0.6b 是原有模型配置，应替换为服务器实际提供的模型名。模型许可证、内存需求、上下文长度及工具调用支持由所选模型和服务决定。
 
 在宿主的部署清单中加入插件；终端宿主需已有终端命令基础设施。
 
@@ -33,13 +33,16 @@ nuget:Zongsoft.Intelligences
 
 将设置合并到应用自己的 `.option` 文件；不要依赖覆盖包内文件来保存环境配置。
 
-{% code title="Application.option" %}
+来源：[framework/Zongsoft.Intelligences/src/Zongsoft.Intelligences.option](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Intelligences/src/Zongsoft.Intelligences.option#L3)（节选；上下文见源文件）。
+
+{% code title="Zongsoft.Intelligences.option" %}
 ```xml
 <options>
 	<option path="ai">
 		<connectionSettings>
-			<connectionSetting connectionSetting.name="ollama" driver="ollama"
-				value="server=http://127.0.0.1:11434;model=qwen3:0.6b" />
+			<connectionSetting connectionSetting.name="ollama"
+			                   driver="ollama"
+			                   value="server=http://127.0.0.1:11434;model=qwen3:0.6b" />
 		</connectionSettings>
 	</option>
 </options>
@@ -50,7 +53,7 @@ nuget:Zongsoft.Intelligences
 
 ## 从终端验证
 
-先确认助手被发现，再确认模型服务可用，最后发起一次短对话。这样能区分配置加载失败和远程推理失败。
+下列命令串联框架已有终端命令，作为操作步骤；不是 Discussions 已部署 AI 助手的声明。先确认助手被发现，再确认模型服务可用，最后发起一次短对话。这样能区分配置加载失败和远程推理失败。
 
 {% code title="Assistant.commands" %}
 ```text

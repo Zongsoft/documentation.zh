@@ -1,322 +1,140 @@
 ---
-description: Spooler<T> 异步缓冲器的用途、刷新机制和并发行为。
-icon: rotate
+description: 从框架日志实现和现有测试理解批量缓冲、触发条件、并发刷新与数据消费。
+icon: layer-group
 ---
 
-# Spooler&lt;T&gt;
+# Spooler
 
-`Spooler<T>` 是一个面向高频写入场景的异步缓冲器。它底层使用 [`System.Threading.Channels`](https://learn.microsoft.com/zh-cn/dotnet/core/extensions/channels) _[源码](https://source.dot.net/#System.Threading.Channels)_ 保存待处理数据，并按周期或数量阈值把一批数据交给刷新回调处理。
+Spooler 把连续到达的条目暂存起来，再交给批量回调处理。框架的文件日志器使用它减少逐条写文件的开销。它是进程内缓冲，条目尚未交给持久化系统时，进程退出仍可能造成丢失。
 
-典型场景包括日志写入、遥测上报、采集数据入库、批量推送等。它的目标不是长期缓存数据，而是把高频小写入合并为较低频率的批量处理。
+## 真实使用位置：文件日志
 
-## 基本原理
+来源：[framework/Zongsoft.Core/src/Diagnostics/FileLogger.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Diagnostics/FileLogger.cs#L57)（节选；上下文见源文件）。
 
-`Spooler<T>` 可以理解为一个“生产者写入、消费者批量刷新”的小型缓冲管线：
-
-1. 调用方通过 `PutAsync` 把数据写入内部通道。
-2. 周期定时器按 `period` 调用 `FlushAsync`。
-3. 如果通道达到 `limit` 限制，`PutAsync` 会主动触发一次刷新。
-4. `FlushAsync` 把当前可读取的数据包装成 `IEnumerable<T>`，交给刷新回调处理。
-5. 刷新回调枚举数据时，数据会从内部通道中被读取并移出。
-
-这意味着 `Spooler<T>` 不会为每条数据立即执行 I/O，而是把瞬时高频写入转换成批量处理。它适合“允许短暂延迟，但希望降低写入频率”的场景。
-
-{% hint style="warning" %}
-`Spooler<T>` 不是持久化队列。进程退出、对象释放或调用 `Clear` 都可能让尚未刷新的数据丢失。对于不能丢失的数据，应在刷新回调里尽快落到可靠介质，或使用具备持久化能力的消息队列。
-{% endhint %}
-
-## 代码架构
-
-源码主体围绕四个字段展开：
-
-| 成员 | 作用 |
-| --- | --- |
-| `_channel` | 保存待刷新的数据。`limit > 0` 时创建有界通道，否则创建无界通道。 |
-| `_timer` | 周期触发 `OnTickAsync`，再调用 `FlushAsync`。 |
-| `_flushing` | 刷新互斥标记，保证同一时间只有一个刷新回调运行。 |
-| `_flusher` | 用户提供的刷新回调，真正执行批量写入或批量上报。 |
-
-核心流程可以按下面的源码骨架理解：
-
-{% code title="SpoolerArchitecture.cs" %}
+{% code title="FileLogger.cs" %}
 ```csharp
-public class Spooler<T> : IEnumerable<T>, IDisposable
+protected FileLogger(TimeSpan period, int capacity, string filePath, int fileLimit = FILE_LIMIT)
 {
-	private readonly int _limit;
-
-	private int _flushing;
-	private Common.Timer _timer;
-	private Channel<T> _channel;
-	private Func<IEnumerable<T>, CancellationToken, ValueTask> _flusher;
-
-	public async ValueTask PutAsync(T value, CancellationToken cancellation = default)
-	{
-		if(this.GetChannel(out var channel) && channel.Writer.TryWrite(value))
-			return;
-
-		await this.FlushAsync(cancellation);
-		await channel.Writer.WaitToWriteAsync(cancellation);
-		await channel.Writer.WriteAsync(value, cancellation);
-	}
-
-	public async ValueTask FlushAsync(CancellationToken cancellation = default)
-	{
-		while(!this.IsEmpty)
-		{
-			if(Interlocked.CompareExchange(ref _flushing, 1, 0) == 0)
-			{
-				try
-				{
-					await this.OnFlushAsync(
-						new Iterable(this.GetChannel().Reader, _limit),
-						cancellation);
-				}
-				finally
-				{
-					Volatile.Write(ref _flushing, 0);
-				}
-
-				return;
-			}
-
-			await Task.Yield();
-		}
-	}
+	this.FilePath = filePath?.Trim();
+	this.FileLimit = Math.Max(fileLimit, 0);
+	this.Logging = period > TimeSpan.Zero || capacity > 1 ? new(this.OnFlushAsync, period, capacity) : null;
 }
 ```
 {% endcode %}
 
-这里最关键的是 `PutAsync` 和 `FlushAsync` 的配合：
+构造函数根据 period 和 capacity 决定是否启用 Logging 缓冲。真正的写入和文件大小管理由日志器的 OnFlushAsync 实现；Spooler 本身只组织条目的暂存和交付。日志业务范例见[诊断日志](../diagnostics.md)。
 
-* 写入成功时，`PutAsync` 很快返回。
-* 写入失败通常意味着有界通道已满，此时先刷新，再等待通道恢复可写。
-* `FlushAsync` 使用 `Interlocked.CompareExchange` 抢占刷新权，避免并发刷新。
-* 内部 `Iterable` 每次最多读取 `limit` 条数据；如果 `limit` 为 `0`，则读取当前可读的全部数据。
+## 从放入到显式刷新
 
-## 构造函数
+Discussions 没有直接使用 Spooler，下面采用框架测试。Flusher 是同一文件中的测试接收器，它消费收到的条目并累加数量；TestContext 提供测试取消令牌。
 
-{% code title="CreateSpooler.cs" %}
+来源：[framework/Zongsoft.Core/test/Caching/SpoolerTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Caching/SpoolerTest.cs#L30)（节选；上下文见源文件）。
+
+{% code title="SpoolerTest.cs" %}
 ```csharp
-using Zongsoft.Caching;
+public async Task TestFlushAsync()
+{
+	const int COUNT = 1000;
 
-var spooler = new Spooler<string>(
-	flusher: async (items, cancellation) =>
-	{
-		foreach(var item in items)
-			await WriteLineAsync(item, cancellation);
-	},
-	period: TimeSpan.FromSeconds(5),
-	limit: 1_000);
+	var flusher = new Flusher<string>();
+	using var spooler = new Spooler<string>(flusher.OnFlushAsync, TimeSpan.FromHours(1));
+	Assert.True(spooler.IsEmpty);
+	Assert.Equal(0, flusher.Count);
+
+	await spooler.FlushAsync(TestContext.Current.CancellationToken);
+	Assert.True(spooler.IsEmpty);
+	Assert.Equal(0, flusher.Count);
+
+	#if NET8_0_OR_GREATER
+	await Parallel.ForAsync(0, COUNT, TestContext.Current.CancellationToken, async (index, cancellation) => await spooler.PutAsync($"Value#{index}", cancellation));
+	#else
+	for(int i = 0; i < COUNT; i++)
+		await spooler.PutAsync($"Value#${i}", TestContext.Current.CancellationToken);
+	#endif
+
+	Assert.Equal(COUNT, spooler.Count);
+
+	await spooler.FlushAsync(TestContext.Current.CancellationToken);
+	Assert.True(spooler.IsEmpty);
+	Assert.Equal(COUNT, flusher.Count);
+}
 ```
 {% endcode %}
 
-| 参数 | 说明 |
-| --- | --- |
-| `flusher` | 刷新回调，接收本批次要处理的数据。 |
-| `period` | 周期刷新间隔。 |
-| `limit` | 缓冲数量上限；为 `0` 表示不启用数量限制。 |
+PutAsync 完成说明条目已被接收，或者写入容量触发了刷新；它不统一代表外部持久化完成。FlushAsync 则等待本次刷新的回调结束。回调必须真正消费收到的序列，才能把条目从缓冲中取走。
 
-当 `limit` 大于零时，内部使用有界 `Channel<T>`；否则使用无界 `Channel<T>`。
+## 容量与周期分别怎样触发
 
-## 写入与刷新
+来源：[framework/Zongsoft.Core/test/Caching/SpoolerTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Caching/SpoolerTest.cs#L58)（节选；上下文见源文件）。
 
-`PutAsync` 将数据写入缓冲区。如果缓冲区已满，它会先触发 `FlushAsync`，等待可写入后再写入当前数据。
-
-{% code title="PutAndFlushSpooler.cs" %}
+{% code title="SpoolerTest.cs" %}
 ```csharp
-await spooler.PutAsync("A");
-await spooler.PutAsync("B");
-await spooler.PutAsync("C");
+public async Task TestLimitAsync()
+{
+	var flusher = new Flusher<string>();
+	using var spooler = new Spooler<string>(flusher.OnFlushAsync, TimeSpan.FromHours(1), 3);
+	Assert.True(spooler.IsEmpty);
+	Assert.Equal(0, flusher.Count);
 
-await spooler.FlushAsync();
+	await spooler.PutAsync("A", TestContext.Current.CancellationToken);
+	await spooler.PutAsync("B", TestContext.Current.CancellationToken);
+	await spooler.PutAsync("C", TestContext.Current.CancellationToken);
+	Assert.Equal(3, spooler.Count);
+	Assert.Equal(0, flusher.Count);
+
+	//触发数量限制
+	await spooler.PutAsync("D", TestContext.Current.CancellationToken);
+
+	Assert.False(spooler.IsEmpty);
+	Assert.Equal(1, spooler.Count);
+	Assert.Equal(3, flusher.Count);
+}
 ```
 {% endcode %}
 
-`FlushAsync` 会把当前缓冲区中的数据作为一个可枚举批次传给刷新回调。刷新回调枚举 `items` 时，元素会从内部通道中被读取并移出。
+这个测试把容量设为 3。前三条进入缓冲，第 4 条放入时触发前三条的刷新，随后第 4 条留在缓冲中。不要把容量理解为“第 3 条加入后立即全部落盘”。容量为零时使用无界缓冲，应结合消费速度观察内存增长。
+
+周期触发由内部计时器调用 FlushAsync。在支持修改 Period 的目标框架上，现有 [TestPeriodAsync](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Caching/SpoolerTest.cs) 把一小时周期调整为 1 毫秒，并等待回调完成。这里的时间用于测试，不是推荐部署参数。
+
+## 并发刷新与回调责任
+
+来源：[framework/Zongsoft.Core/test/Caching/SpoolerTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Caching/SpoolerTest.cs#L105)（节选；上下文见源文件）。
+
+{% code title="SpoolerTest.cs" %}
+```csharp
+public async Task TestConcurrentFlushAsync()
+{
+	const int COUNT = 256;
+	const int CONCURRENCY = 16;
+
+	var flusher = new RecordingFlusher<int>(TimeSpan.FromMilliseconds(10));
+	using var spooler = new Spooler<int>(flusher.OnFlushAsync, TimeSpan.FromHours(1));
+
+	for(int i = 0; i < COUNT; i++)
+		await spooler.PutAsync(i, TestContext.Current.CancellationToken);
+
+	var tasks = Enumerable.Range(0, CONCURRENCY).Select(_ => spooler.FlushAsync(TestContext.Current.CancellationToken).AsTask()).ToArray();
+	await Task.WhenAll(tasks);
+
+	Assert.True(spooler.IsEmpty);
+	Assert.Equal(1, flusher.Calls);
+	Assert.Equal(1, flusher.MaximumConcurrency);
+	Assert.Equal(COUNT, flusher.Count);
+	Assert.Equal(Enumerable.Range(0, COUNT), flusher.Values.OrderBy(value => value));
+}
+```
+{% endcode %}
+
+RecordingFlusher 在同一个测试文件中记录并发数、调用次数和条目集合。测试验证多个 FlushAsync 请求不会并发进入回调，且这一批条目只被消费一次。这不等于外部系统具有恰好一次交付语义；超时重试和幂等仍由实际接收端负责。
 
 {% hint style="warning" %}
-传入刷新回调的 `IEnumerable<T>` 是流式读取视图，不是已经复制好的快照。刷新回调应在方法内部完成枚举，不要把它保存到方法外延迟使用。
+🚨 Spooler 的枚举会消费缓冲中的条目，刷新回调拿到的序列也按读取取走条目。不要为“查看当前内容”遍历它，也不要在同一回调里先 Count 再第二次遍历进行写入。需要多次使用一批数据时，应在回调内一次性物化，再操作这份本地集合。
 {% endhint %}
 
-如果刷新逻辑需要多次遍历数据，请在回调内部先复制为数组或列表。
+回调抛异常不会自动把已经读出的条目放回缓冲。需要可靠投递时应使用持久化消息或事务机制，并阅读[消息可靠性](../../messaging/reliability.md)。
 
-{% code title="SnapshotSpoolerItems.cs" %}
-```csharp
-var spooler = new Spooler<int>(
-	flusher: async (items, cancellation) =>
-	{
-		var batch = items.ToArray();
+## 清空、停机与释放
 
-		await SaveBatchAsync(batch, cancellation);
-		await WriteAuditAsync(batch.Length, cancellation);
-	},
-	period: TimeSpan.FromSeconds(5),
-	limit: 500);
-```
-{% endcode %}
+Clear 取出并丢弃当前条目，不调用刷新回调。Dispose 停止计时器并结束通道，不替代业务要求的最终刷新。停机时先停止生产者，再等待需要的刷新结束，最后释放拥有的实例；无法接受丢失的数据应先持久化。
 
-## 周期刷新
-
-构造 `Spooler<T>` 后，内部定时器会自动启动，并按 `period` 周期调用 `FlushAsync`。
-
-在 .NET 8 及以上目标框架中，可以通过 `Period` 属性动态调整刷新周期。
-
-{% code title="SpoolerPeriod.cs" %}
-```csharp
-#if NET8_0_OR_GREATER
-spooler.Period = TimeSpan.FromMilliseconds(500);
-#endif
-```
-{% endcode %}
-
-## 数量阈值
-
-`Limit` 用于控制单批最多读取多少个元素，也用于有界通道容量。当写入速度超过缓冲容量时，`PutAsync` 会触发刷新，释放通道空间。
-
-{% code title="SpoolerLimit.cs" %}
-```csharp
-using var spooler = new Spooler<int>(
-	flusher: async (items, cancellation) =>
-	{
-		await SaveBatchAsync(items.ToArray(), cancellation);
-	},
-	period: TimeSpan.FromSeconds(10),
-	limit: 100);
-```
-{% endcode %}
-
-数量阈值适合控制单批处理规模，例如限制每次数据库批量写入的行数，或限制每次网络推送的数据量。
-
-## 并发刷新
-
-`Spooler<T>` 使用内部标记保证同一时间只有一个刷新回调运行。多个调用方同时触发 `FlushAsync` 时，只有一个调用方会真正执行刷新，其它调用方会等待刷新状态变化。
-
-这让 `PutAsync`、周期刷新和显式 `FlushAsync` 可以同时存在，而不会让同一批数据被多个刷新回调重复处理。
-
-并发写入时，多个生产者可以同时调用 `PutAsync`；并发刷新时，刷新回调仍会串行运行。这个设计适合“写入入口很多，但后端落地动作需要控制并发”的场景。
-
-## 场景范例
-
-### 批量写日志
-
-当日志量很高时，可以先把日志行写入 `Spooler<string>`，再按批次落盘或写入日志服务。
-
-{% code title="LogSpooler.cs" %}
-```csharp
-using Zongsoft.Caching;
-
-using var logs = new Spooler<string>(
-	flusher: async (items, cancellation) =>
-	{
-		var lines = items.ToArray();
-
-		if(lines.Length == 0)
-			return;
-
-		await File.AppendAllLinesAsync(
-			"application.log",
-			lines,
-			cancellation);
-	},
-	period: TimeSpan.FromSeconds(2),
-	limit: 1_000);
-
-await logs.PutAsync($"[{DateTimeOffset.Now:O}] worker started");
-await logs.PutAsync($"[{DateTimeOffset.Now:O}] job accepted");
-```
-{% endcode %}
-
-这个例子把多次小文件写入合并成批量追加，能减少文件系统调用次数。关闭服务前应主动调用 `FlushAsync`，确保缓冲日志已经落盘。
-
-### 批量上报遥测
-
-遥测、指标、埋点这类数据通常允许短暂延迟，但不希望每条都发一次网络请求。
-
-{% code title="TelemetrySpooler.cs" %}
-```csharp
-public sealed record MetricPoint(
-	string Name,
-	double Value,
-	DateTimeOffset Timestamp);
-
-using var metrics = new Spooler<MetricPoint>(
-	flusher: async (items, cancellation) =>
-	{
-		var batch = items.ToArray();
-
-		if(batch.Length > 0)
-			await telemetryClient.PushAsync(batch, cancellation);
-	},
-	period: TimeSpan.FromSeconds(10),
-	limit: 200);
-
-await metrics.PutAsync(new MetricPoint(
-	"orders.created",
-	1,
-	DateTimeOffset.UtcNow));
-```
-{% endcode %}
-
-如果遥测服务临时变慢，`limit` 可以限制单批数量，避免一次请求携带过大的负载。
-
-### 批量写入数据库
-
-采集数据、审计记录或后台任务日志可以先进入缓冲器，再批量写入数据库。
-
-{% code title="DatabaseSpooler.cs" %}
-```csharp
-public sealed record AuditEntry(
-	string Action,
-	string User,
-	DateTimeOffset CreatedTime);
-
-using var audits = new Spooler<AuditEntry>(
-	flusher: async (items, cancellation) =>
-	{
-		var batch = items.ToArray();
-
-		if(batch.Length == 0)
-			return;
-
-		await auditRepository.InsertManyAsync(batch, cancellation);
-	},
-	period: TimeSpan.FromSeconds(5),
-	limit: 500);
-
-await audits.PutAsync(new AuditEntry(
-	"Order.Submit",
-	"alice",
-	DateTimeOffset.UtcNow));
-```
-{% endcode %}
-
-在这种场景中，`limit` 通常对应数据库批量写入的最大行数，`period` 则对应最长可接受写入延迟。
-
-## 参数选择
-
-| 场景 | `period` 建议 | `limit` 建议 |
-| --- | --- | --- |
-| 日志落盘 | 1 到 5 秒 | 500 到 5,000 |
-| 遥测上报 | 5 到 30 秒 | 100 到 1,000 |
-| 数据库批量写入 | 1 到 10 秒 | 100 到 1,000 |
-| 低频事件 | 10 秒以上 | 可设为 `0` 或较小值 |
-
-这些数值不是固定规则，应结合后端吞吐、单批处理耗时、允许延迟和内存占用来调整。
-
-## 清空与释放
-
-`Clear` 会尽可能读取并丢弃当前缓冲区中的数据，不会调用刷新回调。
-
-`Dispose` 会停止内部定时器并完成通道写入。释放后再访问 `Count`、`IsEmpty`、`PutAsync` 或 `FlushAsync` 会抛出对象已释放异常。
-
-{% code title="DisposeSpooler.cs" %}
-```csharp
-await spooler.FlushAsync();
-spooler.Dispose();
-```
-{% endcode %}
-
-## 相关资源
-
-* [Spooler.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Caching/Spooler.cs)
-* [SpoolerTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Caching/SpoolerTest.cs)
+period 应根据允许延迟确定，limit 应结合单批耗时与内存占用确定。框架 [Spooler.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Caching/Spooler.cs) 给出具体边界，命令行交互用例在 [samples/spooler](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core/samples/spooler)。

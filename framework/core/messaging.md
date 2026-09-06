@@ -70,23 +70,27 @@ flowchart LR
 
 生产接口提供字节和文本两组重载。调用方可以只传消息体，让队列从连接设置中的 `Topic` 取默认主题；也可以显式传入主题和标签。
 
-{% code title="ProduceMessage.cs" %}
+Discussions 的站内信保存在数据库中，没有直接使用中间件队列。本节使用框架现有的能力边界测试；其中 TestQueue 是同一测试文件里的内存夹具，不会连接 Broker。发送消息的完整客户端见 [Kafka 项目](../messaging/projects/kafka.md)。
+
+来源：[framework/Zongsoft.Core/test/Messaging/MessageQueueBaseTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Messaging/MessageQueueBaseTest.cs#L59)（节选；上下文见源文件）。
+
+{% code title="MessageQueueBaseTest.cs" %}
 ```csharp
-using System.Text;
-using Zongsoft.Messaging;
+public async Task UnsupportedDelayFailsBeforeDriverOperation()
+{
+	using var queue = new TestQueue();
+	var options = new MessageEnqueueOptions(TimeSpan.FromSeconds(1));
 
-var queue = MessageQueueUtility.Queue("Orders");
+	var exception = await Assert.ThrowsAsync<OperationException>(() => queue.ProduceAsync("tests/delay", ReadOnlyMemory<byte>.Empty, options).AsTask());
 
-await queue.ProduceAsync(
-	"Orders.Created",
-	Encoding.UTF8.GetBytes("""{"id":1001}"""),
-	new MessageEnqueueOptions(MessageReliability.LeastOnce)
-	{
-		Expiration = TimeSpan.FromMinutes(5),
-		Priority = 5,
-	});
+	Assert.Equal(nameof(OperationException.Unsupported), exception.Reason);
+	Assert.Contains(MessageQueueFeature.Delay.Name, exception.Message);
+	Assert.Equal(0, queue.ProduceCount);
+}
 ```
 {% endcode %}
+
+该测试请求一秒延迟，但队列没有声明 Delay 能力，因此在调用驱动前失败，ProduceCount 保持零。支持能力的队列才会收到相应选项。
 
 `MessageEnqueueOptions` 表达发布意图：
 
@@ -107,29 +111,56 @@ await queue.ProduceAsync(
 * 指定主题：订阅一个明确主题或模式。
 * 指定主题和标签：传入标签过滤意图，是否生效取决于实现。
 
-{% code title="SubscribeMessage.cs" %}
+来源：[framework/Zongsoft.Core/test/Messaging/MessageQueueBaseTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Messaging/MessageQueueBaseTest.cs#L283)（节选；上下文见源文件）。
+
+{% code title="MessageQueueBaseTest.cs" %}
 ```csharp
-using System.Text;
-using Zongsoft.Messaging;
+public async Task ConflictingSubscriptionDoesNotReplaceExistingConsumer()
+{
+	using var queue = new TestQueue();
+	var handler = new TestHandler();
+	var first = await queue.SubscribeAsync("tests/conflict", "alpha,beta", handler, new MessageSubscribeOptions(MessageReliability.MostOnce));
 
-var queue = MessageQueueUtility.Queue("Orders");
+	await Assert.ThrowsAsync<InvalidOperationException>(() => queue.SubscribeAsync("tests/conflict", "alpha,beta", new TestHandler(), new MessageSubscribeOptions(MessageReliability.MostOnce)).AsTask());
+	await Assert.ThrowsAsync<InvalidOperationException>(() => queue.SubscribeAsync("tests/conflict", "alpha", handler, new MessageSubscribeOptions(MessageReliability.MostOnce)).AsTask());
+	await Assert.ThrowsAsync<InvalidOperationException>(() => queue.SubscribeAsync("tests/conflict", "alpha,beta", handler, new MessageSubscribeOptions(MessageReliability.LeastOnce)).AsTask());
 
-var consumer = await queue.SubscribeAsync(
-	"Orders.Created",
-	new ConsoleMessageHandler(),
-	new MessageSubscribeOptions(
-		MessageReliability.LeastOnce,
-		MessageFallbackBehavior.Backoff));
+	Assert.Same(first, queue.Subscribers["tests/conflict"]);
+	Assert.Equal(1, queue.CreateCount);
+	Assert.Equal(1, queue.SubscribeCount);
+}
 ```
 {% endcode %}
 
-示例中的 `ConsoleMessageHandler` 实现见[消息处理器示例](../messaging.md)。异步处理必须使用 `IHandler<Message>`，不要把异步 lambda 传给同步委托重载。
+上面的测试固定主题 tests/conflict，然后分别改变处理器、标签与可靠性；这些变化都会被视为不兼容订阅。实际异步处理器见[消息处理器示例](../messaging.md)。异步处理必须使用 `IHandler<Message>`，不要把异步 lambda 传给同步委托重载。
 
-`IMessageConsumer` 是一次订阅的句柄。保留它可以在应用运行中主动取消订阅：
+`IMessageConsumer` 是一次订阅的句柄。下面的测试释放首个消费者后重新订阅，确认旧项被移除，并产生新的订阅者：
 
-{% code title="UnsubscribeMessage.cs" %}
+来源：[framework/Zongsoft.Core/test/Messaging/MessageQueueBaseTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Messaging/MessageQueueBaseTest.cs#L260)（节选；上下文见源文件）。
+
+{% code title="MessageQueueBaseTest.cs" %}
 ```csharp
-await consumer.UnsubscribeAsync();
+public async Task ActiveConsumerCloseRemovesEntryAndAllowsResubscribe()
+{
+	using var queue = new TestQueue();
+	var first = await queue.SubscribeAsync("tests/resubscribe", new TestHandler());
+
+	Assert.NotNull(first);
+	Assert.Single(queue.Subscribers);
+
+	await first.DisposeAsync();
+
+	Assert.Empty(queue.Subscribers);
+	Assert.Equal(1, queue.UnsubscribedCount);
+
+	var second = await queue.SubscribeAsync("tests/resubscribe", new TestHandler());
+
+	Assert.NotNull(second);
+	Assert.NotSame(first, second);
+	Assert.Single(queue.Subscribers);
+	Assert.Equal(2, queue.CreateCount);
+	Assert.Equal(2, queue.SubscribeCount);
+}
 ```
 {% endcode %}
 
@@ -155,42 +186,46 @@ await consumer.UnsubscribeAsync();
 
 消息队列连接配置位于 `/Messaging/ConnectionSettings`。每个连接项通过 `driver` 选择具体实现，通过 `connectionSetting.name` 作为队列名称。
 
-{% code title="Messaging.option" %}
+来源：[framework/messaging/kafka/src/Zongsoft.Messaging.Kafka.option](https://github.com/Zongsoft/framework/blob/main/messaging/kafka/src/Zongsoft.Messaging.Kafka.option#L3)（节选；上下文见源文件）。
+
+{% code title="Zongsoft.Messaging.Kafka.option" %}
 ```xml
-<configuration>
+<options>
 	<option path="/Messaging">
 		<connectionSettings>
-			<connectionSetting connectionSetting.name="Orders"
-			                   driver="Kafka"
-			                   value="server=127.0.0.1:9092;client=orders-app;group=orders-workers;topic=Orders.Created" />
+			<connectionSetting connectionSetting.name="kafka" driver="kafka"
+			                   value="server=127.0.0.1;username=program;password=xxxxxx;client=client1;group=group1" />
 		</connectionSettings>
 	</option>
-</configuration>
+</options>
 ```
 {% endcode %}
 
-`IMessageQueueProvider` 负责读取该路径。提供器按驱动名称匹配连接项，创建出的队列以弱引用缓存；当队列已释放或被回收后，下次访问会重新创建。
+上面的配置是 Kafka 插件附带的本地范例，xxxxxx 是占位密码，运行前应按测试 Broker 修改。`IMessageQueueProvider` 负责读取该路径。提供器按驱动名称匹配连接项，创建出的队列以弱引用缓存；当队列已释放或被回收后，下次访问会重新创建。
 
-{% code title="ResolveQueue.cs" %}
+来源：[framework/Zongsoft.Core/src/Messaging/MessageQueueUtility.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Messaging/MessageQueueUtility.cs#L40)（节选；上下文见源文件）。
+
+{% code title="MessageQueueUtility.cs" %}
 ```csharp
-using Zongsoft.Messaging;
+public static IMessageQueue Queue(IServiceProvider services, string name, IEnumerable<KeyValuePair<string, string>> settings = null)
+{
+	name ??= string.Empty;
+	services ??= ApplicationContext.Current?.Services ?? throw new ArgumentNullException(nameof(services));
 
-var queue = MessageQueueUtility.Queue("Orders");
+	foreach(var provider in services.ResolveAll<IMessageQueueProvider>())
+	{
+		if(provider.Exists(name))
+			return provider.Queue(name, settings);
+	}
 
-await queue.ProduceAsync("Orders.Created", """{"id":1001}""".AsMemory());
+	return null;
+}
 ```
 {% endcode %}
 
 如果同名连接项可能被多个提供器识别，或希望在配置中明确指定驱动，可使用 `MessageQueueConverter` 支持的 `队列名@提供器名` 形式：
 
-{% code title="QueueReference.txt" %}
-```text
-Orders@Kafka
-Telemetry@Mqtt
-Default@RabbitMQ
-Local@ZeroMQ
-```
-{% endcode %}
+转换语法为“队列名@提供器名”。队列名必须来自真实连接项，提供器名来自驱动注册；可对照上面 Kafka.option 的 kafka 连接及 [MessageQueueConverter](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Messaging/MessageQueueConverter.cs) 核对。
 
 ## 守护订阅
 
@@ -198,28 +233,13 @@ Local@ZeroMQ
 
 | 属性 | 说明 |
 | --- | --- |
-| `Queue` | 要守护的消息队列，可通过字符串转换器从 `Orders@Kafka` 解析。 |
+| `Queue` | 要守护的消息队列，可通过字符串转换器按队列名和提供器名解析。 |
 | `Handler` | 消息处理器。 |
 | `Options` | 队列订阅配置；为空时从 `Messaging/Queues` 读取。 |
 
 订阅配置位于 `Messaging/Queues`，用于声明队列名称、订阅可靠性、失败退避和主题过滤器：
 
-{% code title="MessagingQueues.option" %}
-```xml
-<configuration>
-	<option path="/Messaging">
-		<queues>
-			<queue name="Orders">
-				<subscription reliability="LeastOnce" fallback="Backoff">
-					<filter topic="Orders.Created" />
-					<filter topic="Orders.Paid" />
-				</subscription>
-			</queue>
-		</queues>
-	</option>
-</configuration>
-```
-{% endcode %}
+Discussions 当前没有守护订阅配置。可从 [QueueOptions](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Messaging/Options/QueueOptions.cs)、[QueueSubscriptionOptions](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Messaging/Options/QueueSubscriptionOptions.cs) 阅读实际配置模型；守护器按 Queue.Name 匹配集合中的项，再逐条订阅 Filters。只安装驱动不会自动产生业务处理器。
 
 过滤器也可以通过启动参数补充，格式由 `QueueSubscriptionFilter.Parse(...)` 解析，支持 `Topic`、`Topic:TagA,TagB`、`Topic?TagA,TagB` 等写法。
 

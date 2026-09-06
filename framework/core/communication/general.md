@@ -13,7 +13,7 @@ icon: satellite-dish
 | --- | --- |
 | `ISender` | 发送字节数据。 |
 | `ISender<T>` | 发送强类型数据包。 |
-| `IReceiver` | 接收 `ReadOnlySequence<byte>` 字节序列。 |
+| `IReceiver` | 接收 [`ReadOnlySequence<byte>`](https://learn.microsoft.com/zh-cn/dotnet/api/system.buffers.readonlysequence-1) _[源码](https://source.dot.net/#System.Memory/ReadOnlySequence.cs)_ 字节序列。 |
 | `IListener<T>` | 监听并处理强类型通讯包。 |
 | `ListenerBase<T>` | 监听器基类，实现接收、拆包和交给处理器的流程。 |
 | `IChannel` | 可关闭、可异步释放的通讯通道。 |
@@ -43,23 +43,28 @@ flowchart LR
 
 * TCP 连接通道：`TcpChannelBase<T>` 继承 `ChannelBase`，同时实现 `ISender` 和 `ISender<T>`。
 * 事件通道：`IEventChannel` 继承 `IChannel` 和 `ISender<EventContext>`，可把事件发送到远端。
-* 消息队列通道：`ZeroQueue.EventChannel` 继承 `ChannelBase`，把事件编码后投递到 ZeroMQ 队列。
+* 消息队列通道：`ZeroQueueEventChannel` 继承 `ChannelBase`，把事件编码后投递到 ZeroMQ 队列。
 * 消息消费者：`MessageConsumerBase<TQueue>` 继承 `ChannelBase`，把订阅生命周期也纳入通道关闭模型。
 
 ## 接收与拆包
 
 `ListenerBase<T>` 实现了从字节到强类型包的模板流程：收到字节序列后调用 `IPacketizer<T>.Unpack`，拆包成功后再调用处理器。
 
-{% code title="ListenerPipeline.cs" %}
+来源：[framework/Zongsoft.Core/src/Communication/ListenerBase.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Communication/ListenerBase.cs#L61)（节选；上下文见源文件）。
+
+{% code title="ListenerBase.cs" %}
 ```csharp
-protected virtual ValueTask OnReceiveAsync(
-	in ReadOnlySequence<byte> data,
-	CancellationToken cancellation)
+protected virtual ValueTask OnReceiveAsync(in ReadOnlySequence<byte> data, CancellationToken cancellation)
 {
 	var message = data;
 
 	if(this.OnDeserialize(ref message, out var value))
-		return this.OnHandleAsync(value, cancellation);
+	{
+		var task = this.OnHandleAsync(value, cancellation);
+
+		if(!task.IsCompletedSuccessfully)
+			return new ValueTask(task.AsTask());
+	}
 
 	return ValueTask.CompletedTask;
 }
@@ -68,11 +73,21 @@ protected virtual ValueTask OnReceiveAsync(
 
 `IPacketizer<T>` 适合处理粘包、半包、长度头、压缩、加密和自定义二进制协议。它的 `Unpack` 接收 `ref ReadOnlySequence<byte>`，实现者可以在拆出一个包后推进序列，让上层继续处理缓冲区中的后续包。
 
-{% code title="PacketizerShape.cs" %}
+来源：[framework/Zongsoft.Core/src/Communication/IPacketizer.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Communication/IPacketizer.cs#L39)（节选；上下文见源文件）。
+
+{% code title="IPacketizer.cs" %}
 ```csharp
 public interface IPacketizer<TPackage>
 {
+	/// <summary>打包，将通讯包对象序列化到发送缓存。</summary>
+	/// <param name="writer">缓存写入器。</param>
+	/// <param name="package">待打包的通讯包。</param>
 	void Pack(IBufferWriter<byte> writer, in TPackage package);
+
+	/// <summary>拆包，将字节流反序列化成通讯包对象。</summary>
+	/// <param name="data">待拆包的字节流。</param>
+	/// <param name="package">拆包成功的通讯包。</param>
+	/// <returns>如果拆包完成则返回真(<c>True</c>)，否则返回假(<c>False</c>)。</returns>
 	bool Unpack(ref ReadOnlySequence<byte> data, out TPackage package);
 }
 ```
@@ -87,25 +102,17 @@ public interface IPacketizer<TPackage>
 * `TcpServerChannelManager<T>` 维护服务端通道集合，并在客户端连接时创建通道。
 * `Packetizer` 提供无头包和长度头包两种基础拆包实现。
 
-{% code title="TcpServerUsage.cs" %}
+来源：[framework/Zongsoft.Net/samples/server/Program.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Net/samples/server/Program.cs#L18)（节选；上下文见源文件）。
+
+{% code title="Program.cs" %}
 ```csharp
-using System.Buffers;
-using System;
-using System.Threading.Tasks;
-using Zongsoft.Components;
-using Zongsoft.Net;
-
 var server = TcpServer.Headed;
-
-server.Handler = Handler.Handle<ReadOnlySequence<byte>>((message, cancellation) =>
-{
-	Console.WriteLine($"Received {message.Length} bytes.");
-	return ValueTask.CompletedTask;
-});
-
-await server.StartAsync(new[] { "127.0.0.1", "7969" });
+server.Handler = new Handler(server);
+await server.StartAsync(args.Length == 0 ? ["127.0.0.1", "7969"] : args);
 ```
 {% endcode %}
+
+上面来自 framework 的 TCP 服务端样例；Handler 是同一 Program.cs 的内部类型，接收文本后广播 ACK 回复。Discussions 没有直接托管 TCP 通道。配套客户端、启动参数和关闭行为见[网络通讯](../../net.md)。
 
 ## 现实场景
 
@@ -134,4 +141,4 @@ await server.StartAsync(new[] { "127.0.0.1", "7969" });
 * [IPacketizer.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Communication/IPacketizer.cs)
 * [Zongsoft.Net README](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Net/README.md)
 * [TcpChannelBase.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Net/src/TcpChannelBase.cs)
-* [ZeroQueue.EventChannel.cs](https://github.com/Zongsoft/framework/blob/main/messaging/zero/src/ZeroQueue.EventChannel.cs)
+* [ZeroQueueEventChannel.cs](https://github.com/Zongsoft/framework/blob/main/messaging/zero/src/ZeroQueueEventChannel.cs)

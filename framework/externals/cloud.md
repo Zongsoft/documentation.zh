@@ -21,21 +21,36 @@ icon: cloud
 
 对象存储由 Bucket 和 Key 定位数据，目录通常只是键前缀。框架文件系统提供统一路径，但重命名、追加、列举、随机写入等行为未必与本地磁盘相同。
 
-Amazon 插件注册 `zfs.s3`，例如 `zfs.s3:/assets/manuals/start.pdf` 中 `assets` 是 Bucket。Aliyun OSS 使用 `zfs.oss`。Bucket 选择和 Key 前缀应受业务权限约束，不要把用户提供的完整路径直接用于跨租户访问。
+Amazon 插件注册 `zfs.s3`，Discussions.option 的 basePath 为 zfs.s3:/zongsoft-discussions/，其中 zongsoft-discussions 是该模块配置的 Bucket。Aliyun OSS 使用 `zfs.oss`。Bucket 选择和 Key 前缀应受业务权限约束，不要把用户提供的完整路径直接用于跨租户访问。
 
-下面的片段只读取已存在对象的信息，运行前需要部署 Amazon 插件并配置相应 S3 连接。
+Discussions 的长正文按 ContentType 保存为外部文件，Utility.WriteTextFile 通过统一文件系统写入。path 由模块路径规则生成，不是任意外部输入；该方法会创建或覆盖目标，运行前必须准备应用自己的测试 Bucket 和凭据。
 
-{% code title="InspectObject.cs" %}
+来源：[src/Utility.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Utility.cs#L241)（节选；上下文见源文件）。
+
+{% code title="Utility.cs" %}
 ```csharp
-using Zongsoft.IO;
+public static bool WriteTextFile(string path, string content)
+{
+	if(string.IsNullOrWhiteSpace(path))
+		throw new ArgumentNullException(nameof(path));
 
-var info = await FileSystem.File.GetInfoAsync(
-	"zfs.s3:/assets/manuals/start.pdf");
-Console.WriteLine(info == null ? "Object not found." : info.ToString());
+	if(string.IsNullOrWhiteSpace(content))
+		return false;
+
+	using(var stream = FileSystem.File.Open(path, FileMode.Create, FileAccess.Write))
+	{
+		using(var writer = new StreamWriter(stream, System.Text.Encoding.UTF8))
+		{
+			writer.Write(content);
+		}
+	}
+
+	return true;
+}
 ```
 {% endcode %}
 
-Amazon 连接驱动为 `amazon.s3`，支持区域、端点和凭据配置；自定义端点会采用路径式寻址。服务账号是否具有所需操作权限，应在专用资源上验证。访问流由调用者及时释放，写入还应验证上传完成及最终对象信息。
+Amazon 连接驱动为 `amazon.s3`，支持区域、端点和凭据配置；自定义端点会采用路径式寻址。服务账号是否具有所需操作权限，应在专用资源上验证。上面的 using 确保写入器和流释放。模块的 MutateContentAsync 在数据库写入失败时清理新文件，详见[事务与一致性](../data/transactions.md)；这类文件操作仍是同步调用，不能因为外层数据服务是异步方法就认为底层存储操作全部非阻塞。
 
 ## Aliyun 的服务配置
 
@@ -73,3 +88,7 @@ Wechat 可在启动阶段向 `FallbackExecutor.Instance.Handlers` 注册已构�
 先用脱敏的固定请求验证签名、错误签名、重复、过期和处理失败，再接入专用平台测试环境。日志记录请求关联标识和错误类型，避免保存访问密钥、完整签名、证书秘密或原始交易数据。
 
 源码入口：[Amazon](https://github.com/Zongsoft/framework/tree/main/externals/amazon)、[Aliyun](https://github.com/Zongsoft/framework/tree/main/externals/aliyun)、[Wechat](https://github.com/Zongsoft/framework/tree/main/externals/wechat)。
+
+## 按项目继续阅读
+
+[Aliyun](projects/aliyun.md) · [Amazon](projects/amazon.md) · [Wechat](projects/wechat.md)

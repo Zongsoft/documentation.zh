@@ -21,23 +21,33 @@ icon: plug
 
 <summary>访问器名称如何匹配连接配置？</summary>
 
-通过具名提供者调用 `GetService("Security")` 会优先查找名为 `Security` 的连接配置。如果没有传入名称，则使用 `connectionSettings` 的默认项。读写分离时，`Security`、`Security#slave` 仍属于同一个 `Security` 数据访问名称下的不同数据源。
+Discussions 传入的访问器名来自 Module.NAME。没有传入名称或指定名称不存在时，会按提供者规则使用默认连接；因此不能仅凭业务代码中的模块名推断实际连接到了哪个数据库。需要强隔离的部署应核对最终匹配项，避免意外回退。
 
 </details>
 
 ## 单数据源
 
-{% code title="Default.option" %}
+Discussions 的 Module.Accessor 按模块名取得访问器：
+
+来源：[src/Module.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Module.cs#L52)（节选；上下文见源文件）。
+
+{% code title="Module.cs" %}
+```csharp
+public IDataAccess Accessor => _accessor ??= this.Services.ResolveRequired<IDataAccessProvider>().GetAccessor(this.Name);
+```
+{% endcode %}
+
+下列 db1 配置来自 framework 的 XML 解析测试，用于解释 option 结构；它不是 Discussions 的现成数据库连接。部署 Discussions 时应配置对应访问器名称或明确默认连接，驱动与实际数据库环境一起核对。
+
+来源：[framework/Zongsoft.Core/test/Configuration/Xml/OptionConfigurationTest-1.option](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Configuration/Xml/OptionConfigurationTest-1.option#L30)（节选；上下文见源文件）。
+
+{% code title="OptionConfigurationTest-1.option" %}
 ```xml
-<configuration>
-	<option path="/Data">
-		<connectionSettings default="Default">
-			<connectionSetting connectionSetting.name="Default"
-			                   driver="MySql"
-			                   value="server=127.0.0.1;user=root;password=secret;database=zongsoft;charset=utf8mb4" />
-		</connectionSettings>
-	</option>
-</configuration>
+<option path="/Data">
+	<connectionSettings default="db1">
+		<connectionSetting connectionSetting.name="db1" driver="mysql" mode="all" value="server=localhost" />
+	</connectionSettings>
+</option>
 ```
 {% endcode %}
 
@@ -47,23 +57,36 @@ icon: plug
 
 `value` 是传给对应驱动的连接字符串，通常由分号分隔的键值项组成。连接设置对象会把这些键值项映射到驱动定义的属性，并按属性类型转换，例如端口、布尔值、时间间隔、网络端点或集合。
 
-{% code title="ConnectionValue.option" %}
-```xml
-<connectionSetting connectionSetting.name="Default"
-                   driver="MyDriver"
-                   value="server=192.168.0.1:8080,localhost:8088;timeout=1m;mapping=s1:t1,s2=t2,same" />
+来源：[framework/Zongsoft.Core/test/Configuration/ConnectionSettingsTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Configuration/ConnectionSettingsTest.cs#L16)（节选；上下文见源文件）。
+
+{% code title="ConnectionSettingsTest.cs" %}
+```csharp
+private static readonly DateTime DATE = new(1979, 5, 15);
+private static readonly string ConnectionString = $" ;; server=192.168.0.1:8080, localhost:8088  ; Integer=100 ; enabled ; double= 1.23; ;  boolean= true ; text= MyString; dateTime={DATE:yyyy-M-d}; ; mapping=s1:t1,s2 = t2, same ";
 ```
 {% endcode %}
 
 集合属性可以写成一个文本值，放在连接字符串 `value` 内时通常使用逗号或竖线分隔元素，因为分号已经被外层连接项用作分隔符；具体元素如何转换由属性类型或属性上声明的转换器决定。驱动如果为某个集合属性声明了元素转换器，就可以把 `mapping=s1:t1,s2=t2,same` 这类短格式解析成结构化条目。
 
-驱动设置对象还可以把多个扁平键组装成一个复合属性。下面的写法不会要求连接字符串里出现完整的 `cluster` 值，而是用 `cluster.` 前缀为 `Cluster` 属性填充子成员：
+上面的 DATE 和 ConnectionString 来自 ConnectionSettingsTest，其 MyDriver 是测试驱动，不能用来连接 MySQL。这个输入用于检验空白、布尔值、端点集合和元素转换。
 
-{% code title="CompositeConnectionValue.option" %}
-```xml
-<connectionSetting connectionSetting.name="Default"
-                   driver="MyDriver"
-                   value="cluster.address=192.168.0.100;cluster.heartbeat=30s" />
+驱动设置对象还可以把多个扁平键组装成一个复合属性。下面的框架测试不会要求连接字符串里出现完整的 cluster 值，而是用 `cluster.` 前缀为 `Cluster` 属性填充子成员：
+
+来源：[framework/Zongsoft.Core/test/Configuration/ConnectionSettingsTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Configuration/ConnectionSettingsTest.cs#L178)（节选；上下文见源文件）。
+
+{% code title="ConnectionSettingsTest.cs" %}
+```csharp
+public void TestConnectionSettingsCompositeProperty()
+{
+	var settings = MyDriver.Instance.GetSettings("a.b.c=none;cluster.address=192.168.0.100;nothing.property=none;cluster.heartbeat=30s");
+	Assert.NotNull(settings);
+
+	Assert.False(settings.Cluster.IsEmpty);
+	Assert.Equal("192.168.0.100", settings.Cluster.Address);
+	Assert.Equal(TimeSpan.FromSeconds(30), settings.Cluster.Heartbeat);
+	Assert.Equal("none", settings.Properties["a.b.c"]);
+	Assert.Equal("none", settings.Properties["nothing.property"]);
+}
 ```
 {% endcode %}
 
@@ -73,24 +96,7 @@ icon: plug
 
 连接名称使用 `#` 追加数据源标识。应保留与访问器同名的基础连接，因为默认访问器工厂先检查精确连接名；仅配置后缀项可能在取得访问器时回退或失败：
 
-{% code title="ReadWrite.option" %}
-```xml
-<configuration>
-	<option path="/Data">
-		<connectionSettings>
-			<connectionSetting connectionSetting.name="Default"
-			                   driver="MySql"
-			                   mode="WriteOnly"
-			                   value="server=192.168.0.10;database=zongsoft" />
-			<connectionSetting connectionSetting.name="Default#slave"
-			                   driver="MySql"
-			                   mode="ReadOnly"
-			                   value="server=192.168.0.11;database=zongsoft" />
-		</connectionSettings>
-	</option>
-</configuration>
-```
-{% endcode %}
+当前 Discussions 没有配置读写副本的完整用例。部署者可以通过同一访问器名称下的数据源设置 Mode；实际筛选逻辑见 [DataSourceProvider](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Data/src/Common/DataSourceProvider.cs) 与 [DataSourceSelector](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Data/src/Common/DataSourceSelector.cs)。数据库复制、故障切换和读后写一致性仍由基础设施及业务约定保证。
 
 `mode="WriteOnly"` 的数据源用于写入，`mode="ReadOnly"` 的数据源用于读取。驱动和数据源提供器会根据操作类型选择合适的数据源。
 

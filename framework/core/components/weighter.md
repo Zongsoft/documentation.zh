@@ -59,27 +59,28 @@ icon: scale-balanced
 * 同一个功能有多个处理器时，按优先级或权重选择执行者。
 * 在本地进程内做轻量负载均衡，不需要引入外部负载均衡器。
 
-{% code title="SelectServer.cs" %}
-```csharp
-using Zongsoft.Components;
+来源：[framework/Zongsoft.Core/test/Components/WeighterTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Components/WeighterTest.cs#L13)（节选；上下文见源文件）。
 
-var servers = new[]
+{% code title="WeighterTest.cs" %}
+```csharp
+var servers = new []
 {
-	new Server("primary", 5),
-	new Server("backup", 2),
-	new Server("low-cost", 3),
+	new Server("A", 4),
+	new Server("B", 2),
+	new Server("C", 1),
 };
 
 var weighter = new Weighter<Server>(servers, server => server.Weight);
 
+//Round 1
 var server = weighter.Get();
-
-if(server != null)
-	await SendAsync(server, message, cancellation);
-
-public sealed record Server(string Name, int Weight);
+Assert.NotNull(server);
+Assert.Equal("A", server.Name);
+Assert.Equal(4, server.Weight);
 ```
 {% endcode %}
+
+上面来自 WeighterTest.TestGet1，Server 是同一文件中的测试模型，完整测试依次验证 A、B、A、C、A、B、A。Discussions 没有配置多个等价数据源；上述权重测试用于理解框架算法。
 
 ## 使用注意
 

@@ -18,16 +18,36 @@ icon: shield
 | `Verify` / `VerifyAsync` | 验证数据是否匹配当前校验值。 |
 | `Parse` / `TryParse` | 从 `Name:Hex` 文本解析校验值。 |
 
+本页使用框架 ChecksumTest 的现有测试；共享字段 _data 由该测试类生成 1024 字节数据，断言用于明确预期结果。Discussions 当前没有直接使用 Checksum。
+
 ## 计算校验和
 
-{% code title="ComputeChecksum.cs" %}
+来源：[framework/Zongsoft.Core/test/Common/ChecksumTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Common/ChecksumTest.cs#L71)（节选；上下文见源文件）。
+
+{% code title="ChecksumTest.cs" %}
 ```csharp
-using Zongsoft.Common;
+public void Compute()
+{
+	var checksum1 = Checksum.Compute("SHA256", _data);
+	Assert.False(checksum1.IsEmpty);
+	Assert.False(checksum1.Value.IsEmpty);
+	Assert.Equal("SHA256", checksum1.Name, true);
+	Assert.Equal(SHA256.HashSizeInBytes, checksum1.Value.Length);
+	Assert.NotEmpty(checksum1.ToString());
+	Assert.StartsWith("SHA256:", checksum1.ToString());
 
-var data = Randomizer.Generate(1024);
-var checksum = Checksum.Compute("SHA256", data);
+	var checksum2 = new Checksum(SHA256.HashData(_data));
+	Assert.False(checksum2.IsEmpty);
+	Assert.False(checksum2.Value.IsEmpty);
+	Assert.Equal("SHA256", checksum2.Name, true);
+	Assert.Equal(SHA256.HashSizeInBytes, checksum2.Value.Length);
+	Assert.NotEmpty(checksum2.ToString());
+	Assert.StartsWith("SHA256:", checksum2.ToString());
 
-Console.WriteLine(checksum); // SHA256:...
+	Assert.Equal(checksum1.Name, checksum2.Name, true);
+	Assert.True(checksum1.Value.Span.SequenceEqual(checksum2.Value.Span));
+	Assert.Equal(checksum1, checksum2);
+}
 ```
 {% endcode %}
 
@@ -35,12 +55,24 @@ Console.WriteLine(checksum); // SHA256:...
 
 ## 验证数据
 
-{% code title="VerifyChecksum.cs" %}
-```csharp
-var checksum = Checksum.Compute("SHA512", data);
+来源：[framework/Zongsoft.Core/test/Common/ChecksumTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Common/ChecksumTest.cs#L111)（节选；上下文见源文件）。
 
-if(checksum.Verify(data))
-	Console.WriteLine("matched");
+{% code title="ChecksumTest.cs" %}
+```csharp
+public void Verify()
+{
+	var checksum = Checksum.Compute("SHA3-512", _data);
+	Assert.False(checksum.IsEmpty);
+	Assert.False(checksum.Value.IsEmpty);
+
+	var data = new byte[_data.Length];
+	Array.Copy(_data, data, data.Length);
+
+	Assert.True(checksum.Verify(data));
+	Assert.True(checksum.Verify(_data));
+	Assert.False(checksum.Verify(Randomizer.Generate(512)));
+	Assert.False(checksum.Verify(Randomizer.Generate(data.Length)));
+}
 ```
 {% endcode %}
 
@@ -50,10 +82,24 @@ if(checksum.Verify(data))
 
 `Checksum.ToString()` 输出 `Name:Hex` 格式，`Parse` 可以还原该格式。
 
-{% code title="ParseChecksum.cs" %}
+来源：[framework/Zongsoft.Core/test/Common/ChecksumTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Common/ChecksumTest.cs#L95)（节选；上下文见源文件）。
+
+{% code title="ChecksumTest.cs" %}
 ```csharp
-var text = Checksum.Compute("SHA384", data).ToString();
-var checksum = Checksum.Parse(text);
+public void Parse()
+{
+	var checksum = Checksum.Compute("SHA512", _data);
+	Assert.False(checksum.IsEmpty);
+	Assert.False(checksum.Value.IsEmpty);
+	Assert.Equal("SHA512", checksum.Name, true);
+	Assert.Equal(SHA512.HashSizeInBytes, checksum.Value.Length);
+	Assert.NotEmpty(checksum.ToString());
+	Assert.StartsWith("SHA512:", checksum.ToString());
+
+	var result = Checksum.Parse(checksum.ToString());
+	Assert.False(result.IsEmpty);
+	Assert.Equal(checksum, result);
+}
 ```
 {% endcode %}
 

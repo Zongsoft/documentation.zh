@@ -1,11 +1,11 @@
 ---
-description: 理解 OPC UA 的会话与证书，以及 Velopack 安装应用的更新生命周期。
-icon: plugs
+description: 理解 OPC UA 的节点、会话、订阅与证书，并规划工业设备接入。
+icon: plug
 ---
 
-# 设备协议与桌面更新
+# OPC UA 设备协议
 
-OPC 与 Velopack 都是专用适配器：前者连接工业数据服务，后者更新已安装的桌面应用。它们没有共享业务协议，本页分别说明接入前必须具备的运行条件。
+OPC UA 为工业设备和应用之间的数据交换提供统一协议。本页介绍节点、会话、订阅与证书等基础概念，以及接入前需要准备的运行条件。
 
 ## OPC UA 的基本概念
 
@@ -31,31 +31,8 @@ OPC UA 以服务端地址空间组织设备数据。**NodeId** 标识节点，�
 
 诊断至少保留节点标识、质量状态、源时间戳和错误阶段，并控制敏感设备信息的访问。退出时应停止订阅分派、关闭会话并释放客户端，避免重启后残留重复订阅。
 
-## Velopack 更新的是安装应用
+源码入口：[OPC](https://github.com/Zongsoft/framework/tree/main/externals/opc)。
 
-`Zongsoft.Externals.Velopack` 将 Velopack 初始化和检查更新接入宿主工作器。它只在 Velopack 识别为有效安装应用时运行；普通 `dotnet run` 开发目录被忽略并不一定是配置错误。
+## 按项目继续阅读
 
-{% code title="Application.option" %}
-```xml
-<options>
-	<option path="/Externals/Velopack">
-		<connectionSettings default="current">
-			<connectionSetting connectionSetting.name="current" driver="velopack"
-				value="source=web;url=https://updates.example.invalid/releases;period=300s" />
-		</connectionSettings>
-	</option>
-</options>
-```
-{% endcode %}
-
-示例域名仅用于说明格式。`source` 选择来源工厂，`url` 配置发布源，`period` 控制检查周期。周期至少五分钟时，工作器还会在启动约三十秒后提前检查；检查重叠会被防止。
-
-发现更新后会下载并应用更新、重启应用，因此应在启用前安排未保存工作和在途任务的处理。配套 Web Feed 包提供发布元数据接入，客户端、安装包工具及 Feed 格式需要保持兼容。
-
-## 与框架自动升级的关系
-
-Velopack 使用自己的安装与发布体系，独立于[框架自动升级](../upgrading.md)的 ZIP、manifest 和 `.deployment` 流程。选择其中一种作为应用更新责任方，避免两个工作器同时替换同一安装目录。
-
-验证需要完整安装包及本地测试发布源，覆盖首次安装、旧版升级、无更新、中断下载、磁盘不足和重启。读取到新版本元数据并不等于安装更新成功。
-
-源码入口：[OPC](https://github.com/Zongsoft/framework/tree/main/externals/opc)、[Velopack](https://github.com/Zongsoft/framework/tree/main/externals/velopack)。
+[Opc](projects/opc.md)

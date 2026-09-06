@@ -1,5 +1,5 @@
 ---
-description: Zongsoft.Components.States 命名空间的职责、状态机模型和典型用法。
+description: 结合 Discussions 的状态动作与框架状态机实现理解迁移、处理器和完成阶段。
 icon: code-branch
 ---
 
@@ -37,261 +37,103 @@ icon: code-branch
 | `IStateHandler<TKey, TValue>` / `StateHandlerBase<TKey, TValue>` | 状态迁移处理器，负责处理迁移副作用；默认完成阶段会调用上下文写入目标状态。 |
 | `IStateHandlerProvider` | 状态处理器提供器，通常从依赖注入容器中获取处理器集合。 |
 
-## 状态流转模型
 
-一次状态迁移可以按下面的路径理解：
+## Discussions 目前怎样处理状态
 
-1. 业务入口创建目标 `State<TKey, TValue>`，其中包含对象键、目标状态值和所属状态图。
-2. 调用 `StateMachine.Run(...)`，传入目标状态、描述和可选参数。
-3. 状态机从状态图读取当前状态，得到源状态，并检查源状态到目标状态的 `StateVector<TValue>` 是否允许迁移。
-4. 状态机创建 `StateContext<TKey, TValue>`，并查找匹配的 `IStateHandler<TKey, TValue>` 处理器。
-5. 状态图依次执行迁移处理，处理器可以在上下文中读取参数、执行业务副作用。
-6. 状态机释放时会完成已入栈的迁移上下文，默认处理器完成逻辑会调用 `context.SetState()` 写入目标状态。
+Discussions 定义了 ThreadStatus，但主题审核、锁定、置顶等操作主要由独立布尔字段与服务方法表达。当前没有实现 StateDiagramBase 派生类，不能把论坛描述成已经接入这套状态机。
 
-{% hint style="info" %}
-`StateMachine` 会避免同一个对象在同一轮迁移栈中重复处理相同状态，适合处理迁移过程中又触发其他状态迁移的场景。处理器仍应保持短小，复杂业务动作建议委托给命令、处理器或领域服务。
-{% endhint %}
+来源：[src/Services/ThreadService.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Services/ThreadService.cs#L103)（节选；上下文见源文件）。
 
-{% hint style="warning" %}
-默认流程中，状态写入发生在处理器完成阶段，该阶段会在状态机释放时触发。迁移类型至少需要注册一个对应的 `IStateHandler<TKey, TValue>`，并确保手动创建的状态机实例被释放；或者由自定义状态图、状态机覆写相关流程，否则 `Run(...)` 只会完成迁移判定而不会写入目标状态。
-{% endhint %}
-
-## 范例：设施状态迁移
-
-下面的范例抽象自业务系统中的设施、工单和问题反馈状态流转代码。它展示了一个更接近实际项目的组织方式：状态图负责状态向量、当前状态读取和最终状态写入；处理器负责联动迁移、附加参数和历史记录；服务入口只暴露一个 `SetStatus(...)` 方法。
-
-### 定义状态值
-
-状态值通常使用稳定的枚举来表达。枚举成员的顺序和取值会进入持久化数据或历史记录时，应明确每个值的业务含义，避免后续调整时破坏已有状态。
-
-{% code title="AssetStatus.cs" %}
+{% code title="ThreadService.cs" %}
 ```csharp
-/// <summary>表示资产(设施)状态的枚举。</summary>
-public enum AssetStatus : byte
+public bool SetLocked(ulong threadId, bool value)
 {
-	/// <summary>正常</summary>
-	Normal,
-	/// <summary>故障</summary>
-	Fault,
-	/// <summary>废弃</summary>
-	Disabled,
-	/// <summary>已停用</summary>
-	Suspended,
-	/// <summary>未启用</summary>
-	Inactived,
-	/// <summary>未知</summary>
-	Unknown = 99,
+	return this.DataAccess.Update<Models.Thread>(new
+	{
+		IsLocked = value,
+	}, Condition.Equal(nameof(Models.Thread.ThreadId), threadId) & GetIsModeratorCriteria()) > 0;
 }
 ```
 {% endcode %}
 
-### 定义状态图
+这个动作依赖主题编号和版主资格。对于这样的单字段操作，明确的服务方法很直观；当状态之间出现复杂迁移关系、多个协作处理器和统一完成阶段时，再评估状态图抽象。
 
-状态图需要先声明允许迁移的状态向量，然后实现 `GetState(...)` 和 `SetState(...)`。如果写入状态时还要同步其他字段，可以约定一组参数前缀，由处理器把附加值写入 `context.Parameters`，再由状态图统一落库。示例中的仓储、模型和关联任务查询是业务侧抽象，只用于说明状态机类型之间的协作方式。
+## 框架实际怎样驱动迁移
 
-{% code title="AssetStateDiagram.cs" %}
+下面来自框架状态机本身，是实现参考，并非另建的业务范例：
+
+来源：[framework/Zongsoft.Core/src/Components/States/StateMachine.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/States/StateMachine.cs#L87)（节选；上下文见源文件）。
+
+{% code title="StateMachine.cs" %}
 ```csharp
-using System;
-using System.Collections.Generic;
-using Zongsoft.Components.States;
-
-[Zongsoft.Services.Service]
-public sealed partial class AssetStateDiagram : StateDiagramBase<ulong, AssetStatus>
+public void Run<TKey, TValue>(State<TKey, TValue> state, string description, IEnumerable<KeyValuePair<object, object>> parameters = null) where TKey : struct, IEquatable<TKey> where TValue : struct
 {
-	private readonly IAssetRepository _repository;
+	ArgumentNullException.ThrowIfNull(state);
+	var context = this.GetContext(state, description);
 
-	public AssetStateDiagram(IServiceProvider serviceProvider, IAssetRepository repository) : base(serviceProvider)
+	if(context == null)
+		return;
+
+	if(parameters != null)
 	{
-		_repository = repository;
-
-		//状态向量定义了“允许发生”的迁移方向，未定义的方向会被默认拒绝。
-		this.Vectors =
-		[
-			new(AssetStatus.Normal, AssetStatus.Fault),
-			new(AssetStatus.Normal, AssetStatus.Suspended),
-			new(AssetStatus.Normal, AssetStatus.Disabled),
-			new(AssetStatus.Fault, AssetStatus.Normal),
-			new(AssetStatus.Fault, AssetStatus.Disabled),
-			new(AssetStatus.Suspended, AssetStatus.Normal),
-			new(AssetStatus.Suspended, AssetStatus.Disabled),
-		];
+		foreach(var parameter in parameters)
+			context.Parameters.TryAdd(parameter.Key, parameter.Value);
 	}
 
-	//构建一个设施状态对象
-	public AssetState State(ulong assetId, AssetStatus value)
+	var count = 0;
+	var handlers = this.GetHandlers<TKey, TValue>();
+
+	foreach(var handler in handlers)
 	{
-		return new AssetState(this, assetId, value);
+		if(count++ == 0)
+			_stack.Push(context);
+
+		state.Diagram.Transfer(context, handler);
 	}
+}
+```
+{% endcode %}
 
-	//状态机运行时会先读取当前状态，用它和目标状态组成迁移向量。
-	protected override State<ulong, AssetStatus> GetState(ulong key)
+Run 取得迁移上下文，把参数合入上下文，查找处理器，再调用状态图执行迁移。上下文只在找到首个处理器时入栈，因此没有处理器时不能假定仍会完整执行后续持久化。
+
+## 完成阶段与事务
+
+来源：[framework/Zongsoft.Core/src/Components/States/StateMachine.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/States/StateMachine.cs#L115)（节选；上下文见源文件）。
+
+{% code title="StateMachine.cs" %}
+```csharp
+private void Stop()
+{
+	if(_stack.Count == 0)
+		return;
+
+	var frames = _stack.Reverse().ToArray();
+
+	using(var transaction = new Data.Transaction())
 	{
-		var asset = _repository.Get(key);
-		return asset == null ? null : new AssetState(this, asset);
-	}
-
-	protected override bool SetState(ulong key, AssetStatus value, string description, IDictionary<object, object> parameters)
-	{
-		const string PREFIX = "asset:";
-
-		var values = new Dictionary<string, object>
+		for(int i = 0; i < frames.Length; i++)
 		{
-			//状态图统一负责最终落库，因此状态字段和状态说明在这里写入。
-			{ "Status", value },
-			{ "StatusTimestamp", DateTime.Now },
-			{ "StatusDescription", description },
-		};
-
-		if(parameters != null)
-		{
-			//处理器可以通过约定前缀传入额外字段，例如 asset:PlateNo。
-			foreach(var parameter in parameters)
-			{
-				if(parameter.Key is string name && name.StartsWith(PREFIX, StringComparison.OrdinalIgnoreCase))
-					values[name.Substring(PREFIX.Length)] = parameter.Value;
-			}
+			this.OnStop(frames[i]);
 		}
 
-		//持久化状态
-		return _repository.Update(key, values);
+		//提交事务
+		transaction.Commit();
 	}
 }
 ```
 {% endcode %}
 
-### 定义状态对象
+完成阶段遍历已保存的上下文，在环境事务中调用处理器完成逻辑并提交。状态图负责表达允许的迁移和状态读写，处理器负责迁移中的业务动作。调用者必须管理状态机生命周期，不能只调用 Run 后丢弃实例。
 
-状态对象通常作为状态图的内部模型存在。对外提供 `State(...)` 工厂方法后，调用方不需要知道状态对象如何构造，只需要传入对象编号和目标状态。
+## 选择前要回答的问题
 
-{% code title="AssetState.cs" %}
-```csharp
-partial class AssetStateDiagram
-{
-	sealed class AssetState : State<ulong, AssetStatus>, IEquatable<AssetState>
-	{
-		internal AssetState(AssetStateDiagram diagram, ulong assetId, AssetStatus value) : base(diagram, assetId, value) { }
-		internal AssetState(AssetStateDiagram diagram, Asset asset) : base(diagram, asset.AssetId, asset.Status) => this.Asset = asset;
+- 状态是互斥枚举，还是相互独立的属性？锁定与置顶可以同时成立，未必适合硬塞到同一枚举。
+- 哪些迁移允许发生，谁有权限发起，数据库并发变更怎样检查？
+- 副作用发生在迁移阶段还是完成阶段，失败时如何回滚或补偿？
+- 状态机实例的生命周期由谁控制，是否需要跨请求持久化？
 
-		public Asset Asset { get; }
-	}
-}
-```
-{% endcode %}
+这套状态机不是持久化工作流引擎，也不会自动提供分布式事务、审批历史或所有资源的权限验证。有关业务事务见[Discussions 发帖事务](../../data/transactions.md)。
 
-`CanTransfer(...)` 默认会检查 `Vectors` 中是否存在匹配的源状态和目标状态。如果迁移规则不只是静态向量，例如还需要结合租户、库存、审批额度或外部配置，可以重写 `CanTransfer(...)`，但要避免把副作用放进判定逻辑。
+## 参考实现
 
-### 实现处理器
-
-处理器适合承载迁移副作用。下面示例中，当设施被禁用时，处理器通过 `context.Parameters` 附加要同步更新的字段，并通过同一个状态机继续触发关联任务的取消迁移。这样做可以让一组关联状态变化共享同一轮迁移上下文和完成阶段。
-
-{% code title="AssetStateHandler.cs" %}
-```csharp
-using System;
-using System.Collections.Generic;
-
-using Zongsoft.Services;
-using Zongsoft.Components.States;
-
-[Service(typeof(IStateHandler<ulong, AssetStatus>))]
-sealed class AssetStateHandler : StateHandlerBase<ulong, AssetStatus>
-{
-	//当状态机发生状态迁移会回调该方法，可以在该方法中进行参数控制或驱动别的状态图流转
-	protected override void OnHandle(StateContext<ulong, AssetStatus> context)
-	{
-		//业务：因为设施状态变为了“废弃”，因此需要将其 AssetNo 字段添加一个特定的前缀，并回收其牌号（即设置 PlateNo 为空）
-		if(context.State.Destination == AssetStatus.Disabled)
-		{
-			context.Parameters["asset:AssetNo"] = "$Discard!" + DateTime.Now.ToString("yyMMddHHmmss");
-			context.Parameters["asset:PlateNo"] = null;
-		}
-
-		if(context.State.Destination == AssetStatus.Suspended ||
-		   context.State.Destination == AssetStatus.Disabled)
-		{
-			//示例：获取当前设施关联的任务集
-			//业务：将处于“废弃”或“停用”状态的设施的关联任务取消掉
-			foreach(var task in this.GetUnfinishedTasks(context.Key))
-			{
-				//使用同一个状态机继续触发关联状态图的状态迁移，方便统一完成和防止状态重入导致的死递归
-				context.Machine.Run(
-					this.ServiceProvider.ResolveRequired<TaskStateDiagram>().State(task.TaskId, TaskStatus.Cancelled),
-					context.Description);
-			}
-		}
-	}
-
-	protected override void OnFinish(StateContext<ulong, AssetStatus> context)
-	{
-		//更新设施状态
-		context.SetState();
-
-		//新增设施状态变更记录
-		this.ServiceProvider.ResolveRequired<AssetServiceBase>().SetState(
-			context.Key,
-			context.State.Source,
-			context.State.Destination,
-			context.Description);
-	}
-
-	//示例：查询并返回指定设施的关联任务。
-	private IEnumerable<(ulong TaskId)> GetUnfinishedTasks(ulong assetId) => [];
-}
-```
-{% endcode %}
-
-### 暴露服务入口
-
-业务服务通常不直接暴露状态图和状态处理器，而是提供一个意图明确的方法。注意 `StateMachine` 的释放动作会触发完成阶段，因此用 `using` 包裹状态机是默认流程中的关键步骤。
-
-{% code title="AssetServiceBase.cs" %}
-```csharp
-using System;
-using Zongsoft.Services;
-using Zongsoft.Components.States;
-
-abstract class AssetServiceBase
-{
-	protected IServiceProvider ServiceProvider { get; }
-	protected IAssetRepository Repository { get; }
-
-	public bool SetState(ulong assetId, AssetStatus origin, AssetStatus destination, string description)
-	{
-		//新增一条状态变更历史记录，不直接改变当前状态
-		return this.Repository.InsertHistory(assetId, origin, destination, DateTime.Now, description);
-	}
-
-	public bool SetStatus(ulong assetId, AssetStatus status, string description = null)
-	{
-		//释放状态机时(Dispose)会触发 AssetStateHandler 处理器的 OnFinish 回调
-		using(var machine = new StateMachine(this.ServiceProvider))
-		{
-			var diagram = this.ServiceProvider.ResolveRequired<AssetStateDiagram>();
-			machine.Run(diagram.State(assetId, status), description);
-		}
-
-		return true;
-	}
-}
-```
-{% endcode %}
-
-## 适用边界
-
-状态机适合状态迁移规则明确、迁移副作用需要集中调度的场景，例如工作流片段、任务状态、设备状态、订单状态或业务状态迁移。它尤其适合把复杂流程拆成状态节点和局部迁移条件，避免在业务对象或应用服务中堆叠大量互相牵制的条件分支。
-
-它不是完整工作流引擎，不负责长事务编排、人工任务、持久化流程实例、图形化流程设计或跨服务补偿。遇到这些需求时，建议将状态机作为局部状态迁移组件使用，而不是把整个流程编排都塞进状态处理器。
-
-{% hint style="warning" %}
-状态类型泛型约束要求键和值通常是结构类型。设计业务状态时，建议使用稳定的枚举或可比较值作为状态值，避免使用会随显示文案、外部配置或本地化变化而变化的值。
-{% endhint %}
-
-## 相关资源
-
-* [代码失控与状态机（上）](https://blog.zongsoft.com/dai-ma-shi-kong-yu-zhuang-tai-ji-shang)
-* [代码失控与状态机（下）](https://blog.zongsoft.com/dai-ma-shi-kong-yu-zhuang-tai-ji-xia)
-* [States 源码目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core/src/Components/States)
-* [State.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/States/State.cs)
-* [StateMachine.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/States/StateMachine.cs)
-* [StateDiagramBase.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/States/StateDiagramBase.cs)
-* [StateHandlerBase.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/States/StateHandlerBase.cs)
-* [StateVector.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/States/StateVector.cs)
+[状态机目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core/src/Components/States)包含状态、向量、上下文、状态图和处理器契约。本文不再保留仓库中不存在的资产仓储、资产状态图和资产服务。

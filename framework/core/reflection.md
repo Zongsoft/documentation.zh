@@ -35,40 +35,72 @@ icon: magnifying-glass
 
 ## 成员访问
 
+Discussions 没有直接调用 Reflector；它通过映射与配置间接使用这些机制。本页从 Core 的现有测试读取 API 形状，其中 MyValue、ClassEntity 都是测试夹具类型。
+
 `Reflector` 是最常用的入口。它既可以接收已经解析好的 System.Reflection.MemberInfo，也可以直接按成员名称查找对象的公开字段或属性。
 
-{% code title="MemberAccess.cs" %}
+来源：[framework/Zongsoft.Core/test/Reflection/ReflectorTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Reflection/ReflectorTest.cs#L14)（节选；上下文见源文件）。
+
+{% code title="ReflectorTest.cs" %}
 ```csharp
-using Zongsoft.Reflection;
+var target = new MyValue(5);
 
-object user = new User
-{
-	Name = "Alice",
-	Age = 18,
-};
+Assert.Equal(100, (int)Reflector.GetValue(ref target, nameof(MyValue.IntegerField)));
+Assert.Equal(123.05m, (decimal)Reflector.GetValue(ref target, nameof(MyValue.DecimalProperty)));
+Assert.Equal("StringField", (string)Reflector.GetValue(ref target, nameof(MyValue.StringField)));
+Assert.Equal("StringProperty", (string)Reflector.GetValue(ref target, nameof(MyValue.StringProperty)));
+Assert.Null(Reflector.GetValue(ref target, nameof(MyValue.NullableField)));
+Assert.Null(Reflector.GetValue(ref target, nameof(MyValue.NullableProperty)));
 
-var name = Reflector.GetValue(ref user, "Name");
+Assert.Equal("#0", Reflector.GetValue(ref target, "Item", 0));
+Assert.Equal("#1", Reflector.GetValue(ref target, "Item", 1));
+Assert.Equal("#2", Reflector.GetValue(ref target, "Item", 2));
+Assert.Equal("#3", Reflector.GetValue(ref target, "Item", 3));
+Assert.Equal("#4", Reflector.GetValue(ref target, "Item", 4));
 
-Reflector.SetValue(ref user, "Age", 20);
+Reflector.SetValue(ref target, nameof(MyValue.IntegerField), 200);
+Reflector.SetValue(ref target, nameof(MyValue.DecimalProperty), 456.78);
+Reflector.SetValue(ref target, nameof(MyValue.StringField), "NewStringField");
+Reflector.SetValue(ref target, nameof(MyValue.StringProperty), "NewStringProperty");
 
-if(Reflector.TryGetValue(ref user, "Name", out var value))
-	Console.WriteLine(value);
+Assert.Equal(200, (int)Reflector.GetValue(ref target, nameof(MyValue.IntegerField)));
+Assert.Equal(456.78m, (decimal)Reflector.GetValue(ref target, nameof(MyValue.DecimalProperty)));
+Assert.Equal("NewStringField", (string)Reflector.GetValue(ref target, nameof(MyValue.StringField)));
+Assert.Equal("NewStringProperty", (string)Reflector.GetValue(ref target, nameof(MyValue.StringProperty)));
 ```
 {% endcode %}
 
 `GetValue`、`SetValue` 会在目标为空、成员不存在、属性不可读等情况下抛出异常；写入只会对可写属性和非只读字段生效，遇到只读字段或不可写属性时会返回 `false`。`TryGetValue`、`TrySetValue` 更适合处理外部输入、可选字段或兼容旧模型的场景。
 
-如果调用方已经持有 System.Reflection.FieldInfo、System.Reflection.PropertyInfo 或 System.Reflection.MemberInfo，可以直接使用扩展方法。访问器会被缓存，后续访问同一个成员时不需要重复生成。
+如果调用方已经持有 System.Reflection.FieldInfo、System.Reflection.PropertyInfo 或 System.Reflection.MemberInfo，可以直接使用扩展方法。GetGetter/GetSetter 会复用缓存。下面的测试则显式调用 GenerateGetter/GenerateSetter，以验证动态访问器生成与读写结果；不要在热循环中反复 Generate。
 
-{% code title="CachedAccessor.cs" %}
+来源：[framework/Zongsoft.Core/test/Reflection/PropertyInfoTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Reflection/PropertyInfoTest.cs#L13)（节选；上下文见源文件）。
+
+{% code title="PropertyInfoTest.cs" %}
 ```csharp
-using Zongsoft.Reflection;
+var entity = new ClassEntity()
+{
+	Id = 100,
+	Name = "Popeye",
+};
 
-var property = typeof(User).GetProperty(nameof(User.Name));
-var user = new User { Name = "Alice" };
+//init the target variable
+var target = (object)entity;
 
-var name = property.GetValue(ref user);
-property.SetValue(ref user, "Bob");
+//test the instance property(get and set)
+var property = typeof(ClassEntity).GetProperty(nameof(ClassEntity.Id));
+var getter = property.GenerateGetter();
+var setter = property.GenerateSetter();
+
+Assert.NotNull(getter);
+Assert.NotNull(setter);
+
+var value = getter(ref target);
+Assert.Equal(100, value);
+
+setter(ref target, 200);
+value = getter(ref target);
+Assert.Equal(200, value);
 ```
 {% endcode %}
 
@@ -78,7 +110,7 @@ property.SetValue(ref user, "Bob");
 
 这种设计适合高频、重复的运行时成员访问：例如数据映射持续填充模型、配置绑定反复写入属性、模板或报表按字段名读取对象。它不会让一次性的成员查找变成强类型调用，也不能消除按名称查找成员、解析表达式和参数转换的成本；因此在循环或批处理场景中，应尽量复用已经取得的 System.Reflection.FieldInfo、System.Reflection.PropertyInfo 或解析后的表达式对象。
 
-源码仓库的 `Zongsoft.Core/benchmark/Reflection` 目录提供了属性读写的 BenchmarkDotNet 基准测试。测试以普通反射的 `PropertyInfo.GetValue`、`PropertyInfo.SetValue` 为基线，分别比较 `Reflector` 封装访问和直接复用 `GetGetter<T>`、`GetSetter<T>` 委托的路径；在重复访问同一批属性时，动态访问器相对普通反射会有更好的吞吐表现。
+源码仓库的 `Zongsoft.Core/benchmark/Reflection` 目录提供了属性读写的 BenchmarkDotNet 基准测试。测试以普通反射的 `PropertyInfo.GetValue`、`PropertyInfo.SetValue` 为基线，分别比较 `Reflector` 封装访问和直接复用 `GetGetter<T>`、`GetSetter<T>` 委托的路径；实际收益取决于运行时、成员形状和调用次数，应在目标环境测量，不能仅凭存在基准项目就推断具体倍数。
 
 {% hint style="info" %}
 动态访问器的收益来自“生成一次，多次调用”。如果某个成员只访问一次，生成访问器本身也会产生少量开销；如果成员会被反复访问，缓存委托通常比每次使用反射调用更稳定。
@@ -92,18 +124,7 @@ property.SetValue(ref user, "Bob");
 
 属性访问器支持索引参数，因此既可以通过具体的 System.Reflection.PropertyInfo 调用，也可以通过默认成员访问索引器。
 
-{% code title="IndexerAccess.cs" %}
-```csharp
-using System.Collections.Generic;
-using Zongsoft.Reflection;
-
-object items = new List<string> { "A", "B", "C" };
-
-var first = Reflector.GetValue(ref items, string.Empty, 0);
-
-Reflector.SetValue(ref items, string.Empty, "Z", 1);
-```
-{% endcode %}
+ReflectorTest.TestValueType 已在上面的片段中读取 Item 索引器的 0 至 4 项。MyValue 的索引器与字段定义保存在同一测试文件中，复用时应保留该夹具；索引越界和参数类型错误仍由目标成员决定。
 
 这类写法适合处理集合、字典、动态模型或带默认成员的对象。对于字典、集合这样的强类型代码路径，如果键和索引在编译期已知，直接访问集合通常更直观。
 
@@ -111,17 +132,33 @@ Reflector.SetValue(ref items, string.Empty, "Z", 1);
 
 `Zongsoft.Reflection.Expressions` 子命名空间提供成员路径解析和求值能力。表达式会被解析为一条双向节点链，每个节点代表一次成员、方法或索引器访问。
 
-{% code title="MemberExpressionAccess.cs" %}
+来源：[framework/Zongsoft.Plugins/src/Configuration/OptionParser.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/Configuration/OptionParser.cs#L40)（节选；上下文见源文件）。
+
+{% code title="OptionParser.cs" %}
 ```csharp
-using Zongsoft.Reflection.Expressions;
+public override object Parse(ParserContext context)
+{
+	if(string.IsNullOrWhiteSpace(context.Text))
+		return null;
 
-var expression = MemberExpression.Parse("Address.City");
+	var expression = Collections.HierarchicalExpression.Parse(context.Text);
 
-var city = MemberExpressionEvaluator.Default.GetValue(expression, user);
+	if(expression != null)
+	{
+		object target = ApplicationContext.Current.Configuration.GetOption(context.MemberType, expression.Path);
 
-MemberExpressionEvaluator.Default.SetValue(expression, user, "Shanghai");
+		if(target != null && expression.Accessor != null)
+			return Reflection.Expressions.MemberExpressionEvaluator.Default.GetValue(expression.Accessor, target);
+		else
+			return target;
+	}
+
+	return null;
+}
 ```
 {% endcode %}
+
+上面是插件 option 表达式的实际求值入口：先按配置路径取得对象，有附加成员路径时才交给 MemberExpressionEvaluator。后面的表格是语法形式参考，不表示 Discussions 模型具有这些属性。
 
 常见表达式形态如下：
 
@@ -145,25 +182,7 @@ MemberExpressionEvaluator.Default.SetValue(expression, user, "Shanghai");
 
 `MemberExpressionEvaluator` 的读取和写入方法都接受求值回调。回调会在每个节点解析到成员后执行，调用方可以检查当前节点、目标对象、成员信息和参数，也可以提前设置节点值，从而覆盖默认反射求值逻辑。
 
-{% code title="CustomEvaluate.cs" %}
-```csharp
-using Zongsoft.Reflection.Expressions;
-
-var expression = MemberExpression.Parse("Profile.DisplayName");
-
-var value = MemberExpressionEvaluator.Default.GetValue(
-	expression,
-	user,
-	context =>
-	{
-		if(context.Expression is IdentifierExpression identifier &&
-		   identifier.Name == "Profile" &&
-		   context.Owner is User owner &&
-		   owner.Profile == null)
-			context.Value = UserProfile.Empty;
-	});
-```
-{% endcode %}
+框架 [Criteria.Transform](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Data/Criteria.cs) 是实际的自定义写入调用点：它将查询成员名解析为路径，再按目标成员类型把文本转成布尔值、数组、集合或标量，通过 valueFactory 返回最终写入值。处理嵌套成员时，还用 evaluate 回调准备中间对象。完整流程见[条件与操作元](../data/conditions-and-operands.md)。
 
 这适合实现默认值补齐、权限过滤、外部字典取值、惰性加载或对某些路径节点进行特殊映射。回调只应处理确实需要介入的节点；普通成员访问交给默认求值器即可。
 

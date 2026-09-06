@@ -5,7 +5,7 @@ icon: user-shield
 
 # Zongsoft.Security.Privileges
 
-`Zongsoft.Security.Privileges` 是核心库中的身份认证与权限模型命名空间。它定义用户、角色、成员关系、权限定义、认证器、授权器、权限服务和权限计算规则；默认数据库实现位于 `D:\Zongsoft\framework\Zongsoft.Security`，业务系统可以继承这些基类并替换存储模型。
+`Zongsoft.Security.Privileges` 是核心库中的身份认证与权限模型命名空间。它定义用户、角色、成员关系、权限定义、认证器、授权器、权限服务和权限计算规则；默认数据库实现位于 [Zongsoft.Security 项目](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Security)，业务系统可以继承这些基类并替换存储模型。
 
 ## 核心理念
 
@@ -15,7 +15,7 @@ Privileges 的设计不是把权限写死在接口、控制器或页面上，而
 | --- | --- | --- |
 | 权限定义 | [`Privilege`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Security/Privileges/Privilege.cs)、`Privilege.Permission` | 插件声明出来的权限树，说明系统有哪些可授权能力。 |
 | 授权记录 | [`IPrivilege`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Security/Privileges/IPrivilege.cs)、[`IPrivilegable`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Security/Privileges/IPrivilegable.cs) | 数据库存储的“某个用户或角色被授予/拒绝了哪些权限”。 |
-| 授权目标 | `Privilege.Permission.Target` | 业务资源或功能点，例如 `Branch`、`Employees`、`SaleOrder`。 |
+| 授权目标 | `Privilege.Permission.Target` | 业务资源或功能点，由具体模块声明，不能仅凭数据表名推断。 |
 | 授权操作 | `Privilege.Permission.Action` | 对目标的动作，例如 `Get`、`Query`、`Create`、`Update`、`Delete`，空操作按 `*` 处理。 |
 | 权限主体 | [`IUser`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Security/Privileges/IUser.cs)、[`IRole`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Security/Privileges/IRole.cs)、[`Member`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Security/Privileges/Member.cs) | 用户、角色，以及用户或角色加入角色后的成员关系。 |
 
@@ -25,47 +25,13 @@ Privileges 的设计不是把权限写死在接口、控制器或页面上，而
 
 权限树由 `PrivilegeCategory` 和 `Privilege` 组成。分类用于导航和组织，权限用于表达一个可授权能力；一个权限可以包含多个 `Permission`，也就是多个目标与动作组合。
 
-{% code title="Automao.Common.Privileges.plugin" %}
-```xml
-<extension path="/Workbench/Security/Authorization/Authorizer">
-	<object name="Settings" type="Category">
-		<object name="Branch" type="Category">
-			<object name="Branch.Query" type="Privilege" required="true" tags="alias:query">
-				<object target="Branch" action="Get" />
-				<object target="Branch" action="Query" />
-				<object target="Branch" action="Export" />
-			</object>
-			<object name="Branch.Update" type="Privilege" tags="alias:save-update">
-				<object target="Branch" action="Update" />
-			</object>
-		</object>
-	</object>
-</extension>
-```
-{% endcode %}
+Discussions 当前没有声明独立的权限定义树。它在主题读取中直接判断审核状态、作者和版主关系；不能假定添加一个权限名称就自动改变这些业务规则。权限树本身的装配机制可阅读核心 [PrivilegeCategory](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Security/Privileges/PrivilegeCategory.cs) 与[识别器](../components/discriminator.md)。
 
-上面的声明表达了两层含义：
-
-* 展示层和授权配置层看到的是 `Settings/Branch/Branch.Query` 这样的权限树。
-* 运行时检查某个资源动作时，可以通过 `Privileger.FindAll("Branch", "Query")` 找到包含该目标动作的权限定义。
-
-`Privilege.PermissionCollection.Contains(target, action)` 支持通配动作 `*`。因此 `new Permission("Branch", "*")` 可以覆盖 `Branch:Get`、`Branch:Query`、`Branch:Update` 等所有动作。
-
-{% hint style="info" %}
-权限名称建议稳定、短小、可读，例如 `Employees.Query`。目标与动作建议对应业务服务或 API 的资源语义，例如 `Employees:Query`、`Employees:Export`。不要把临时页面文案或按钮标题直接当作权限名。
-{% endhint %}
+权限定义与权限检查是两个步骤：定义告诉配置界面有哪些可授权能力，检查负责在真正执行操作前计算主体是否被授予权限。PermissionCollection 支持目标与动作匹配，空动作按通配动作处理；命名权限与数据记录的授权状态仍需通过服务关联。
 
 ## 权限本地化
 
-`Privilege` 和 `PrivilegeCategory` 会按约定从资源中读取标题与说明。常见资源键如下：
-
-| 对象 | 资源键示例 |
-| --- | --- |
-| 分类标题 | `Privilege.Settings.Category`、`Privilege.Settings.Branch.Category` |
-| 权限标题 | `Privilege.Branch.Query`、`Privilege.Employees.Update` |
-| 权限说明 | `Privilege.Branch.Query.Description` |
-
-业务系统公共模块在 `Automao.Common.Privileges.plugin` 中声明权限树，并在 `Properties/Resources*.resx` 中提供显示文本。这让权限名保持稳定，界面文案可以本地化。
+`Privilege` 和 `PrivilegeCategory` 会按约定从资源中读取标题与说明。资源键按权限名称、分类路径、Category 和 Description 等约定组合。具体查找顺序以 [Privilege](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Security/Privileges/Privilege.cs) 和 [PrivilegeCategory](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Security/Privileges/PrivilegeCategory.cs) 为准。名称用于稳定匹配，资源文本负责展示；Discussions 现有业务资源的组织见[资源管理](../resources.md)。
 
 ## 用户、角色与成员
 
@@ -78,19 +44,19 @@ Privileges 的设计不是把权限写死在接口、控制器或页面上，而
 | `MemberType.User` | 用户加入角色。 |
 | `MemberType.Role` | 角色加入角色，形成角色继承。 |
 
-默认数据库中的 `Member` 表用 `RoleId + MemberId + MemberType` 保存成员关系。业务系统实现沿用这个结构，但角色和用户模型增加了 `TenantId`、`BranchId`、审计字段和业务字段。
+默认数据库中的 `Member` 表用 `RoleId + MemberId + MemberType` 保存成员关系。Discussions 的 UserIdentity 实现 IUser 并增加 SiteId 等讨论业务信息，其论坛成员关系仍由模块自己的模型维护。
 
 ## 认证链路
 
 认证入口是 `Authentication.AuthenticateAsync(...)`：
 
-1. 根据 scheme 从 `Authentication.Authenticators` 找到 `IAuthenticator`。
+1. 触发 Authenticating 事件，根据 scheme 从 `Authentication.Authenticators` 找到 `IAuthenticator`。
 2. 调用 `VerifyAsync(...)` 校验输入凭据并返回票证。
 3. 调用 `IssueAsync(...)` 把票证签发成 [`ClaimsIdentity`](https://learn.microsoft.com/zh-cn/dotnet/api/system.security.claims.claimsidentity) _[源码](https://source.dot.net/#System.Security.Claims/ClaimsIdentity.cs)_。
 4. 创建 `CredentialPrincipal`，携带 `CredentialId`、`RenewalToken`、`Scenario` 和 `Validity`。
 5. 依次执行 `Authentication.Challengers`。
 6. 通过 `Authentication.Authority` 注册凭证。
-7. 触发 `Authenticating` 和 `Authenticated` 事件。
+7. 触发 Authenticated 事件；异常分支也触发该事件，并携带错误。
 
 核心库提供两个认证器基类：
 
@@ -101,8 +67,11 @@ Privileges 的设计不是把权限写死在接口、控制器或页面上，而
 
 默认安全插件把实现挂载到 `/Workbench/Security/Authentication`：
 
+来源：[framework/Zongsoft.Security/src/Zongsoft.Security.plugin](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Security/src/Zongsoft.Security.plugin#L55)（节选；上下文见源文件）。
+
 {% code title="Zongsoft.Security.plugin" %}
 ```xml
+<!-- 挂载身份验证器 -->
 <extension path="/Workbench/Security/Authentication">
 	<object name="Identity" value="{static:Zongsoft.Security.Privileges.Authenticators.Identity, Zongsoft.Security}" />
 	<object name="Secretor" value="{static:Zongsoft.Security.Privileges.Authenticators.Secretor, Zongsoft.Security}" />
@@ -114,27 +83,23 @@ Privileges 的设计不是把权限写死在接口、控制器或页面上，而
 
 `IChallenger` 在认证器签发身份之后执行，适合放业务准入规则和 claims 增强。业务系统把站点差异放在各站点的 `UserChallenger` 中，并通过插件挂载到 `Authentication.Challengers`：
 
-{% code title="Automao.Security.Services.plugin" %}
-```xml
-<extension path="/Workbench/Security/Authentication/Challengers">
-	<object value="{static:Automao.Security.Privileges.UserChallenger.Instance, Automao.Security.Services}" />
-</extension>
+来源：[src/Zongsoft.Discussions.plugin](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Zongsoft.Discussions.plugin#L40)（节选；上下文见源文件）。
 
-<extension path="/Workbench/Security/Authentication/Transformers">
-	<object value="{static:Automao.Security.Privileges.UserIdentity+Transformer.Instance, Automao.Security.Services}" />
-</extension>
+{% code title="Zongsoft.Discussions.plugin" %}
+```xml
+	<!-- 挂载身份质询器 -->
+	<extension path="/Workbench/Security/Authentication/Challengers">
+		<object value="{static:Zongsoft.Discussions.Security.UserChallenger.Instance, Zongsoft.Discussions}" />
+	</extension>
+
+	<!-- 挂载身份转换器 -->
+	<extension path="/Workbench/Security/Authentication/Transformers">
+		<object value="{static:Zongsoft.Discussions.Security.UserIdentity+Transformer.Instance, Zongsoft.Discussions}" />
+	</extension>
 ```
 {% endcode %}
 
-业务系统 business 站点的 challenger 在登录后补充：
-
-* `TenantId`、`BranchId`、`TenantTypeId`、`Country`、`Language`。
-* 当前用户可访问的分支机构集合 `Branches`。
-* 当前员工允许的登录场景 `Scenarios`。
-* 租户许可与员工模块交集后的 `Licenses`。
-* 用户所属角色名，用于标准 role claim 判断。
-
-随后 `UserIdentity.Transformer` 把这些 claims 转成强类型 `UserIdentity`，业务代码通过 `Identity.Current` 获取当前租户和用户信息。
+Discussions 的 UserChallenger 追加站点身份，并写入 SiteId、头像、等级和发帖统计等声明。UserIdentity.Transformer 仅识别 Zongsoft.Discussions 认证方案，把这些声明转换为业务身份；业务代码通过 UserIdentity.Current 读取。完整源码与字段含义见[安全基础](../security.md)。
 
 ## 授权记录
 
@@ -153,20 +118,9 @@ Privileges 的设计不是把权限写死在接口、控制器或页面上，而
 | `Denied` | 明确拒绝，计算时会压过同层级授予。 |
 | `Revoked` | 撤回或空状态，默认实现通常把它视为没有有效授权。 |
 
-业务系统数据库在 `Privilege` 和 `PrivilegeFiltering` 表中增加 `TenantId`，用于多租户分区。它的 `PrivilegeService` 继承 `PrivilegeServiceBase<TPrivilege>`，重写数据访问条件和写入模型，同时在更新权限时刷新角色的 `ModifiedTime`。
+默认安全插件提供通用权限存储。Discussions 没有增加 TenantId、BranchId 形式的权限表覆写；其站点查询边界通过 DataValidator 实现，不能将两种机制混为一谈。
 
-{% code title="SetRolePrivileges.cs" %}
-```csharp
-var role = new Identifier(typeof(IRole), roleId);
-var privileges = new[]
-{
-	new PrivilegeService.Privilege("Branch.Query", PrivilegeMode.Granted),
-	new PrivilegeService.Privilege("Branch.Delete", PrivilegeMode.Denied),
-};
-
-await Authorization.Servicer.Privileges.SetPrivilegesAsync(role, privileges, parameters, cancellation);
-```
-{% endcode %}
+Discussions 未实现独立的角色权限写入范例；默认数据库的写入路径见 [PrivilegeService](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Security/src/Privileges/PrivilegeService.cs) 及 [PrivilegeServiceBase](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Security/Privileges/PrivilegeServiceBase.cs)。调用时使用实际用户或角色标识，并由业务组合层明确授权记录的更新范围。
 
 ## 权限计算
 
@@ -186,42 +140,48 @@ await Authorization.Servicer.Privileges.SetPrivilegesAsync(role, privileges, par
 * 同一层级中，`Denied` 会移除同名权限，并阻止同层级的 `Granted` 重新加入。
 * 下一层级如果再次 `Granted`，可以覆盖更远层级的拒绝；这就是“就近优先”。
 
-{% code title="Authorize.cs" %}
-```csharp
-var identity = ApplicationContext.Current.Principal.GetIdentity("Identity");
-var allowed = await Authorization.Authorizer.AuthorizeAsync(
-	identity,
-	"Branch.Query",
-	new Parameters(),
-	cancellation);
+来源：[framework/Zongsoft.Core/src/Security/Privileges/AuthorizerBase.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Security/Privileges/AuthorizerBase.cs#L67)（节选；上下文见源文件）。
 
-if(!allowed)
-	throw new AuthorizationException(SecurityReasons.Forbidden);
+{% code title="AuthorizerBase.cs" %}
+```csharp
+public virtual async ValueTask<bool> AuthorizeAsync(ClaimsIdentity user, string privilege, Parameters parameters, CancellationToken cancellation = default)
+{
+	if(user == null)
+		return false;
+
+	if(privilege == null)
+		return false;
+
+	var privileges = await _cache.GetOrCreateAsync(user.Identify(),
+		key => (GetPrivilegesAsync((Identifier)key, cancellation), TimeSpan.FromMinutes(60)));
+
+	return privileges.Contains(privilege);
+
+	async Task<HashSet<string>> GetPrivilegesAsync(Identifier identifier, CancellationToken cancellation)
+	{
+		var privileges = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+		var results = this.Evaluator.EvaluateAsync(identifier, parameters, cancellation);
+		await foreach(var result in results)
+			privileges.Add(result.Privilege);
+
+		return privileges;
+	}
+}
 ```
 {% endcode %}
 
 {% hint style="warning" %}
-默认 `AuthorizerBase` 以用户标识缓存最终权限集，缓存时长为 60 分钟。修改角色成员或授权记录后，业务实现需要考虑缓存刷新、凭证重建或缩短缓存时长，否则短时间内可能看到旧授权结果。
+默认 `AuthorizerBase` 以用户标识缓存最终权限集，使用 60 分钟滑动过期。修改角色成员或授权记录后，业务实现需要考虑缓存刷新、应用拥有的缓存失效机制，否则短时间内可能看到旧授权结果。
 {% endhint %}
 
 ## 权限过滤
 
-`IPrivilegeService.Filtering` 提供权限过滤服务。它不决定“有没有某权限”，而是描述“有该权限时，还应隐藏哪些字段或限制哪些范围”。默认数据库的 `PrivilegeFiltering.PrivilegeFilter` 是字符串表达式，例如：
-
-```text
-!Amount,!Details.Price,!Details.Discount,!Details.Quantity
-```
+`IPrivilegeService.Filtering` 提供权限过滤服务。它不决定“有没有某权限”，而是描述“有该权限时，还应隐藏哪些字段或限制哪些范围”。默认数据库的 `PrivilegeFiltering.PrivilegeFilter` 是字符串表达式，。Discussions 没有接入这套授权过滤表达式；它的 PostFilter 和 ThreadFilter 处理正文可见性，属于数据过滤器机制。真实实现见[过滤器](../components/filter.md)。
 
 这种能力适合数据查询、导出或详情接口的字段裁剪。调用方应先完成普通授权，再读取过滤服务并把过滤表达式交给数据层或业务层解释。
 
-业务系统的覆写方式可以作为参考：
-
-- 在默认安全表上增加租户、机构、审计和业务用户字段。
-- 继承核心服务基类，替换模型、条件和写入逻辑。
-- 按站点实现 `UserChallenger` 和 `UserIdentity`。
-- 在 `*-privileges.plugin` 插件中挂载业务模块的权限定义树。
-
-这种覆写方式遵循同一个模式：核心库给出抽象和计算规则，默认安全模块给出通用实现，业务系统只扩展业务边界和数据结构。
+扩展默认实现时，应分别核对模型、授权记录存储、主体身份和缓存失效；只替换用户模型不会自动改变所有权限查询条件。
 
 ## 使用建议
 

@@ -37,18 +37,17 @@ icon: server
 
 ### 代码注册
 
-宿主或插件可以在 Host 构建阶段直接向服务集合添加服务。普通 .NET 服务生命周期仍然按 DI 规则生效，例如单例、作用域和瞬态。
+宿主或插件可以在 Host 构建阶段直接向服务集合添加服务。下面是 framework 中 gRPC 扩展的真实注册器，配置协议服务及反射支持。普通 .NET 服务生命周期仍然按 DI 规则生效，例如单例、作用域和瞬态。
 
-{% code title="Program.cs" %}
+来源：[framework/Zongsoft.Web/grpc/GrpcInitializer.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Web/grpc/GrpcInitializer.cs#L86)（节选；上下文见源文件）。
+
+{% code title="GrpcInitializer.cs" %}
 ```csharp
-using Zongsoft.Plugins.Hosting;
-
-var host = Application.Daemon(args, builder =>
+public void Register(IServiceCollection services, IConfiguration configuration)
 {
-	builder.Services.AddSingleton<IClock, SystemClock>();
-});
-
-await host.RunAsync();
+	services.AddGrpc();
+	services.AddGrpcReflection();
+}
 ```
 {% endcode %}
 
@@ -69,34 +68,34 @@ await host.RunAsync();
 | 实现 `IServiceRegistration` | 一个程序集需要集中注册多项服务、复杂生命周期或条件注册。 | 框架创建注册器实例，调用 `Register(services, configuration)`；注册器接管该类型的服务注册。 |
 | 标注 `ServiceAttribute` | 类型本身就是服务，适合简单、约定化注册。 | 框架把实现类型注册为单例，并按契约、名称、标签和静态成员规则追加注册。 |
 
-{% code title="GreetingService.cs" %}
-```csharp
-using Zongsoft.Services;
-using System.Text.Json;
+来源：[src/Services/ForumService.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Services/ForumService.cs#L41)（节选；上下文见源文件）。
 
-[Service<IGreetingService>("Greeting")]
-public class GreetingService : IGreetingService
+{% code title="ForumService.cs" %}
+```csharp
+[Service(nameof(ForumService))]
+[DataService(typeof(ForumCriteria))]
+public class ForumService : DataServiceBase<Forum>
 {
-	public string Say(string name) => $"你好，{name}";
-}
+	#region 构造函数
+	public ForumService(IServiceProvider serviceProvider) : base(serviceProvider) { }
 ```
 {% endcode %}
 
-当 `ServiceAttribute` 指定名称时，框架会登记该名称，名称以 `Service` 结尾时还会登记去掉后缀后的短名。因此名为 `GreetingService` 的服务通常也可以按 `Greeting` 查找。
+当 `ServiceAttribute` 指定名称时，框架会登记该名称，名称以 `Service` 结尾时还会登记去掉后缀后的短名。因此 Discussions 的 ForumService 会登记 ForumService 名称以及 Forum 短名。
 
 ### 静态成员注册
 
 如果服务对象本来就是静态属性或字段，可以通过 `ServiceAttribute.Members` 暴露成员值。框架会读取指定的公开静态成员，并按成员类型和显式契约注册为单例实例。
 
-{% code title="CodecServices.cs" %}
-```csharp
-using Zongsoft.Services;
+来源：[framework/Zongsoft.Diagnostics/protocols/server/src/Listener.Metrics.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Diagnostics/protocols/server/src/Listener.Metrics.cs#L51)（节选；上下文见源文件）。
 
-[Service(typeof(ITextCodec), Members = nameof(Default))]
-public static class CodecServices
+{% code title="Listener.Metrics.cs" %}
+```csharp
+[Service(Tags = "gRPC", Members = nameof(Metrics))]
+partial class Listener
 {
-	public static ITextCodec Default { get; } = new JsonTextCodec();
-}
+	#region 单例字段
+	public static readonly MetricsProcessor Metrics = new();
 ```
 {% endcode %}
 
@@ -106,13 +105,7 @@ public static class CodecServices
 
 插件宿主还会查找 `/Workspace/Environment/Services` 节点，并把该节点下的每个子构件作为单例服务注册到应用服务集合中。服务类型来自构件的 `ValueType`，服务实例由构件在解析时创建或解包。
 
-{% code title="Zongsoft.Example.plugin" %}
-```xml
-<extension path="/Workspace/Environment/Services">
-	<object name="Greeting" type="Zongsoft.Example.GreetingService, Zongsoft.Example" />
-</extension>
-```
-{% endcode %}
+Discussions 的插件声明把模块挂到 /Workbench/Modules，再暴露数据访问器、事件与属性。它没有声明 /Workspace/Environment/Services 节点；完整清单见[插件文件](../plugins/plugin-file.md)，不要把任意模块节点当成此专用服务注册节点。
 
 这种方式适合需要从插件文件声明、用 `{option:...}`、`{path:...}` 或 `{service:...}` 组装的服务。它的生命周期在当前宿主实现中按单例注册，因此不要把请求级状态、会话状态或必须频繁重建的对象放在这里。
 
@@ -137,34 +130,64 @@ public static class CodecServices
 
 [`ApplicationContext`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/ApplicationContext.cs) 中有两个典型用法：
 
-* `Exit(...)` 通过 `Resolve<IHost>()` 查找当前 [`IHost`](https://learn.microsoft.com/zh-cn/dotnet/api/microsoft.extensions.hosting.ihost) _[源码](https://source.dot.net/#Microsoft.Extensions.Hosting.Abstractions/IHost.cs)_。Host 不存在时不退出 Host 流程，因此这是可选依赖。
+* `Exit(...)` 通过 `Resolve<IHost>()` 查找当前 [`IHost`](https://learn.microsoft.com/zh-cn/dotnet/api/microsoft.extensions.hosting.ihost) _[源码](https://source.dot.net/#Microsoft.Extensions.Hosting.Abstractions/IHost.cs)_。只有宿主与生命周期服务都存在、且宿主尚未停止时，才等待停止流程；随后仍会调用 System.Environment.Exit 退出进程。因此不能把此方法当作“没有宿主就什么也不做”的查询。
 * `Initialize()` 通过 `ResolveAll<IApplicationInitializer>()` 收集所有应用初始化器，然后逐个执行。
+
+来源：[framework/Zongsoft.Core/src/Services/ApplicationContext.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/ApplicationContext.cs#L150)（节选；上下文见源文件）。
 
 {% code title="ApplicationContext.cs" %}
 ```csharp
-var host = _services.Resolve<IHost>();
-
-if(host != null)
+public void Exit(int exitCode, TimeSpan timeout = default)
 {
-	if(timeout > TimeSpan.Zero)
-		host.StopAsync(timeout).GetAwaiter().GetResult();
-	else
-		host.StopAsync().GetAwaiter().GetResult();
+	if(_disposed != 0)
+		return;
 
-	host.WaitForShutdown();
+	var host = _services.Resolve<IHost>();
+	var lifetime = _services.GetService<IHostApplicationLifetime>();
+
+	if(host != null && lifetime != null)
+	{
+		//如果应用程序正在停止或已经停止，则不再执行停止操作，否则会导致死锁
+		var exiting = lifetime.ApplicationStopping.IsCancellationRequested || lifetime.ApplicationStopped.IsCancellationRequested;
+
+		if(!exiting)
+		{
+			if(timeout > TimeSpan.Zero)
+				host.StopAsync(timeout).GetAwaiter().GetResult();
+			else
+				host.StopAsync().GetAwaiter().GetResult();
+
+			host.WaitForShutdown();
+		}
+	}
+
+	System.Environment.Exit(exitCode);
 }
 ```
 {% endcode %}
 
-{% code title="ApplicationContext.Initialize.cs" %}
+来源：[framework/Zongsoft.Core/src/Services/ApplicationContext.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/ApplicationContext.cs#L188)（节选；上下文见源文件）。
+
+{% code title="ApplicationContext.cs" %}
 ```csharp
-var services = this.Services;
+public virtual bool Initialize()
+{
+	ObjectDisposedException.ThrowIf(_disposed != 0 || _initializers == null, this);
 
-if(services != null)
-	_initializers.AddRange(services.ResolveAll<IApplicationInitializer>());
+	var initialized = Interlocked.Exchange(ref _initialized, 1);
+	if(initialized != 0)
+		return false;
 
-foreach(var initializer in _initializers)
-	initializer?.Initialize(this);
+	var services = this.Services;
+
+	if(services != null)
+		_initializers.AddRange(services.ResolveAll<IApplicationInitializer>());
+
+	foreach(var initializer in _initializers)
+		initializer?.Initialize(this);
+
+	return true;
+}
 ```
 {% endcode %}
 
@@ -180,25 +203,35 @@ foreach(var initializer in _initializers)
 2. 如果没有指定提供器，就遍历 `ResolveAll<IMessageQueueProvider>()`，找到第一个包含该队列名的提供器。
 3. 如果所有提供器都找不到，最后才用 `Resolve(text)` 按服务名称解析队列实例。
 
+来源：[framework/Zongsoft.Core/src/Messaging/MessageQueueConverter.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Messaging/MessageQueueConverter.cs#L47)（节选；上下文见源文件）。
+
 {% code title="MessageQueueConverter.cs" %}
 ```csharp
-if(index > 0 && index < text.Length - 1)
+public static IMessageQueue Resolve(IServiceProvider services, string text)
 {
-	var provider = services.Find<IMessageQueueProvider>(text[(index + 1)..]);
-	if(provider == null)
+	if(services == null || string.IsNullOrEmpty(text))
 		return null;
 
-	var name = text[..index];
-	return provider.Exists(name) ? provider.Queue(name) : null;
-}
+	var index = text.IndexOf('@');
 
-foreach(var provider in services.ResolveAll<IMessageQueueProvider>())
-{
-	if(provider.Exists(text))
-		return provider.Queue(text);
-}
+	if(index > 0 && index < text.Length - 1)
+	{
+		var provider = services.Find<IMessageQueueProvider>(text[(index + 1)..]);
+		if(provider == null)
+			return null;
 
-return services.Resolve(text) as IMessageQueue;
+		var name = text[..index];
+		return provider.Exists(name) ? provider.Queue(name) : null;
+	}
+
+	foreach(var provider in services.ResolveAll<IMessageQueueProvider>())
+	{
+		if(provider.Exists(text))
+			return provider.Queue(text);
+	}
+
+	return services.Resolve(text) as IMessageQueue;
+}
 ```
 {% endcode %}
 
@@ -210,44 +243,36 @@ return services.Resolve(text) as IMessageQueue;
 
 例如 [`ExpressionEvaluatorBase`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Expressions/ExpressionEvaluatorBase.cs) 以 `Name` 表示表达式求值器名称，并用 `IMatchable` 支持忽略大小写匹配。调用方只需要传入名称，就能在多个 `IExpressionEvaluator` 实现中找到目标求值器。
 
+来源：[framework/Zongsoft.Core/src/Expressions/ExpressionEvaluatorBase.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Expressions/ExpressionEvaluatorBase.cs#L71)（节选；上下文见源文件）。
+
 {% code title="ExpressionEvaluatorBase.cs" %}
 ```csharp
-public string Name { get; } = name;
-
-bool Services.IMatchable.Match(object argument) =>
-	argument is string name && string.Equals(name, this.Name, StringComparison.OrdinalIgnoreCase);
-
-bool Services.IMatchable<string>.Match(string name) =>
-	string.Equals(name, this.Name, StringComparison.OrdinalIgnoreCase);
+bool Services.IMatchable.Match(object argument) => argument is string name && string.Equals(name, this.Name, StringComparison.OrdinalIgnoreCase);
+bool Services.IMatchable<string>.Match(string name) => string.Equals(name, this.Name, StringComparison.OrdinalIgnoreCase);
 ```
 {% endcode %}
 
-{% code title="FindExpressionEvaluator.cs" %}
-```csharp
-var evaluator = ApplicationContext.Current.Services.Find<IExpressionEvaluator>("Scriban");
+实际按名称匹配并取得队列的调用已经展示在上面的 MessageQueueConverter 中。表达式求值器的执行范例见[脚本与表达式](../externals/scripting.md)，名称是否可用取决于对应扩展包是否注册。
 
-if(evaluator != null)
-	return evaluator.Evaluate("1 + 2");
-```
-{% endcode %}
+[`TextRegular`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Text/TextRegular.cs) 则把匹配参数当作待验证文本。也就是说，`Find<ITextRegular>(text)` 不是按名称找正则，而是在一组文本规则服务中找到能够匹配该文本的规则。
 
-[`TextRegular`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Text/TextRegular.cs) 则把匹配参数当作待验证文本。也就是说，`Find<ITextRegular>("someone@example.com")` 不是按名称找正则，而是在一组文本规则服务中找到能够匹配该文本的规则。
+来源：[framework/Zongsoft.Core/src/Text/TextRegular.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Text/TextRegular.cs#L108)（节选；上下文见源文件）。
 
 {% code title="TextRegular.cs" %}
 ```csharp
-bool Services.IMatchable.Match(object parameter) =>
-	parameter != null && this.Match(parameter.ToString());
+bool Services.IMatchable.Match(object parameter) => parameter != null && this.Match(parameter.ToString());
 ```
 {% endcode %}
 
 消息队列提供器也是典型场景。[`MessageQueueFactoryBase`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Messaging/MessageQueueFactoryBase.cs) 通过名称匹配队列工厂，`MessageQueueConverter` 解析 `queue@provider` 时就调用了 `Find<IMessageQueueProvider>(provider)`。
 
+来源：[framework/Zongsoft.Core/src/Messaging/MessageQueueFactoryBase.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Messaging/MessageQueueFactoryBase.cs#L48)（节选；上下文见源文件）。
+
 {% code title="MessageQueueFactoryBase.cs" %}
 ```csharp
-public string Name { get; } = name ?? throw new ArgumentNullException(nameof(name));
-
-protected virtual bool OnMatch(string name) =>
-	string.Equals(this.Name, name, StringComparison.OrdinalIgnoreCase);
+protected virtual bool OnMatch(string name) => string.Equals(this.Name, name, StringComparison.OrdinalIgnoreCase);
+bool IMatchable.Match(object argument) => this.OnMatch(argument as string);
+bool IMatchable<string>.Match(string argument) => this.OnMatch(argument);
 ```
 {% endcode %}
 
@@ -259,23 +284,25 @@ protected virtual bool OnMatch(string name) =>
 
 在 [`Listener.Metrics.cs`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Diagnostics/protocols/server/src/Listener.Metrics.cs) 中，`Metrics` 静态成员被标注为服务，并打上 `gRPC` 标签：
 
-{% code title="Listener.Metrics.cs" %}
-```csharp
-[Service(Tags = "gRPC", Members = nameof(Metrics))]
-partial class Listener
-{
-	public static readonly MetricsProcessor Metrics = new();
-}
-```
-{% endcode %}
+静态成员及其 Service 注解见上文“静态成员注册”的真实源码片段。
 
 `ServiceCollectionExtension` 扫描到这个注解时，会把 `Metrics` 成员值注册为服务，并把该服务类型归入 `gRPC` 标签。到了 [`GrpcInitializer`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Web/grpc/GrpcInitializer.cs)，初始化器不需要知道有哪些诊断或业务 gRPC 服务，只要读取标签下的服务类型即可：
 
+来源：[framework/Zongsoft.Web/grpc/GrpcInitializer.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Web/grpc/GrpcInitializer.cs#L57)（节选；上下文见源文件）。
+
 {% code title="GrpcInitializer.cs" %}
 ```csharp
-foreach(var service in app.ServiceProvider.GetTags("gRPC"))
+public void Initialize(IApplicationBuilder builder)
 {
-	MapGrpcService(app, service);
+	if(builder is IEndpointRouteBuilder app)
+	{
+		foreach(var service in app.ServiceProvider.GetTags("gRPC"))
+		{
+			MapGrpcService(app, service);
+		}
+
+		app.MapGrpcReflectionService();
+	}
 }
 ```
 {% endcode %}
@@ -286,24 +313,35 @@ foreach(var service in app.ServiceProvider.GetTags("gRPC"))
 
 `GetTags(tag)` 返回标签下的服务类型，适合 `GrpcInitializer` 这类“只需要类型，不需要实例”的场景。`Resolves(tag)` 和 `Resolves(Type, tag)` 则会进一步从服务容器中解析实例，适合需要直接调用标签下服务对象的场景。
 
-如果 gRPC 初始化器需要拿到实例做预热、诊断或读取元数据，可以把上面的类型枚举改成实例解析：
+框架 TaggedServiceTest 提供了真实的实例解析测试。ITaggedContractA、ITaggedContractB、TaggedService 与 ProviderScope 均定义在同一测试文件；两个契约应解析到同一个对象。
 
-{% code title="ResolveGrpcTaggedServices.cs" %}
+来源：[framework/Zongsoft.Core/test/Services/TaggedServiceTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Services/TaggedServiceTest.cs#L15)（节选；上下文见源文件）。
+
+{% code title="TaggedServiceTest.cs" %}
 ```csharp
-foreach(var service in app.ServiceProvider.Resolves("gRPC"))
+public void Register_SameServiceAndTagAcrossAttributes_MergesAllContracts()
 {
-	// service 是带有 gRPC 标签的服务实例。
+	using var provider = CreateProvider();
+
+	var first = Assert.Single(provider.Provider.Resolves<ITaggedContractA>(TaggedService.Tag.ToLowerInvariant()));
+	var second = Assert.Single(provider.Provider.Resolves<ITaggedContractB>(TaggedService.Tag.ToUpperInvariant()));
+
+	Assert.Same(first, second);
 }
 ```
 {% endcode %}
 
-如果标签下有多类服务，而注册标签时也包含了调用方关心的契约，则使用 `Resolves(Type, tag)` 过滤。以当前 gRPC 例子来说，`Listener.Metrics` 的标签记录来自静态成员的具体类型；如果调用方能够引用该具体类型，则按具体类型解析才会命中：
+测试通过下列工厂扫描测试程序集，再创建框架服务提供器。解析前必须完成登记；标签不依靠调用方临时附加到对象上。
 
-{% code title="ResolveTypedTaggedServices.cs" %}
+来源：[framework/Zongsoft.Core/test/Services/TaggedServiceTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Services/TaggedServiceTest.cs#L57)（节选；上下文见源文件）。
+
+{% code title="TaggedServiceTest.cs" %}
 ```csharp
-foreach(var service in app.ServiceProvider.Resolves(typeof(Listener.MetricsProcessor), "gRPC"))
+private static ProviderScope CreateProvider()
 {
-	// service 是 Listener.MetricsProcessor 实例。
+	var services = new ServiceCollection();
+	services.Register(typeof(TaggedServiceTest).Assembly, null);
+	return new ProviderScope(new ServiceProviderFactory().CreateServiceProvider(services));
 }
 ```
 {% endcode %}
@@ -316,18 +354,15 @@ foreach(var service in app.ServiceProvider.Resolves(typeof(Listener.MetricsProce
 
 模块化服务的来源通常是带 [`ApplicationModuleAttribute`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/ApplicationModuleAttribute.cs) 的服务类型。框架扫描到服务契约时，会额外登记带模块名的包装服务，使模块容器能优先取到本模块实现。
 
-{% code title="OrderModuleServices.cs" %}
-```csharp
-using Zongsoft.Services;
+来源：[src/Module.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Module.cs#L31)（节选；上下文见源文件）。
 
-[ApplicationModule("Orders")]
-[Service<IOrderNumberGenerator>]
-public class OrderNumberGenerator : IOrderNumberGenerator
-{
-	public string Generate() => "SO-" + DateTime.UtcNow.Ticks;
-}
+{% code title="Module.cs" %}
+```csharp
+[assembly: ApplicationModule(Zongsoft.Discussions.Module.NAME)]
 ```
 {% endcode %}
+
+Discussions 在程序集上声明 ApplicationModule，并把 Module.NAME 定义为 Discussions。MessageSendCommand 的属性注入明确选择同一模块服务域。
 
 当对象位于某个模块或插件树节点下时，框架会尽量根据对象所属模块选择服务容器。这样业务插件可以声明自己的模块服务，同时仍能复用应用级公共服务。
 
@@ -343,18 +378,12 @@ public class OrderNumberGenerator : IOrderNumberGenerator
 | `Provider = "/"` 或 `Provider = "*"` | 直接使用应用服务容器。 |
 | `Provider = "模块名"` | 使用指定模块的服务容器；找不到时回退到应用服务容器。 |
 
-{% code title="ReportWorker.cs" %}
+来源：[src/Services/Commands/MessageSendCommand.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Services/Commands/MessageSendCommand.cs#L58)（节选；上下文见源文件）。
+
+{% code title="MessageSendCommand.cs" %}
 ```csharp
-using Zongsoft.Services;
-
-public class ReportWorker
-{
-	[ServiceDependency(IsRequired = true)]
-	public IReportStore Store { get; set; }
-
-	[ServiceDependency(Provider = "/", IsRequired = true)]
-	public IClock Clock { get; set; }
-}
+[ServiceDependency(Provider = Module.NAME)]
+public MessageService Service { get; set; }
 ```
 {% endcode %}
 
@@ -367,15 +396,17 @@ public class ReportWorker
 | 表达式 | 结果 |
 | --- | --- |
 | `{service:@}` | 返回应用默认服务容器。 |
-| `{service:@Orders}` | 返回名为 `Orders` 的模块服务容器；模块不存在则返回空。 |
-| `{service:Greeting}` | 从当前构件所属模块容器或应用容器解析名为 `Greeting` 的服务。 |
-| `{service:Greeting@Orders}` | 从 `Orders` 模块服务容器解析名为 `Greeting` 的服务。 |
+| `{service:@模块名}` | 返回名为 `模块名` 的模块服务容器；模块不存在则返回空。 |
+| `{service:服务名}` | 从当前构件所属模块容器或应用容器解析名为 `服务名` 的服务。 |
+| `{service:服务名@模块名}` | 从 `模块名` 模块服务容器解析名为 `服务名` 的服务。 |
 | `{service:~}` | 按当前目标成员类型解析一个服务。 |
 | `{service:*}` | 按当前目标成员类型解析所有服务。 |
 | `{service:~@}`、`{service:*@}` | 强制从应用默认服务容器按目标成员类型解析。 |
-| `{service:~@Orders}`、`{service:*@Orders}` | 从指定模块服务容器按目标成员类型解析。 |
+| `{service:~@模块名}`、`{service:*@模块名}` | 从指定模块服务容器按目标成员类型解析。 |
 
-所有格式还可以在服务对象后继续访问属性或字段，例如 `{service:Greeting.Options@Orders}`。这适合在插件构件属性中引用已注册服务的某个配置对象或子对象。
+上表的“模块名”“服务名”是语法占位符，并非已注册的服务。Discussions.plugin 实际使用 static 与 path 表达式挂载模块、访问器和过滤器，可对照[构件与服务](../plugins/builtins-and-services.md)阅读。
+
+所有格式还可以在服务对象后继续访问属性或字段，例如 `{service:服务名.属性名@模块名}`。这适合在插件构件属性中引用已注册服务的某个配置对象或子对象。
 
 {% hint style="info" %}
 未显式写 `@模块名` 时，服务解析器会尝试使用当前构件父节点名称匹配模块名；匹配失败才使用应用默认服务容器。插件路径命名如果能和模块名保持一致，服务表达式会更自然。

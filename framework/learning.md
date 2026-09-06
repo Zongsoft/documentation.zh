@@ -26,28 +26,23 @@ icon: graduation-cap
 
 ## 先验证插件目录
 
-部署 `Zongsoft.Learning` 后，可以在应用初始化完成之后检查已加载的估计器目录。以下是业务命令或诊断入口中的辅助代码，不是一套训练程序。
+Discussions 没有机器学习用例，Learning 也没有独立的完整训练示例。可先对照框架已有插件清单理解目录注册：下面将 LightGbmRegressionTrainer 挂载为 Regression 分类中的 LightGbm 训练器。
 
-{% code title="InspectEstimators.cs" %}
-```csharp
-using Zongsoft.Learning;
+来源：[framework/Zongsoft.Learning/src/Zongsoft.Learning.plugin](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Learning/src/Zongsoft.Learning.plugin#L46)（节选；上下文见源文件）。
 
-PrintCatalog(Pipeline.Catalog);
-
-static void PrintCatalog(EstimatorDescriptorCatalog catalog)
-{
-	foreach(var estimator in catalog.Estimators)
-		Console.WriteLine(estimator.Name);
-
-	foreach(var child in catalog.Catalogs)
-		PrintCatalog(child);
-}
+{% code title="Zongsoft.Learning.plugin" %}
+```xml
+<extension path="/Workbench/MachineLearning/Pipeline/Regression">
+	<object name="LightGbm" type="trainer" builder="{static:Zongsoft.Learning.Trainers.LightGbmRegressionTrainer.Instance, Zongsoft.Learning}" />
+</extension>
 ```
 {% endcode %}
 
 如果目录缺项，先检查插件清单、扩展注册和程序集部署，再检查训练参数。文本加载时应显式检查分隔符、标题行、列索引、字段类型和缺失值处理，不要假定数据集的展示字段会自动配置加载器。
 
 ## 当前实现限制
+
+当前 TextFileLoader.Settings 的 Populate 重写仍采用 System.Reflection.PropertyInfo，而 Core 的对应虚方法已使用 System.Reflection.MemberInfo；两者源码版本组合存在签名不兼容，应先核对构建结果和引用版本。PipelineController 也仅声明 Area 与 HttpGet，不能仅靠默认 MapControllers 推断已有完整可达路由。
 
 {% hint style="warning" %}
 🚨 当前源码的 `Pipeline.Build` 在后续步骤中调用 `estimator.Append(estimator)`，没有把结果累积回管线；因此多步骤配置不能据此认定已正确串接。空步骤列表返回空结果，未知步骤名称也缺少完整的错误转换。正式训练前需要先修复并验证这些路径。

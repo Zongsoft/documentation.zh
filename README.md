@@ -5,11 +5,11 @@ icon: book-open
 
 # Zongsoft 开发框架
 
-![Zongsoft 文档封面](.gitbook/assets/zongsoft-docs-cover.svg)
+![Zongsoft 文档封面](.gitbook/assets/zongsoft-docs-cover.png)
 
 Zongsoft 是一组面向 .NET 的开源框架、宿主程序和开发工具，核心目标是帮助团队构建可插件化、可部署、可维护的业务应用。
 
-它由三部分共同组成：
+主要内容包括：
 
 {% columns %}
 {% column %}
@@ -41,25 +41,25 @@ Zongsoft 是一组面向 .NET 的开源框架、宿主程序和开发工具，�
 			<td><strong>了解整体设计</strong></td>
 			<td>从框架、宿主和工具链的边界开始建立全局图景。</td>
 			<td><a href="overview/what-is-zongsoft.md">what-is-zongsoft.md</a></td>
-			<td><a href=".gitbook/assets/zongsoft-docs-cover.svg">zongsoft-docs-cover.svg</a></td>
+			<td><a href=".gitbook/assets/zongsoft-docs-cover.png">zongsoft-docs-cover.png</a></td>
 		</tr>
 		<tr>
 			<td><strong>从本地环境开始</strong></td>
 			<td>准备 SDK、源码、目录和可选容器环境。</td>
 			<td><a href="get-started/prerequisites.md">prerequisites.md</a></td>
-			<td><a href=".gitbook/assets/zongsoft-start-cover.svg">zongsoft-start-cover.svg</a></td>
+			<td><a href=".gitbook/assets/zongsoft-start-cover.png">zongsoft-start-cover.png</a></td>
 		</tr>
 		<tr>
 			<td><strong>理解插件化应用</strong></td>
 			<td>理解插件树、构件、服务注册和宿主集成。</td>
 			<td><a href="framework/plugins/README.md">plugins</a></td>
-			<td><a href=".gitbook/assets/zongsoft-plugins-cover.svg">zongsoft-plugins-cover.svg</a></td>
+			<td><a href=".gitbook/assets/zongsoft-plugins-cover.png">zongsoft-plugins-cover.png</a></td>
 		</tr>
 		<tr>
 			<td><strong>学习数据访问</strong></td>
 			<td>用数据模式、映射文件和驱动完成对象图读写。</td>
 			<td><a href="framework/data/README.md">data</a></td>
-			<td><a href=".gitbook/assets/zongsoft-data-cover.svg">zongsoft-data-cover.svg</a></td>
+			<td><a href=".gitbook/assets/zongsoft-data-cover.png">zongsoft-data-cover.png</a></td>
 		</tr>
 	</tbody>
 </table>

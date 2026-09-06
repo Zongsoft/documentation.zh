@@ -1,89 +1,89 @@
 ---
-description: 从实体、主键和属性开始编写 .mapping，建立导航关系及命名 SQL 命令。
+description: 以 Discussions 的论坛复合键、主题正文关系和序号配置解释映射。
 icon: table
 ---
 
 # 映射文件
 
-`.mapping` 是描述实体与数据库结构关系的 XML 文件。它把业务模型从数据库注解中解耦，同时让表、列、关系和命令可以随业务插件交付。概念背景见[对象关系映射](concepts.md)。
 
-## 完整的实体关系示例
+.mapping 把领域模型映射到数据库结构。它声明表、键、字段与导航关系，可以随业务插件交付；它本身不创建数据库，也不执行迁移。Discussions 的映射放在单个 Zongsoft.Discussions.mapping 中，容器名是 Discussions。
 
-下面声明客户与订单。假定数据库已经存在对应的表及字段；映射本身不会执行建表或迁移。
+## 论坛编号属于站点
 
-{% code title="Orders.mapping" %}
+下面是 Forum 实体内部的键与编号属性定义，外围 entity 声明及其他属性见源文件。
+
+下面是 Forum 实体内部的键与编号属性定义，外围 entity 声明及其他属性见源文件。
+
+来源：[src/Zongsoft.Discussions.mapping](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Zongsoft.Discussions.mapping#L197)（节选；上下文见源文件）。
+
+{% code title="Zongsoft.Discussions.mapping" %}
 ```xml
-<schema xmlns="http://schemas.zongsoft.com/data">
-	<container name="Orders">
-		<entity name="Customer" table="Sales_Customer">
-			<key>
-				<member name="CustomerId" />
-			</key>
-			<property name="CustomerId" type="int" nullable="false" />
-			<property name="Name" type="string" length="100" nullable="false" />
-		</entity>
-		<entity name="Order" table="Sales_Order">
-			<key>
-				<member name="OrderId" />
-			</key>
-			<property name="OrderId" type="int" nullable="false" />
-			<property name="CustomerId" type="int" nullable="false" />
-			<property name="Amount" type="decimal" precision="18" scale="2" nullable="false" />
-			<complexProperty name="Customer" port="Customer" multiplicity="?" immutable="true">
-				<link port="CustomerId" anchor="CustomerId" />
-			</complexProperty>
-		</entity>
-	</container>
-</schema>
+<key>
+	<member name="SiteId" />
+	<member name="ForumId" />
+</key>
+
+<property name="SiteId" type="uint" nullable="false" />
+<property name="ForumId" type="ushort" nullable="false" sequence="#(SiteId)" />
 ```
 {% endcode %}
 
-容器限定实体名为 `Orders.Customer` 与 `Orders.Order`，`table` 指向物理表。属性名对应模型成员，列名不同时可用 `field`。主键成员必须在标量属性中存在。本例由业务提供 ID，不隐式引入外部序号服务。
+Forum 的键由 SiteId 与 ForumId 组成。ForumId 使用按 SiteId 分域的外部序号，不能把另一个站点相同 ForumId 的论坛视为同一个对象。实体限定名是 Discussions.Forum，物理表名为 Discussions_Forum。
 
-## 标量属性的边界
+## 主题怎样引用论坛和正文
 
-字符串应声明长度，小数应声明精度与小数位；同时核对数据库实际列类型和可空性。`immutable="true"` 的字段用于只能在新增时设置的值，例如创建时间或所有者；它不是用户权限声明。
+来源：[src/Zongsoft.Discussions.mapping](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Zongsoft.Discussions.mapping#L278)（节选；上下文见源文件）。
 
-序号选择影响生成责任：`sequence="*"` 使用数据库内置序号，`sequence="#"` 使用外部序号器，`sequence="#(TenantId)"` 表达按属性分域的序号。只有部署了相应服务并确认生成策略时才启用外部序号；详见[序号器](../core/common/sequence.md)。
-
-## 导航如何连接
-
-`complexProperty.port` 指向目标实体，`link.port` 指目标属性，`link.anchor` 指当前实体属性；同名时可省略 anchor。复合键使用多个 link。`multiplicity` 的 `?`、`!`、`*` 分别表示可选单值、必需单值和集合。
-
-通过中间实体导航时，可以使用 `port="中间实体:目标导航"`，再由 link 连接当前实体到中间实体。关系约束通过 `constraints` 声明；应核对约束作用于主控端还是目标端，避免关联到其它租户或类型的数据。
-
-{% hint style="warning" %}
-🚨 当前 XSD 与加载器对复合属性 `immutable` 的缺省值不同：XSD 为 `true`，加载器按 `false` 处理。因此示例显式声明它。需要级联写入的关系应写 `immutable="false"`，并审核写入和删除范围。
-{% endhint %}
-
-## 命名 SQL 与存储过程
-
-普通实体操作无法表达的数据库专属逻辑，可以放入命名命令。下面是无需业务表的 SQLite 示例：
-
-{% code title="Docs.mapping" %}
+{% code title="Zongsoft.Discussions.mapping" %}
 ```xml
-<schema xmlns="http://schemas.zongsoft.com/data">
-	<container name="Docs">
-		<command name="Answer" type="text" mutability="none">
-			<script driver="SQLite"><![CDATA[SELECT 42]]></script>
-		</command>
-	</container>
-</schema>
+<complexProperty name="Forum" port="Forum">
+	<link port="SiteId" />
+	<link port="ForumId" />
+</complexProperty>
 ```
 {% endcode %}
 
-调用名称为 `Docs.Answer`。每个 script 指定数据库驱动，SQL 由目标数据库解释；也可以把脚本放在映射所在目录或子目录，按 `{命令限定名}-{驱动名}.sql` 命名，例如 `Docs.Answer-SQLite.sql`。加载器兼容旧的未限定命令名，但限定名脚本优先；新文件建议使用限定名，避免不同模块同名命令互相覆盖。参数用 parameter 声明名称、类型和方向，再由调用方传值；不要把输入拼进 SQL。
+关系的 link.port 指向目标属性，anchor 指当前实体属性。上述关系位于 ForumUser 实体中，完整上下文见源文件；相同名字的 Forum 导航也存在于主题中。复合键关系应同时连接站点与论坛编号。
 
-`type` 使用 `text` 或 `procedure`，参数 direction 使用 XSD 支持的 `input`、`output`、`both`、`return`。命令的 `mutability` 决定读写数据源选择，引擎不会分析 SQL 推断是否写入。
+来源：[src/Zongsoft.Discussions.mapping](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Zongsoft.Discussions.mapping#L330)（节选；上下文见源文件）。
 
-{% hint style="warning" %}
-🚨 命令 mutability 的缺省值也存在 XSD/加载器差异：XSD 为 `none`，加载器按可写处理。只读命令务必显式写 `mutability="none"`，写命令则声明实际写入类型。
-{% endhint %}
+{% code title="Zongsoft.Discussions.mapping" %}
+```xml
+<complexProperty name="Post" port="Post" multiplicity="!">
+	<link port="PostId" />
+</complexProperty>
+```
+{% endcode %}
 
-## 部署与维护
+主题的 Post 是必需的正文帖。ThreadService.OnInsert 会把 Post 导航包含进写入模式，才能将模型关系交给引擎处理；仅给模型新增一个属性不会自动产生数据库关系。
 
-默认映射加载器递归搜索应用目录中的 `.mapping`。建议按模块拆文件，保持实体限定名唯一，将相关外部 SQL 一同部署。配置清单同主名规则适用于 `.option`，不要将它误套给映射加载器。
+## 标量、默认值与不可变字段
 
-修改映射应同时审核数据库结构、模型、模式文本和所有级联调用。先用 [Zongsoft.Data.xsd](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Data/Zongsoft.Data.xsd) 检查结构，再通过目标驱动的实际操作检查语义；XSD 合法不证明表存在，也不证明关系正确。
+来源：[src/Zongsoft.Discussions.mapping](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Zongsoft.Discussions.mapping#L293)（节选；上下文见源文件）。
 
-实现依据：[映射解析器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Data/src/Metadata/Profiles/MetadataFileResolver.cs)。后续阅读：[数据模式](schema.md)、[写入操作](writing.md)、[连接配置](connections.md)。
+{% code title="Zongsoft.Discussions.mapping" %}
+```xml
+<property name="ThreadId" type="ulong" nullable="false" sequence="#" />
+<property name="SiteId" type="uint" nullable="false" immutable="true" />
+<property name="ForumId" type="ushort" nullable="false" />
+<property name="Title" type="nvarchar" length="50" nullable="false" />
+<property name="Acronym" type="varchar" length="50" nullable="true" />
+<property name="Summary" type="nvarchar" length="500" nullable="true" />
+<property name="Tags" type="nvarchar" length="100" nullable="true" />
+<property name="PostId" type="ulong" nullable="false" />
+```
+{% endcode %}
+
+字符串长度、可空性和数据库类型要同时与模型、SQL 核对。immutable 用来约束写入阶段，不能代替用户授权。序号标记 # 需要外部序号服务；按站点分域的序号还依赖 SiteId 先被正确赋值，见[序号器](../core/common/sequence.md)。
+
+## 四种 SQL 脚本不是自动兼容承诺
+
+Discussions 的 database 目录包含 MySQL、SQL Server、PostgreSQL、ClickHouse 脚本。当前映射中的 Message 还显式指定 ClickHouse 驱动，因此选择其他数据库时必须同时核对实体驱动标记、数据源选择和 SQL 结构。不能仅换连接字符串就宣布切换完成。
+
+## 扩展与校验
+
+复杂属性的 multiplicity 区分可选单值、必需单值和集合。需要级联写入时应明确审核 immutable 与 behaviors；默认值必须以[映射加载器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Data/src/Metadata/Profiles/MetadataFileResolver.cs)为准。XSD 验证检查格式，实际驱动验证检查数据库语义，两者不能互相替代。
+
+Discussions 当前没有命名 SQL 命令。该能力可继续查阅框架 [MetadataCommandScriptorTest](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Data/test/MetadataCommandScriptorTest.cs)，不要为论坛另造 Answer 或订单统计命令。
+
+继续阅读：[数据模式](schema.md)、[连接配置](connections.md)、[写入](writing.md)。

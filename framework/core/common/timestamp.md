@@ -1,46 +1,31 @@
 ---
-description: Timestamp 时间戳转换工具。
+description: 以 Discussions 附件命名理解纪元与经过时间。
 icon: clock
 ---
 
 # Timestamp
 
-`Timestamp` 用于在 `DateTime` 和整数时间戳之间转换。它支持不同纪元和不同时间单位。
 
-## 预置纪元
+Timestamp 以指定纪元计算时间点或经过时间。Discussions 的附件上传使用 Millennium 纪元的累计天数作为文件名的一部分，与随机后缀组合。
 
-| 成员 | 说明 |
-| --- | --- |
-| `Timestamp.Unix` | 以 Unix Epoch 为起点，即 1970-01-01 00:00:00 UTC。 |
-| `Timestamp.Millennium` | 以 2000-01-01 00:00:00 UTC 为起点。 |
+来源：[src/api/Controllers/FileController.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/api/Controllers/FileController.cs#L79)（节选；上下文见源文件）。
 
-## 时间戳转换
-
-{% code title="TimestampSample.cs" %}
+{% code title="FileController.cs" %}
 ```csharp
-using Zongsoft.Common;
-
-var timestamp = Timestamp.Unix.Now;
-var datetime = Timestamp.Unix.ToDateTime(timestamp);
+var infos = this.Accessor.Write(this.Request,
+							  this.DataService.GetDirectory(id),
+							  args => args.FileName = $"{Timestamp.Millennium.Epoch.GetElapsed().Days}-{Randomizer.GenerateString()}", cancellation);
 ```
 {% endcode %}
 
-默认单位是秒，也可以指定毫秒等单位。
+这段代码位于 UploadAsync：Request 来自当前 HTTP 请求，目录由 FileService 决定，cancellation 来自调用方。它没有把文件名中的天数当作业务主键或访问权限。
 
-{% code title="TimestampUnitSample.cs" %}
-```csharp
-var value = Timestamp.Unix.ToTimestamp(
-	DateTime.UtcNow,
-	TimestampUnit.Millisecond);
+## 纪元、单位与时区
 
-var time = Timestamp.Unix.ToDateTime(
-	value,
-	TimestampUnit.Millisecond);
-```
-{% endcode %}
+Unix 和 Millennium 是不同起点。跨系统传递时间值时，必须同时约定起点和单位；仅传一个数字不足以判断它表示秒、毫秒、天数还是 ticks。时区展示也应与持久化时间约定区分。
 
-`Today` 和 `Yesterday` 会基于 UTC 日期计算当天和昨日的时间戳。
+## 与业务审计时间的区别
 
-## 相关资源
+Discussions 的 CreatedTime、ModifiedTime 等审计字段由 DataValidator 使用 DateTime.Now 填写。附件名称使用纪元天数，不代表整个模块已经统一采用 Unix 时间戳。审计策略见[数据服务](../../data/services.md)。
 
-* [Timestamp.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Common/Timestamp.cs)
+方法和边界可核对 [Timestamp 源码](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Common/Timestamp.cs)及[对应测试](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Common/Timestamp.cs)。

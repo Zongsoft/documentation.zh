@@ -1,104 +1,61 @@
 ---
-description: Validator 数据有效性验证接口。
+description: 从框架安全模块的密码策略验证器理解结果、失败信息和调用上下文。
 icon: clipboard-check
 ---
 
 # Validator
 
-`IValidator<T>` 表示数据有效性验证接口。它把验证结果和失败消息分开：方法返回 `true` / `false` 表示是否通过，`failure` 回调用于输出一条或多条失败原因。
+IValidator&lt;T&gt; 返回是否通过，并允许通过 failure 回调报告原因。Discussions 的 DataValidator 实现的是数据访问验证契约，负责站点和审计字段；两者不能仅因名称相近就混为一谈。
 
-## 接口成员
+## 真实密码验证器
 
-| 成员 | 说明 |
-| --- | --- |
-| `Validate(T data, Action<string> failure)` | 便捷同步验证入口。 |
-| `Validate(T data, object argument, Action<string> failure)` | 带自定义参数的同步验证入口。 |
-| `ValidateAsync(T data, Action<string> failure, CancellationToken cancellation)` | 便捷异步验证入口。 |
-| `ValidateAsync(T data, object argument, Action<string> failure, CancellationToken cancellation)` | 带自定义参数的异步验证入口。 |
-
-`argument` 用于传入验证上下文，例如当前租户、调用场景、密码策略或字段配置。`failure` 可以为空，表示调用方只关心是否通过。
-
-## 实现验证器
+来源：[framework/Zongsoft.Security/src/Validators/PasswordValidator.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Security/src/Validators/PasswordValidator.cs#L42)（节选；上下文见源文件）。
 
 {% code title="PasswordValidator.cs" %}
 ```csharp
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Zongsoft.Common;
-
-public sealed class PasswordValidator : IValidator<string>
-{
-	public bool Validate(string data, object argument, Action<string> failure = null)
-	{
-		if(string.IsNullOrWhiteSpace(data))
-		{
-			failure?.Invoke("密码不能为空。");
-			return false;
-		}
-
-		if(data.Length < 8)
-		{
-			failure?.Invoke("密码长度不能少于 8 个字符。");
-			return false;
-		}
-
-		return true;
-	}
-
-	public Task<bool> ValidateAsync(
-		string data,
-		object argument,
-		Action<string> failure = null,
-		CancellationToken cancellation = default)
-	{
-		return Task.FromResult(this.Validate(data, argument, failure));
-	}
-}
+[Service(typeof(IValidator<string>))]
+public class PasswordValidator : IValidator<string>, IMatchable
 ```
 {% endcode %}
 
-## 收集失败消息
+安全模块注册 PasswordValidator 供服务发现。策略并未写死成“至少八位”，而是由 IdentityOptions 参数提供。
 
-调用方可以通过 `failure` 回调收集错误消息，再决定是展示给用户、写入日志还是转换为业务异常。
+来源：[framework/Zongsoft.Security/src/Validators/PasswordValidator.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Security/src/Validators/PasswordValidator.cs#L58)（节选；上下文见源文件）。
 
-{% code title="ValidatePassword.cs" %}
+{% code title="PasswordValidator.cs" %}
 ```csharp
-using System;
-using System.Collections.Generic;
+var options = parameter as Configuration.IdentityOptions;
 
-var validator = new PasswordValidator();
-var failures = new List<string>();
+//如果没有设置密码验证策略，则返回验证成功
+if(options == null || options.PasswordLength < 1)
+	return true;
 
-if(!validator.Validate("123", failures.Add))
+//如果如果密码长度小于配置要求的长度，则返回验证失败
+if(string.IsNullOrEmpty(data) || data.Length < options.PasswordLength)
 {
-	foreach(var failure in failures)
-		Console.WriteLine(failure);
+	failure?.Invoke($"The password length must be no less than {options.PasswordLength} characters.");
+	return false;
 }
+
+bool isValidate;
 ```
 {% endcode %}
 
-## 在框架中的用法
+没有提供策略或长度小于一时返回成功；长度不足时通过 failure 返回原因。这是当前实现的重要边界，部署者必须提供符合自身要求的策略，不能把未配置理解成采用了默认强策略。
 
-安全模块会按服务名查找 `IValidator<string>`，用于用户名、角色名、密码等输入的规则校验。例如密码服务会查找名为 `password` 的验证器，用户名服务会查找名为 `user.name` 的验证器。
+## 强度与失败消息
 
-<details>
-<summary>适合使用 Validator 的场景</summary>
+后续逻辑根据配置分别判断纯数字、最低、普通和最高强度。完整方法见同一源文件。调用方可以收集失败消息显示给用户，也可以只关心返回值；不要把输入的密码本身写入日志。
 
-* 输入值需要返回明确失败消息。
-* 规则可能来自配置、服务或业务上下文。
-* 同步和异步验证入口都要对外暴露。
-* 验证器需要按名称注册并被业务服务查找。
+## 同步、异步与上下文
 
-</details>
+验证接口有同步和异步形式，并可以传递自定义参数。当前密码检查是本地计算；需要调用外部依赖的验证器应传播取消令牌并控制调用成本。同步成功不代表持久化或认证已经成功，这些属于后续业务步骤。
 
-{% content-ref url="predication.md" %}
-[predication.md](predication.md)
-{% endcontent-ref %}
+| 需求 | 应使用的机制 |
+| --- | --- |
+| 输入值是否符合规则并返回原因 | IValidator |
+| 是否满足条件 | [Predication](predication.md) |
+| 数据查询站点约束与审计字段 | [Discussions DataValidator](../../data/services.md) |
+| 用户能否执行资源动作 | [认证与授权](../../security/authentication.md) |
 
-## 相关资源
-
-* [IValidator.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Common/IValidator.cs)
-* [UserServiceBase.Password.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Security/Privileges/UserServiceBase.Password.cs)
-* [UserServiceBase.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Security/Privileges/UserServiceBase.cs)
-* [RoleServiceBase.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Security/Privileges/RoleServiceBase.cs)
+调用位置可核对框架 [UserServiceBase.Password](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Security/Privileges/UserServiceBase.Password.cs)。

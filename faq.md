@@ -23,7 +23,7 @@ icon: circle-question
 
 ## `Resolve`、`Find`、`Locate` 为什么结果不同？
 
-它们分别偏向容器注册解析、服务匹配、名称与提供者定位。`Orders@Redis` 不是 Orders 模块中的 Redis 对象；其他提供者也未必有对应别名。见[完整规则](framework/core/services/locating.md)。
+它们分别偏向容器注册解析、服务匹配、名称与提供者定位。“连接名@Redis”中的 Redis 是提供者别名；其他提供者也未必有对应别名。见[完整规则](framework/core/services/locating.md)。
 
 ## 查询为什么缺少导航字段？
 

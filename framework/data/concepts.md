@@ -15,7 +15,7 @@ icon: diagram-project
 
 ## 实体与名称 <a id="entity"></a>
 
-映射中的 `container` 为实体和命令提供命名空间。例如 `Orders.Order` 是实体限定名，物理表可以叫 `Sales_Order`。访问器名、映射容器名和数据库名不是同一概念，即使项目常把它们命名为相同文本。
+映射中的 `container` 为实体和命令提供命名空间。例如 Discussions 映射中的 Discussions.Forum 是实体限定名，实体 alias 指向 Discussions_Forum 物理表。访问器名、映射容器名和数据库名不是同一概念，即使项目常把它们命名为相同文本。
 
 泛型查询需要根据模型定位实体；动态或跨模块场景可显式传实体限定名。先核对[映射](mapping.md)，再确认代码使用的模型和实体名称。
 

@@ -15,15 +15,20 @@ icon: stairs
 
 ## 2. 配置发现通道
 
-下面选择 Web 包管理器作为默认通道。地址是示例，应替换为应用可达且有正确访问控制的端点。
+Discussions 没有独立升级客户端配置。下面采用框架升级器随包选项，默认选择 Web 包管理器，并同时声明 File 通道；地址需要按待升级应用实际部署环境调整。
 
-{% code title="Application.option" %}
+来源：[framework/upgrading/upgrader/Zongsoft.Upgrading.Upgrader.option](https://github.com/Zongsoft/framework/blob/main/upgrading/upgrader/Zongsoft.Upgrading.Upgrader.option#L3)（节选；上下文见源文件）。
+
+{% code title="Zongsoft.Upgrading.Upgrader.option" %}
 ```xml
 <options>
 	<option path="/Upgrading">
 		<connectionSettings default="Web">
 			<connectionSetting connectionSetting.name="Web"
-				value="url=http://127.0.0.1:8069/Upgrading/Upgrader;timeout=30s" />
+			                   value="url=http://127.0.0.1:8069/Upgrading/Upgrader;timeout=30s" />
+
+			<connectionSetting connectionSetting.name="File"
+			                   value="url=zfs.s3:/upgrading/releases/" />
 		</connectionSettings>
 	</option>
 </options>
@@ -40,11 +45,29 @@ icon: stairs
 
 Web 模块需要数据引擎、实际数据库驱动、初始化后的升级库表结构，以及 `/Upgrading/Settings` 中配置的存储提供者。随包清单使用 SQLite 路径，若更换驱动，还应同步连接、数据库初始化和插件依赖。
 
-发现接口示例：
+发现入口的真实控制器方法如下。name 和 edition 来自路由，platform、architecture 及附加参数来自请求；调用时使用实际宿主发布身份，而不是把 Discussions 插件包名当成宿主名：
 
-{% code title="DiscoverRelease.http" %}
-```http
-GET /Upgrading/Upgrader/Acme.Service/stable?Platform=Windows&Architecture=X64&CurrentlyVersion=1.0.0
+来源：[framework/upgrading/web/Controllers/UpgraderController.cs](https://github.com/Zongsoft/framework/blob/main/upgrading/web/Controllers/UpgraderController.cs#L48)（节选；上下文见源文件）。
+
+{% code title="UpgraderController.cs" %}
+```csharp
+public async Task<IActionResult> GetAsync(string name, string edition, [FromQuery]Platform platform, [FromQuery]Architecture architecture, CancellationToken cancellation = default)
+{
+	if(string.IsNullOrWhiteSpace(name))
+		throw new BadHttpRequestException($"The '{nameof(name)}' parameter is required.", StatusCodes.Status400BadRequest);
+
+	var parameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+	foreach(var pair in this.Request.Query)
+		parameters[pair.Key] = pair.Value;
+
+	foreach(var header in this.Request.Headers)
+		parameters[header.Key] = header.Value;
+
+	using var stream = new MemoryStream();
+	await Release.SaveAsync(stream, Upgrader.GetAsync(name, edition, platform, architecture, parameters, cancellation), cancellation);
+	return this.File(stream.ToArray(), "application/manifest+xml");
+}
 ```
 {% endcode %}
 

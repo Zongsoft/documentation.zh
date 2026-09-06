@@ -7,33 +7,31 @@ icon: hard-drive
 
 驱动负责把统一的数据表达式转换为具体数据库语法，并执行命令。一个完整驱动通常包含两个部分：连接设置驱动和数据驱动。
 
-## 已有驱动
+## 按驱动阅读
 
-框架仓库中包含多个驱动项目：
+已经确定数据库时，可以从对应项目页进入。每页集中说明包名、驱动键、部署连接和专项验证；[查询](querying.md)、[写入](writing.md)、[映射](mapping.md)等主题继续说明各驱动共享的用法。
 
-- `Zongsoft.Data.MySql`
-- `Zongsoft.Data.MsSql`
-- `Zongsoft.Data.PostgreSql`
-- `Zongsoft.Data.SQLite`
-- `Zongsoft.Data.DuckDB`
-- `Zongsoft.Data.TDengine`
-- `Zongsoft.Data.ClickHouse`
-- `Zongsoft.Data.Influx`
-
-具体可用状态以对应项目和 NuGet 包为准。
+| 驱动 | 源码目录 | NuGet 包 |
+| --- | --- | --- |
+| [MySQL](drivers/mysql.md) | `mysql` | `Zongsoft.Data.MySql` |
+| [SQL Server](drivers/mssql.md) | `mssql` | `Zongsoft.Data.MsSql` |
+| [PostgreSQL](drivers/postgres.md) | `postgres` | `Zongsoft.Data.PostgreSql` |
+| [SQLite](drivers/sqlite.md) | `sqlite` | `Zongsoft.Data.SQLite` |
+| [DuckDB](drivers/duckdb.md) | `duckdb` | `Zongsoft.Data.DuckDB` |
+| [ClickHouse](drivers/clickhouse.md) | `clickhouse` | `Zongsoft.Data.ClickHouse` |
+| [TDengine](drivers/tdengine.md) | `tdengine` | `Zongsoft.Data.TDengine` |
+| [InfluxDB](drivers/influx.md) | `influx` | `Zongsoft.Data.Influx` |
 
 ## 插件注册
 
 驱动以插件方式部署。以 MySQL 为例，插件会依赖 `Zongsoft.Data`，并向两个扩展点注册对象：
 
+来源：[framework/Zongsoft.Data/drivers/mysql/src/Zongsoft.Data.MySql.plugin](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Data/drivers/mysql/src/Zongsoft.Data.MySql.plugin#L19)（节选；上下文见源文件）。
+
 {% code title="Zongsoft.Data.MySql.plugin" %}
 ```xml
 <extension path="/Workbench/Configuration/ConnectionSettings/Drivers">
 	<object name="MySql" value="{static:Zongsoft.Data.MySql.Configuration.MySqlConnectionSettingsDriver.Instance, Zongsoft.Data.MySql}" />
-</extension>
-
-<extension path="/Workbench/Data/Drivers">
-	<object name="MySql" value="{static:Zongsoft.Data.MySql.MySqlDriver.Instance, Zongsoft.Data.MySql}" />
 </extension>
 ```
 {% endcode %}

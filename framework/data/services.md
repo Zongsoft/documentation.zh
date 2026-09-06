@@ -1,66 +1,112 @@
 ---
-description: 在 IDataAccess 之上组织业务数据服务，明确验证、授权、可写能力与 Web 接口的职责。
-icon: layer-group
+description: 通过 ThreadService、DataValidator 和查询过滤器理解业务服务边界。
+icon: book-open
 ---
 
 # 数据服务
 
-数据访问器回答“怎样读写数据”，数据服务回答“这个业务模型允许怎样被使用”。`DataServiceBase<TModel>` 将模型名称、查询、写入、验证、授权、过滤和子服务组合起来，适合由命令、工作器和 Web 控制器共同调用。
 
-## 先建立业务边界
+Discussions 的服务继承 DataServiceBase，将数据访问组织为业务动作。它们共同依赖映射、当前身份和插件装配，因此不是拿到一个数据库连接就能独立运行的 CRUD 包装。
 
-例如商品查询和商品调价可以使用相同数据访问器，但不应共享完全相同的授权和字段规则。数据服务可以在调用访问器之前验证条件和输入，控制可写能力，并将模块规则留在业务层。
+## 模型、条件模型与服务注册
 
-不要把数据服务理解为创建一个空派生类后，任意用户就能安全访问所有数据。身份、字段名单、租户条件和数据库映射仍须由应用明确配置。
+来源：[src/Services/ThreadService.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Services/ThreadService.cs#L41)（节选；上下文见源文件）。
 
-## 显式接入访问器
-
-下面是服务骨架，假定 `Catalog.Product` 已映射，且具名连接 `Catalog` 存在：
-
-{% code title="ProductService.cs" %}
+{% code title="ThreadService.cs" %}
 ```csharp
-using Zongsoft.Data;
-using Zongsoft.Services;
-
-[Service<IDataService<Product>>]
-public sealed class ProductService : DataServiceBase<Product>
+[Service(nameof(ThreadService))]
+[DataService(typeof(ThreadCriteria))]
+public class ThreadService : DataServiceBase<Models.Thread>
 {
-	public ProductService(System.IServiceProvider services) : base("Catalog.Product", services)
+	#region 成员字段
+	private PostService _posting;
+	#endregion
+
+	#region 构造函数
+	public ThreadService(IServiceProvider serviceProvider) : base(serviceProvider) { }
+```
+{% endcode %}
+
+Thread 是业务数据模型，ThreadCriteria 描述查询条件，Service 特性让模块容器发现服务。通用查询和写入由基类提供，审核、置顶等动作由派生服务实现。
+
+## 服务依赖另一个服务
+
+来源：[src/Services/ThreadService.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Services/ThreadService.cs#L54)（节选；上下文见源文件）。
+
+{% code title="ThreadService.cs" %}
+```csharp
+public PostService Posting
+{
+	get
 	{
-		var provider = services.ResolveRequired<Zongsoft.Services.IServiceProvider<IDataAccess>>();
-		this.DataAccess = provider.GetService("Catalog")
-			?? throw new InvalidOperationException("未配置 Catalog 数据访问器。");
+		if(_posting == null)
+			_posting = this.ServiceProvider.ResolveRequired<PostService>();
+
+		return _posting;
 	}
 }
+#endregion
+```
+{% endcode %}
 
-public sealed class Product
+Posting 在使用时从所属服务容器取得 PostService。容器管理的服务不由这里逐次释放，也不应该在静态字段中保存请求用户。
+
+## 三种规则放在不同位置
+
+| 规则 | Discussions 入口 | 作用 |
+| --- | --- | --- |
+| 业务动作 | ThreadService.Approve、PostService.Upvote | 组织条件、写入和统计 |
+| 站点及审计字段 | DataValidator | 为含 SiteId 的操作限制站点，填写创建人和时间 |
+| 查询结果内容 | ThreadFilter、PostFilter | 屏蔽未批准正文，读取外置内容 |
+
+过滤器处理返回内容，不能替代请求授权和查询范围。验证器也不能替代业务层对锁定、版主、作者等规则的判断。
+
+## 查询结束后再处理结果
+
+来源：[src/Data/PostFilter.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Data/PostFilter.cs#L44)（节选；上下文见源文件）。
+
+{% code title="PostFilter.cs" %}
+```csharp
+public void OnFiltered(DataSelectContextBase context)
 {
-	public int ProductId { get; set; }
-	public string Name { get; set; } = string.Empty;
+	if(context.Result == null)
+		return;
+
+	var identity = context.Principal?.Identity;
+	context.Result = FilteredResult.Create(context, item => Filter(item, identity));
 }
 ```
 {% endcode %}
 
-该骨架刻意显式设置 DataAccess：基类的延迟属性路径仍查找 `IDataAccessProvider`，而当前具体插件推荐消费具名提供者契约。应用已有注册桥接时可以沿用，但不能在示例中假定它必然存在。
+OnFiltering 发生在查询前；此时尚无可供包装的最终结果。OnFiltered 才对结果建立延迟过滤，[FilteredResult](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Data/FilteredResult.cs) 只适配同步/异步接口并转发分页通知，枚举和过滤直接使用 Core 的实现。其版本要求与生命周期见[过滤器](../core/components/filter.md)。不能在 Current 属性中重复读文件，否则多次读取同一元素可能把正文误当路径。
 
-## 验证与授权顺序
+## 接入 HTTP
 
-查询入口先授权，再通过 OnValidate 修整条件，随后处理模式、默认排序并调用访问器。写入还有数据验证过程。适合放在这些环节的规则包括追加当前租户条件、禁止修改所有者和验证必填字段。
+控制器通过泛型参数绑定服务，额外动作调用同一业务方法。详见[请求与数据服务接口](../web/data-services.md)。审核失败、不存在和无权限需要保持清晰的响应语义；不要在接口层重新拼一套可绕过服务条件的更新。
 
-配置 Authorizer 后由业务授权器判断；缺少授权器时，基类会拒绝匿名主体，但这只是一条基础检查，不能替代角色、资源和数据范围的细粒度权限。相关机制见[安全](../security.md)。
 
-{% hint style="warning" %}
-🚨 服务的 `CanInsert`、`CanUpdate`、`CanUpsert`、`CanDelete` 表达能力开关，不是完整的用户权限系统。主服务在未指定可变性时，删除默认不可用；子服务还受到主服务能力影响。不要从“继承了 CRUD 基类”推断所有操作已经开放。
-{% endhint %}
+## 创建时的审核规则
 
-## 过滤器与事件
+Discussions 的 Forum.Approvable 表示发帖是否需要审核。ThreadService 创建主题时，正文 Post 通过数据引擎级联写入；这个过程不会自动调用 PostService.OnInsert。因此，主题入口与普通回复入口都必须显式取得论坛规则，不能依赖映射里 Approved 的缺省值，也不能相信请求传入的审核标志。
 
-数据服务过滤器适合模型相关的横切规则；访问器过滤器则作用于更底层的数据操作。根据规则归属选择一层，避免两层重复追加条件或重复审计。
+来源：[src/Services/ForumService.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Services/ForumService.cs#L132)（节选；上下文见源文件）。
 
-查询后事件仍遵循[异步访问器的准备与枚举语义](data-access.md)：准备完成不等于所有结果已读取。审计“查询完成”时应说明记录的是命令准备、读取结束还是 HTTP 响应结束。
+{% code title="ForumService.cs" %}
+```csharp
+internal async ValueTask<bool> CanPublishAsync(IDataDictionary<Models.Thread> thread, CancellationToken cancellation)
+{
+	cancellation.ThrowIfCancellationRequested();
+	var forum = await this.DataAccess.SelectAsync<Forum>(GetForumCriteria(thread), nameof(Forum.Approvable), cancellation: cancellation).FirstOrDefault(cancellation);
+	if(forum == null)
+		throw new InvalidOperationException("The specified forum does not exist.");
 
-## 接到 Web
+	return !forum.Approvable || this.Principal?.Identity?.IsAuthenticated == true && await this.IsModeratorAsync(thread.GetValue(p => p.ForumId), cancellation: cancellation);
+}
+```
+{% endcode %}
 
-`ServiceController<TModel,TService>` 可以把数据服务映射为 HTTP 操作。控制器负责请求绑定和响应，业务验证与授权应继续由服务承担。控制器示例和操作约定见[请求与数据服务接口](../web/data-services.md)。
+CanPublishAsync 与同步 CanPublish 使用同一规则：论坛不存在则失败；无需审核的论坛可以直接发布，需要审核时只允许该论坛的版主直接通过。GetForumCriteria 保留明确指定的 SiteId 和 ForumId，数据验证器另外附加当前站点约束。
 
-源码依据：[数据服务基类](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Data/DataServiceBase.cs)、[查询入口](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Data/DataServiceBase.Select.cs)。
+主题入口将结果同时写入 Thread.Approved 与 Post.Approved，普通回复先按 ThreadId 查找所属论坛；二者都会把 Approved 纳入实际写入模式，避免自定义字段列表跳过服务端决定的值。审核通过动作仍使用 ThreadService.Approve，它与“创建时依据论坛规则决定初始状态”是两个业务步骤。
+
+这一规则已用隔离的数据访问替身覆盖同步/异步、主题/回复、需要审核/无需审核、版主/普通用户等组合。真实数据库的级联写入、事务回滚和权限配置仍需在部署环境中验收；回归用例见 [Discussions 检查程序](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/test/Program.cs)。

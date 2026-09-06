@@ -39,7 +39,7 @@ icon: file-chart-column
 
 ## 当前实现范围
 
-`ReportDataLocator` 的当前默认实现没有完成数据定位。外部 Grapecity 适配器也存在未完成的渲染、导出或定位器设置路径。使用前需要逐一检查计划调用的方法，而不是仅根据包名安排一条完整的导出流水线。
+`ReportDataLocator` 的当前默认实现没有完成数据定位。使用前需要逐一检查计划调用的方法，而不是仅根据包名安排一条完整的导出流水线。
 
 部署 `Zongsoft.Reporting` 不会自动提供设计器或一个可工作的报表下载接口。应用还需要选择引擎、满足其运行与许可条件、加载模板、连接数据，并处理输出和错误。
 
@@ -51,6 +51,6 @@ icon: file-chart-column
 4. 针对实际实现支持的输出格式验证下载结果，记录页数与数据总量。
 5. 再测试并发、超时、临时文件清理及失败后的资源释放。
 
-表格数据交换不一定需要报表引擎。只需导入导出工作簿时，参见[表格与报表扩展](externals/documents.md)。
+表格数据交换不一定需要报表引擎。只需导入导出工作簿时，参见[表格与模板扩展](externals/documents.md)。
 
 源码入口：[报表模块](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Reporting)、[默认数据加载](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Reporting/src/ReportDataLoader.cs)。

@@ -1,4 +1,4 @@
-﻿---
+---
 description: Zongsoft.Expressions 的表达式求值抽象、词法分析器、token 模型和 tokenizer 扩展方式。
 icon: code
 ---
@@ -51,18 +51,34 @@ icon: code
 | 5 | `IdentifierTokenizer` | 以字母或 `_` 开头，后续为字母、数字或 `_` 的标识符。 |
 | 6 | `SymbolTokenizer` | 内置符号 token。 |
 
-{% code title="ScanTokens.cs" %}
+来源：[framework/Zongsoft.Core/test/Expressions/LexerTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Expressions/LexerTest.cs#L15)（节选；上下文见源文件）。
+
+{% code title="LexerTest.cs" %}
 ```csharp
-using Zongsoft.Expressions;
+const string EXPRESSION = @"1+2f	_abc123'text\'suffix'	-30L*4.5 / 5.5m (true || FALSE?yes:no)null??nothing";
 
-var scanner = Lexer.Instance.GetScanner("Field1 == 100 && Enabled");
+var scanner = Lexer.Instance.GetScanner(EXPRESSION);
+Assert.NotNull(scanner);
 
-foreach(var token in scanner)
-	Console.WriteLine($"{token.Type}: {token.Value}");
+var token = scanner.Scan();
+Assert.NotNull(token);
+Assert.Equal(TokenType.Constant, token.Type);
+Assert.IsType<int>(token.Value);
+Assert.Equal(1, (int)token.Value);
+
+token = scanner.Scan();
+Assert.NotNull(token);
+Assert.Equal(SymbolToken.Plus, token);
+
+token = scanner.Scan();
+Assert.NotNull(token);
+Assert.Equal(TokenType.Constant, token.Type);
+Assert.IsType<float>(token.Value);
+Assert.Equal(2.0f, (float)token.Value);
 ```
 {% endcode %}
 
-这段表达式会被切成标识符 `Field1`、符号 `==`、整数常量 `100`、符号 `&&` 和标识符 `Enabled`。后续它是普通条件、数据查询条件还是命令参数条件，取决于调用方如何解释这些 token。
+Discussions 没有自行构造词法器；上面的 Core 测试依次断言整数常量 1、加号和单精度常量 2。完整测试继续覆盖标识符、字符串、负号和其他运算符。后续它是普通条件、数据查询条件还是命令参数条件，取决于调用方如何解释这些 token。
 
 ## Token 规则
 
@@ -97,18 +113,22 @@ foreach(var token in scanner)
 
 默认词法器没有启用业务关键字，因此 `in`、`between` 这类文本会先被识别为标识符。需要领域关键字时，可以创建新的 `Lexer` 实例，并把 `KeywordTokenizer` 放在 `IdentifierTokenizer` 之前。
 
-{% code title="KeywordTokens.cs" %}
+来源：[framework/Zongsoft.Core/test/Expressions/LexerTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Expressions/LexerTest.cs#L139)（节选；上下文见源文件）。
+
+{% code title="LexerTest.cs" %}
 ```csharp
-using Zongsoft.Expressions;
-using Zongsoft.Expressions.Tokenization;
+const string EXPRESSION = @"Field1 == 100 && Field2<1.23f && Field3 >=10.5m && (PI between ""3.1415926~3.1415927"" || Number IN [10,20,30] )";
 
 var lexer = new Lexer();
-lexer.Tokenizers.Insert(0, new KeywordTokenizer(true, "in", "between"));
+lexer.Tokenizers.Insert(0, new KeywordTokenizer(true, "in", "Between"));
 
-var scanner = lexer.GetScanner("""Number IN [10,20,30]""");
+var scanner = lexer.GetScanner(EXPRESSION);
+Assert.NotNull(scanner);
 
-foreach(var token in scanner)
-	Console.WriteLine($"{token.Type}: {token.Value}");
+var token = scanner.Scan();
+Assert.NotNull(token);
+Assert.Equal(TokenType.Identifier, token.Type);
+Assert.Equal("Field1", token.Value);
 ```
 {% endcode %}
 
@@ -126,22 +146,33 @@ foreach(var token in scanner)
 
 `IExpressionEvaluator` 定义了表达式求值的公共形状。调用方传入表达式文本、可选变量集合和可选运行选项，求值器返回一个对象结果。
 
-{% code title="EvaluateExpression.cs" %}
-```csharp
-using System.Collections.Generic;
-using Zongsoft.Expressions;
+来源：[framework/externals/python/test/PythonExpressionEvaluatorTest.cs](https://github.com/Zongsoft/framework/blob/main/externals/python/test/PythonExpressionEvaluatorTest.cs#L14)（节选；上下文见源文件）。
 
-object Evaluate(
-	IExpressionEvaluator evaluator,
-	string text,
-	IDictionary<string, object> variables)
+{% code title="PythonExpressionEvaluatorTest.cs" %}
+```csharp
+public void TestEvaluate1()
 {
-	return evaluator.Evaluate(text, variables);
+	var evaluator = new PythonExpressionEvaluator();
+	var variables = new Dictionary<string, object>();
+
+	var result = evaluator.Evaluate("1+2", null);
+	Assert.NotNull(result);
+	Assert.Equal(3, Zongsoft.Common.Convert.ConvertValue<int>(result));
+
+	variables["subtract"] = (Delegate)Subtract;
+	result = evaluator.Evaluate("subtract(100, 20)", variables);
+	Assert.NotNull(result);
+	Assert.Equal(80, Zongsoft.Common.Convert.ConvertValue<int>(result));
+
+	evaluator.Evaluate("a=1;b=2;result=a+b;", variables);
+	Assert.NotEmpty(variables);
+	Assert.True(variables.TryGetValue("result", out result));
+	Assert.Equal(3, Zongsoft.Common.Convert.ConvertValue<int>(result));
 }
 ```
 {% endcode %}
 
-求值器通常由具体模块实现自己的语法和语义。`ExpressionEvaluatorBase` 提供这些通用能力：
+上面是 Python 插件的实际测试，Subtract 为同一测试类中的静态方法，变量字典还接收脚本写回的 result。求值器通常由具体模块实现自己的语法和语义。`ExpressionEvaluatorBase` 提供这些通用能力：
 
 * `Name` 表示求值器名称。
 * 实现服务匹配接口，可以按名称忽略大小写查找求值器。
@@ -151,31 +182,37 @@ object Evaluate(
 
 `ExpressionEvaluatorOptions` 默认使用 `Console.In`、`Console.Out` 和 `Console.Error`，也可以通过静态方法或扩展方法替换输入输出。
 
-{% code title="EvaluatorOptions.cs" %}
+来源：[framework/externals/python/test/PythonExpressionEvaluatorTest.cs](https://github.com/Zongsoft/framework/blob/main/externals/python/test/PythonExpressionEvaluatorTest.cs#L98)（节选；上下文见源文件）。
+
+{% code title="PythonExpressionEvaluatorTest.cs" %}
 ```csharp
-using System.IO;
-using Zongsoft.Expressions;
+public void TestEvaluateOutputDoesNotLeakAcrossCallsOrEvaluators()
+{
+	const string PRINT_MESSAGE = "First evaluator output";
+	using var evaluator = new PythonExpressionEvaluator();
 
-var output = new StringWriter();
-var options = ExpressionEvaluatorOptions.Out(output);
+	using(var output = new StringWriter())
+	{
+		evaluator.Evaluate($"print('{PRINT_MESSAGE}')", ExpressionEvaluatorOptions.Out(output));
+		Assert.Equal(PRINT_MESSAGE, output.ToString());
+	}
 
-var result = evaluator.Evaluate("print(name)", options, variables);
+	var result = evaluator.Evaluate("print('Subsequent call output'); result=41");
+	Assert.Equal(41, Zongsoft.Common.Convert.ConvertValue<int>(result));
+
+	using var subsequentEvaluator = new PythonExpressionEvaluator();
+	result = subsequentEvaluator.Evaluate("print('Second evaluator output'); result=42");
+
+	Assert.Equal(42, Zongsoft.Common.Convert.ConvertValue<int>(result));
+}
 ```
 {% endcode %}
+
+输出隔离测试先释放首轮输出对象，再执行下一次调用和另一个求值器调用，用于验证输出流恢复。它不证明多个调用并发时共享运行时完全隔离；更多边界见脚本专题。
 
 如果应用中注册了多个 `IExpressionEvaluator` 实现，可以结合服务模型按名称选择。例如 `ExpressionEvaluatorBase` 已经支持忽略大小写匹配，因此调用方可以通过服务发现机制查找某个命名求值器。
 
-{% code title="FindEvaluator.cs" %}
-```csharp
-using Zongsoft.Expressions;
-using Zongsoft.Services;
-
-var evaluator = ApplicationContext.Current.Services.Find<IExpressionEvaluator>("javascript");
-
-if(evaluator != null)
-	return evaluator.Evaluate("1 + 2");
-```
-{% endcode %}
+现有语言实现的注册名是 Lua、Python 和 Scriban。选择方式、部署和语法差异见[脚本与表达式](../externals/scripting.md)。Discussions 未注册 JavaScript 求值器，不能把名称查找成功视为任意语言都已经可用。
 
 ## 使用建议
 

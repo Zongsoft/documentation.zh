@@ -1,61 +1,116 @@
 ---
-description: 用泛型服务控制器连接数据服务，理解 HTTP 方法、模式、分页和授权边界。
-icon: arrows-left-right
+description: 以 Discussions 的主题审核控制器说明 Web 与业务服务的分工。
+icon: route
 ---
 
 # 请求与数据服务接口
 
-当业务已经有 `IDataService<TModel>`，可以使用泛型服务控制器复用查询、计数、存在判断与写入操作。控制器处理 HTTP 语义，数据服务处理业务验证和授权，访问器处理数据引擎操作。
 
-## 控制器骨架
+Discussions Web 插件让控制器适配 HTTP，让业务服务处理论坛规则。ThreadController 继承泛型 ServiceController，模型和服务由类型参数明确指定。
 
-下面消费[数据服务示例](../data/services.md)中的 Product 和对应服务。类库需要引用 Zongsoft.Web，且处于能扫描该程序集的插件宿主中：
+来源：[src/api/Controllers/ThreadController.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/api/Controllers/ThreadController.cs#L40)（节选；上下文见源文件）。
 
-{% code title="ProductController.cs" %}
+{% code title="ThreadController.cs" %}
 ```csharp
-using Microsoft.AspNetCore.Mvc;
-using Zongsoft.Data;
-using Zongsoft.Web;
-
-[ApiController]
-[Route("api/products")]
-public sealed class ProductController(IDataService<Product> service)
-	: ServiceController<Product, IDataService<Product>>
+[Authorization]
+[ControllerName("Threads")]
+public class ThreadController : ServiceController<Thread, ThreadService>
 {
-	protected override IDataService<Product> GetService() => service;
-}
+	#region 公共方法
+	[ActionName("Approve")]
+	[HttpPost("{id}/Approve")]
+	public object Approve(ulong id)
+	{
+		return this.DataService.Approve(id) ? this.NoContent() : this.NotFound();
+	}
+
+	[ActionName("Hidden")]
+	[HttpPost("{id}/Hidden")]
+	public object Hidden(ulong id)
+	{
+		return this.DataService.Visible(id, false) ? this.NoContent() : this.NotFound();
+	}
+
+	[ActionName("Visible")]
+	[HttpPost("{id}/Visible")]
+	public object Visible(ulong id)
+	{
+		return this.DataService.Visible(id, true) ? this.NoContent() : this.NotFound();
+	}
+
+	[ActionName("Lock")]
+	[HttpPost("{id}/Lock")]
+	public object Lock(ulong id)
+	{
+		return this.DataService.SetLocked(id, true) ? this.NoContent() : this.NotFound();
+	}
+
+	[ActionName("Unlock")]
+	[HttpPost("{id}/Unlock")]
+	public object Unlock(ulong id)
+	{
+		return this.DataService.SetLocked(id, false) ? this.NoContent() : this.NotFound();
+	}
+
+	[ActionName("Pin")]
+	[HttpPost("{id}/Pin")]
+	public object Pin(ulong id)
+	{
+		return this.DataService.SetPinned(id, true) ? this.NoContent() : this.NotFound();
+	}
+
+	[ActionName("Unpin")]
+	[HttpPost("{id}/Unpin")]
+	public object Unpin(ulong id)
+	{
+		return this.DataService.SetPinned(id, false) ? this.NoContent() : this.NotFound();
+	}
+
+	[ActionName("Valued")]
+	[HttpPost("{id}/Valued")]
+	public object Valued(ulong id)
+	{
+		return this.DataService.SetValued(id, true) ? this.NoContent() : this.NotFound();
+	}
+
+	[ActionName("Unvalued")]
+	[HttpPost("{id}/Unvalued")]
+	public object Unvalued(ulong id)
+	{
+		return this.DataService.SetValued(id, false) ? this.NoContent() : this.NotFound();
+	}
+
+	[ActionName("Global")]
+	[HttpPost("{id}/Global")]
+	public object Global(ulong id)
+	{
+		return this.DataService.SetGlobal(id, true) ? this.NoContent() : this.NotFound();
+	}
+
+	[ActionName("Unglobal")]
+	[HttpPost("{id}/Unglobal")]
+	public object Unglobal(ulong id)
+	{
+		return this.DataService.SetGlobal(id, false) ? this.NoContent() : this.NotFound();
+	}
+	#endregion
 ```
 {% endcode %}
 
-基类通过 GetService 扩展点获取服务，不能传入不存在的基类 service 构造参数。应用仍需注册服务、映射实体、配置数据连接，并确定身份和权限规则。
+## 路由、动作与返回值
 
-## 方法与操作
+ControllerName 将控制器名指定为 Threads；模块提供 Discussions 区域，基类提供通用数据接口。Approve 的路由片段是主题编号加 Approve，调用服务成功返回 204，无匹配更新返回 404。最终地址还取决于宿主 PathBase 和路由约定，不能照搬旧 docs/api.md 中的单数名称或 api 前缀。
 
-| HTTP 入口 | 主要用途 |
-| --- | --- |
-| `GET api/products/{key?}` | 取得单项或查询结果 |
-| 计数/存在判断 Action | 按键或条件检查数据，具体模板以操作路由为准 |
-| `POST api/products` | 新增 |
-| `PUT api/products` | 增改保存 |
-| `PATCH api/products/{key}` | 更新 |
-| `DELETE api/products/{key?}` | 删除，受服务能力及键解析约束 |
+## 服务才决定业务条件
 
-继承基类后，不要只根据常见 REST 习惯推断 PUT/PATCH 的具体行为。子服务还有不同的路径和批量操作，实际路由应通过[OpenAPI](protocols.md)或控制器元数据核对。
+ThreadService.Approve 同时判断主题编号、尚未批准和版主资格。控制器不直接更新 Approved，从而让其他入口也可以复用服务逻辑。有关条件与关联正文更新，见[条件与操作元](../data/conditions-and-operands.md)。
 
-## 参数绑定与返回
+## 通用 CRUD 与业务动作
 
-绑定器将分页、排序、范围和混合值等文本转换为框架对象；格式化器使用框架序列化器。无效输入应查看模型状态和错误响应，不要把所有请求失败当成数据库异常。
+基类提供查询、计数、导入导出等入口；实际可用性还受数据服务能力和授权配置限制。不要因为继承了控制器就认定所有操作应向所有用户开放。新增动作要检查身份、SiteId、目标资源权限和副作用。
 
-根查询的 page 参数与数据模式中的导航限量不同。数据模式控制字段和对象图，根分页控制结果窗口，详见[数据模式](../data/schema.md)及[查询](../data/querying.md)。分页结果通过 WebUtility 的分页处理携带元数据，客户端应同时检查响应头与正文。
+## 查询模式和请求范围
 
-## 不让通用接口扩大权限
+ForumController 从请求头取得数据模式，分页来自查询参数。这使同一服务可以支持不同返回形状，也要求服务控制敏感字段、导航成本和审核判定字段。模式语法见[数据模式](../data/schema.md)。
 
-公开查询时，应控制可选字段、导航深度、集合限量和可排序成员；写入时应限制所有者、租户和审计字段。把客户端输入直接作为完整模式或无约束过滤条件，可能绕过应用原本的数据范围设计。
-
-数据服务的可写能力、授权器和验证器要一起工作。默认基类检查不等于业务权限已完成，也不意味着每个新增或删除入口都应开放。
-
-{% hint style="info" %}
-💡 先验证一个有权限用户的单项查询，再验证无效参数、匿名访问和无权限访问，最后测试写入及其影响行数。这样可以区分 HTTP 绑定、权限和数据库三类问题。
-{% endhint %}
-
-实现依据：[服务控制器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Web/src/ServiceController.cs)、[控制器基类](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Web/src/ServiceControllerBase.cs)、[绑定器](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Web/src/Binders)。
+运行前先[部署控制器插件](controllers.md)，并在自己的隔离环境使用仓库 docs/http 中的请求结构核对路由。

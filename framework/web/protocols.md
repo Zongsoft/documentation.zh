@@ -47,15 +47,21 @@ nuget:Zongsoft.Web.Grpc
 
 该插件注册 gRPC 服务端和反射服务，不定义应用的 `.proto`。业务需要提供生成的服务基类实现，并通过框架服务系统注册具体类型，赋予 `gRPC` 标签。
 
-{% code title="GreeterService.cs（注册形状）" %}
+Discussions 当前没有 gRPC 服务实现。框架诊断协议服务通过 Listener 的静态 Metrics 成员注册 OTLP 指标接收器：
+
+来源：[framework/Zongsoft.Diagnostics/protocols/server/src/Listener.Metrics.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Diagnostics/protocols/server/src/Listener.Metrics.cs#L51)（节选；上下文见源文件）。
+
+{% code title="Listener.Metrics.cs" %}
 ```csharp
-[Zongsoft.Services.Service(Tags = "gRPC")]
-public sealed class GreeterService : Greeter.GreeterBase
+[Service(Tags = "gRPC", Members = nameof(Metrics))]
+partial class Listener
 {
-	// Greeter 为应用自己的 .proto 生成类型；在这里实现协议方法。
-}
+	#region 单例字段
+	public static readonly MetricsProcessor Metrics = new();
 ```
 {% endcode %}
+
+MetricsProcessor 在同一文件中继承 MetricsService.MetricsServiceBase，并实现 Export 方法。这里的 Members 表示注册静态成员；它与直接注册服务类型是服务系统支持的两种入口。完整调用链见 [OTLP 协议接入](../diagnostics/otlp.md)。
 
 初始化器读取标签下的类型并映射服务。只继承生成基类或只复制 DLL，都不足以完成端点发现。
 

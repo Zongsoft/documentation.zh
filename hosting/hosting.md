@@ -25,19 +25,20 @@ hosting 根目录的 `Directory.Build.props` 当前设置 `net10.0`，并启用 
 
 ## 运行目录与身份
 
-{% code title="Application.layout" %}
-```text
-application/
-	Host.dll
-	Host.deps.json
-	Host.runtimeconfig.json
-	appsettings.json
-	plugins/
-		Main.plugin
-		zongsoft/
-		acme/
+以 hosting/web/default 的实际部署清单为例，Main.plugin 放入 plugins，其他配置由 scheme、site、environment 等变量选择；Discussions 的部署位置见[部署第一个插件](../get-started/deploy-first-plugin.md)。
+
+来源：[hosting/web/default/.deploy](https://github.com/Zongsoft/hosting/blob/main/web/default/.deploy#L7)（节选；上下文见源文件）。
+
+{% code title=".deploy" %}
+```ini
+#@import ../web.deploy
+
+[plugins]
+nuget:Zongsoft.Plugins/plugins/Main.plugin
 ```
 {% endcode %}
+
+发布后的入口是 Zongsoft.Hosting.Web.dll，其依赖清单与运行时配置随 dotnet publish 生成。插件和 .option 文件由部署清单补齐，不能仅凭程序集文件存在认定部署完整。
 
 可执行文件名、运行时应用名、`host` 和 `site` 不一定相同。应用名影响配置及升级匹配，`host/site` 参与部署和运行配置选择。终端当前应用名为 `zongsoft.terminal`，但入口程序集为 `Zongsoft.Hosting.Terminal`。
 

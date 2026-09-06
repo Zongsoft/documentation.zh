@@ -15,19 +15,26 @@ icon: tag
 | --- | --- |
 | 多重声明 | `AllowMultiple = true`，同一个目标可以拥有多个别名。 |
 | 继承读取 | 默认支持继承读取。 |
-| 静态读取方法 | `GetAliases(...)` 可从 `MemberInfo`、`Assembly`、`Module`、`ParameterInfo` 或对象读取别名。 |
+| 静态读取方法 | `GetAliases(...)` 可从 [`MemberInfo`](https://learn.microsoft.com/zh-cn/dotnet/api/system.reflection.memberinfo) _[源码](https://source.dot.net/#System.Private.CoreLib/MemberInfo.cs)_、[`Assembly`](https://learn.microsoft.com/zh-cn/dotnet/api/system.reflection.assembly) _[源码](https://source.dot.net/#System.Private.CoreLib/Assembly.cs)_、[`Module`](https://learn.microsoft.com/zh-cn/dotnet/api/system.reflection.module) _[源码](https://source.dot.net/#System.Private.CoreLib/Module.cs)_、[`ParameterInfo`](https://learn.microsoft.com/zh-cn/dotnet/api/system.reflection.parameterinfo) _[源码](https://source.dot.net/#System.Private.CoreLib/ParameterInfo.cs)_ 或对象读取别名。 |
 
-{% code title="声明和读取别名" %}
+来源：[framework/Zongsoft.Core/test/Models.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Models.cs#L247)（节选；上下文见源文件）。
+
+{% code title="Models.cs" %}
 ```csharp
-[Alias("sms")]
-[Alias("phone")]
-public sealed class PhoneTransmitter
+[DefaultValue(Female)]
+public enum Gender : byte
 {
-}
+	[Zongsoft.Components.Alias("F")]
+	Female,
 
-var aliases = AliasAttribute.GetAliases(typeof(PhoneTransmitter));
+	[Zongsoft.Components.Alias("M")]
+	[Description("Gender.Male")]
+	Male,
+}
 ```
 {% endcode %}
+
+Discussions 没有直接声明 AliasAttribute；这里引用 Core 测试模型中的 Gender 枚举。F、M 是枚举成员别名，读取时应对相应成员调用 GetAliases，而不是读取枚举类型就假定能获得所有成员的别名。该测试枚举与 Discussions.Models.Gender 是不同类型。
 
 ## 使用建议
 

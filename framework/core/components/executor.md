@@ -37,23 +37,15 @@ icon: bolt-lightning
 
 `Executor.Build(...)` 可以把委托、处理器或上下文处理逻辑包装成 `IExecutor`。如果指定了 Feature，则会通过 `Executor.Pipelines` 构建特性管线，再把原始执行逻辑包在管线中执行。
 
-{% code title="带 Feature 的执行器" %}
-```csharp
-var executor = Executor
-	.Features
-	.Timeout(TimeSpan.FromSeconds(5))
-	.Retry(TimeSpan.FromMilliseconds(200), attempts: 3)
-	.Fallback<Message, bool>(
-		(argument, cancellation) => ValueTask.FromResult(false))
-	.Build<Message, bool>(async (message, cancellation) =>
-	{
-		await SendAsync(message, cancellation);
-		return true;
-	});
+来源：[framework/externals/polly/samples/Program.cs](https://github.com/Zongsoft/framework/blob/main/externals/polly/samples/Program.cs#L207)（节选；上下文见源文件）。
 
-var sent = await executor.ExecuteAsync(message, cancellation);
+{% code title="Program.cs" %}
+```csharp
+var executor = _features.Build<int>(OnExecuteAsync);
 ```
 {% endcode %}
+
+这是 framework 的 Polly 交互样例：retry、timeout 等命令修改 _features，执行命令再据此构建处理整数输入的执行器；OnExecuteAsync 在同一文件中定义。完整样例及其策略配置见[任务调度与弹性执行](../../externals/execution.md)。Discussions 当前没有在帖子写入外层配置自动重试，不能直接重放包含文件与统计更新的写入流程。
 
 在这种结构里，业务代码只表达“要执行什么”，重试、回退、熔断、限流等策略由 Feature 管线提供，不需要散落在业务代码中。
 
@@ -73,7 +65,7 @@ var sent = await executor.ExecuteAsync(message, cancellation);
 * 为插件加载出来的处理器增加一致的执行策略。
 * 把策略配置和业务逻辑分开，让调用方只关心执行入口。
 
-如果只是一次本地方法调用，没有复用策略或统一上下文需求，直接调用业务方法通常更简单。Feature 的执行顺序和具体行为取决于管线构建器实现，文档示例主要用于展示核心 API 形状。
+如果只是一次本地方法调用，没有复用策略或统一上下文需求，直接调用业务方法通常更简单。Feature 的执行顺序和具体行为取决于管线构建器实现，应在实际样例中观察每项策略对执行次数、返回值和异常的影响。
 
 ## 参考实现
 

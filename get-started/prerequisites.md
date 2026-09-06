@@ -5,7 +5,7 @@ icon: list-check
 
 # 准备环境
 
-![准备环境](../.gitbook/assets/zongsoft-start-cover.svg)
+![准备环境](../.gitbook/assets/zongsoft-start-cover.png)
 
 学习插件使用可以直接从 NuGet 获取框架，不必先构建全部仓库。只有需要调试框架源码、使用本地未发布改动或构建现有 hosting 时，才需要准备相邻源码输出。
 
@@ -39,6 +39,7 @@ SDK 用于编译，运行时用于执行。安装较新运行时不代表机器�
 ```text
 Zongsoft/
 	framework/
+	discussions/
 	hosting/
 	tools/
 	documentation.zh/
@@ -49,6 +50,7 @@ Zongsoft/
 ```powershell
 git clone https://github.com/Zongsoft/framework.git
 git clone https://github.com/Zongsoft/hosting.git
+git clone https://github.com/Zongsoft/Zongsoft.Discussions.git discussions
 git clone https://github.com/Zongsoft/tools.git
 git -C framework submodule update --init --recursive
 ```
@@ -58,8 +60,12 @@ framework 的 OpenTelemetry 协议来源使用子模块；构建相关诊断项�
 
 ## 工具与可选环境
 
+{% hint style="warning" %}
+🚨 当前 Discussions 要求 Core 7.59.0 的分页过滤修复。截至 2026-09-06，该版本尚未发布到 NuGet；先构建相邻 framework 的 Core 与 Web，再使用 `-p:ZongsoftFrameworkPathReferenced=true` 构建 Discussions。对应配置和目标框架必须一致。完整命令见 [Discussions 本地构建说明](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/README.zh-Hans.md#本地构建与回归)。版本发布前，默认 NuGet 还原不能满足这一依赖，也不应降回 7.58.0。
+{% endhint %}
+
 安装步骤见[安装包](install.md)。编辑器可使用支持 .NET 的 IDE，Shell 命令应按 PowerShell 或 Bash 的各自语法执行，不能混用续行和变量插值。
 
-数据库、Redis、MQTT 和模型服务器并非最小插件教程的前置条件。按需要准备依赖服务，并先检查端点就绪；使用 Podman 时阅读[容器化环境](../hosting/containerization.md)。
+仅编译 Discussions 不要求运行外部服务；完整论坛查询需要按真实映射与宿主方案准备数据库、身份与相关依赖。MQTT 和模型服务器不是论坛业务的固有前置条件。按需要准备依赖服务，并先检查端点就绪；使用 Podman 时阅读[容器化环境](../hosting/containerization.md)。
 
 准备完成后，应能明确回答：目标框架是什么、包从哪里来、输出目录在哪里、实际启动哪个程序。接着[选择宿主](hosting.md)并完成第一个运行闭环。

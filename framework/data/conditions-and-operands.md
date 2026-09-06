@@ -1,96 +1,94 @@
 ---
-description: 使用 Condition 和 Operand 表达过滤条件、字段引用和写入运算。
-icon: filter
+description: 从版主审核与浏览量递增理解条件组合和数据库端表达式。
+icon: book-open
 ---
 
 # 条件与操作元
 
-条件用于表达过滤，操作元用于表达字段、常量、函数、聚合和运算。它们共同组成驱动可翻译的数据表达式，最终由数据库驱动转换为对应方言。
 
-## 条件
+条件决定哪些记录可操作，操作元决定字段怎样更新。二者都应描述业务约束，避免先读出值再在应用中计算后写回造成并发覆盖。
 
-`Condition` 是最常用的条件类型：
+## 条件组合：只有版主能审核
 
-{% code title="Condition.cs" %}
+来源：[src/Services/ThreadService.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Services/ThreadService.cs#L70)（节选；上下文见源文件）。
+
+{% code title="ThreadService.cs" %}
 ```csharp
-var criteria =
-	Condition.Equal(nameof(User.Enabled), true) &
-	Condition.Like(nameof(User.Name), "%admin%");
-```
-{% endcode %}
+public bool Approve(ulong threadId)
+{
+	var criteria = Condition.Equal(nameof(Models.Thread.ThreadId), threadId) &
+	               Condition.Equal(nameof(Models.Thread.Approved), false) &
+	               GetIsModeratorCriteria();
 
-常见条件包括：
-
-- `Equal` / `NotEqual`
-- `GreaterThan` / `GreaterThanEqual`
-- `LessThan` / `LessThanEqual`
-- `Like`
-- `In`
-- `Between`
-
-条件可以用 `&` 和 `|` 组合，分别表示逻辑与和逻辑或。
-
-## 字段引用
-
-当条件右侧不是常量，而是另一个字段时，使用字段操作元：
-
-{% code title="FieldOperand.cs" %}
-```csharp
-var criteria = Condition.Equal(
-	"MostRecentThreadAuthorId",
-	Operand.Field("MostRecentPostAuthorId")
-);
-```
-{% endcode %}
-
-这会生成字段与字段的比较，而不是字段与字符串常量的比较。
-
-## 写入运算
-
-操作元也可用于写入字段：
-
-{% code title="UpdateThread.cs" %}
-```csharp
-accessor.Update<Thread>(
-	new
+	return this.DataAccess.Update<Models.Thread>(new
 	{
-		TotalReplies = Operand.Field("TotalReplies") + 1,
-		ModifiedTime = DateTime.UtcNow,
-	},
-	Condition.Equal("ThreadId", threadId)
-);
+		Approved = true,
+		ApprovedTime = DateTime.Now,
+		Post = new
+		{
+			Approved = true,
+		}
+	}, criteria, "*,Post{Approved}") > 0;
+}
 ```
 {% endcode %}
 
-这类表达式适合计数器、金额计算、标志位、聚合回写等场景。
+主题编号、尚未批准、版主资格同时成立才更新。Post 的批准标志由数据模式显式包含。不能只在界面上隐藏按钮；服务本身也需要表达动作约束。
 
-## 操作元类型
+## 存在性条件：论坛中的版主记录
 
-常用操作元包括：
+来源：[src/Services/ThreadService.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Services/ThreadService.cs#L239)（节选；上下文见源文件）。
 
-- 常量操作元：`Operand.Constant(value)` 或普通常量值。
-- 字段操作元：`Operand.Field("Name")`。
-- 函数操作元：`Operand.Function("COALESCE", ...)`。
-- 聚合操作元：`Operand.Sum("Details.Amount")`。
-- 一元操作元：`!`、`~`、`-`。
-- 二元操作元：`+`、`-`、`*`、`/`、`%`、`&`、`|`、`^`。
-
-## 聚合回写
-
-{% code title="UpdateOrderAmount.cs" %}
+{% code title="ThreadService.cs" %}
 ```csharp
-accessor.Update<Order>(
-	new
-	{
-		Amount = Operand.Sum("Details.Amount")
-	},
-	Condition.Equal("OrderId", orderId)
-);
+private Zongsoft.Data.Condition GetIsModeratorCriteria()
+{
+	return Condition.Exists("Forum.Users",
+	         Condition.Equal(nameof(Forum.ForumUser.UserId), this.Principal.Identity.GetIdentifier<uint>()) &
+	         Condition.Equal(nameof(Forum.ForumUser.IsModerator), true));
+}
 ```
 {% endcode %}
 
-驱动会根据映射关系和数据库方言把聚合表达式翻译为合适的 SQL 或类 SQL 表达式。
+Exists 以 Forum.Users 关系为范围，内部同时匹配用户编号和版主标志。导航名来自[映射](mapping.md)，不是任意 SQL 表名。关联条件与当前 SiteId 一起构成完整业务范围。
 
-{% hint style="warning" %}
-条件和操作元表达的是数据层表达式，不是 C# 本地计算。只有驱动支持的函数、运算符和导航路径才能被正确翻译。
-{% endhint %}
+## 操作元：浏览次数在数据库端递增
+
+来源：[src/Services/ThreadService.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Services/ThreadService.cs#L183)（节选；上下文见源文件）。
+
+{% code title="ThreadService.cs" %}
+```csharp
+//递增当前主题的累计阅读量并更新最后查看时间
+this.DataAccess.Update<Models.Thread>(new
+{
+	TotalViews = Operand.Field(nameof(Models.Thread.TotalViews)) + 1,
+	ViewedTime = DateTime.Now,
+}, Condition.Equal(nameof(Models.Thread.ThreadId), thread.ThreadId));
+```
+{% endcode %}
+
+Operand.Field 表示数据库当前字段值。加一运算属于写入表达式，可以减少先读取再写入的竞争窗口。随后的内存对象也会增加计数，目的是让本次响应与已经执行的更新一致；它不是第二次数据库写入。
+
+## 租户条件不能由调用方替换
+
+来源：[src/Data/DataValidator.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Data/DataValidator.cs#L81)（节选；上下文见源文件）。
+
+{% code title="DataValidator.cs" %}
+```csharp
+public ICondition Validate(IDataAccessContextBase context, ICondition criteria)
+{
+	if(UserIdentity.Current == null)
+		return criteria;
+
+	//调用方提供的站点条件不能替代当前身份的站点约束。
+	if(HasProperty(context, Fields.SiteId))
+		criteria &= Condition.Equal(Fields.SiteId, UserIdentity.Current.SiteId);
+
+	return criteria;
+}
+```
+{% endcode %}
+
+在存在 Discussions 身份且实体有 SiteId 时，验证器追加当前站点条件。调用方显式传入其他 SiteId，也不能取消这个约束。没有 Discussions 身份的认证初始化路径有不同前提，不能据此声称验证器独自覆盖所有匿名入口。
+
+继续阅读[查询](querying.md)、[写入](writing.md)和[认证](../security/authentication.md)。

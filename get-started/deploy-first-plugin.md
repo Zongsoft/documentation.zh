@@ -1,137 +1,67 @@
 ---
-description: 从空目录创建最小终端宿主，部署命令插件并验证一次完整调用。
-icon: box-open
+description: 沿 hosting 已有方案部署 Discussions 领域与 Web 插件。
+icon: rocket
 ---
 
 # 部署第一个插件
 
-本教程创建独立的 `PluginDemo` 目录，得到一个能执行命令的插件式终端。它不需要数据库、缓存或云服务，适合先验证“宿主发布 → 插件部署 → 加载 → 调用”这条路径。
+本篇采用 hosting 仓库的真实 Web 宿主和 Discussions 部署项。需要同级 framework、hosting、discussions 源码，以及自己的隔离数据库、身份与文件存储配置。
 
-前置条件：已安装 .NET 10 SDK，NuGet 源可访问，并完成[安装部署工具](install.md)。这里选用 `net10.0` 作为完整示例；使用其它目标框架时，须同时核对宿主、插件和依赖版本。
+## 1. 确认现有方案已经包含业务插件
 
-{% stepper %}
-{% step %}
-## 创建启动器
+来源：[hosting/web/web.deploy](https://github.com/Zongsoft/hosting/blob/main/web/web.deploy#L29)（节选；上下文见源文件）。
 
-在自己准备的示例父目录执行：
-
-{% code title="创建 PluginDemo" %}
-```shell
-dotnet new console -n PluginDemo -f net10.0
-cd PluginDemo
-dotnet add package Zongsoft.Plugins
-```
-{% endcode %}
-
-把 `Program.cs` 替换为：
-
-{% code title="Program.cs" %}
-```csharp
-using Microsoft.Extensions.Hosting;
-using Zongsoft.Plugins.Hosting;
-
-Application.Terminal("PluginDemo", args).Run();
-```
-{% endcode %}
-
-启动器只声明终端宿主，没有引用命令插件的具体类型。后面的命令能力由部署加入。
-{% endstep %}
-
-{% step %}
-## 声明部署内容
-
-在 `PluginDemo` 项目目录创建文件名为 `.deploy` 的文本文件：
-
-{% code title=".deploy" %}
+{% code title="web.deploy" %}
 ```ini
-[plugins]
-nuget:Zongsoft.Plugins/plugins/Main.plugin
-nuget:Zongsoft.Plugins/plugins/Terminal.plugin
-
-[plugins zongsoft commands]
-nuget:Zongsoft.Commands
+[plugins zongsoft discussions]
+nuget:Zongsoft.Discussions@0.8.0
+nuget:Zongsoft.Discussions.Web@0.8.0
 ```
 {% endcode %}
 
-章节中的空格分隔目标目录层级。第一节部署插件框架的基础和终端清单，第二节部署命令包及其包内部署清单声明的文件。格式详见[部署文件](../references/deploy-files.md)。
+0.8.0 是当前方案锁定的包版本，不表示 NuGet 上永远最新。领域库和 Web 库要一起部署；数据、安全和其他公共插件由同一方案的其余条目提供。
 
-本例未固定包版本，便于首次尝试。建立可重复交付方案时，应把 NuGet 引用和 `nuget:包名@版本` 固定为相互兼容的版本，尤其要核对宿主根目录的 Core 版本。
-{% endstep %}
+## 2. 区分宿主发布与业务构建
 
-{% step %}
-## 发布宿主并部署插件
+宿主项目位于 hosting/web/default，入口是 Zongsoft.Hosting.Web.dll。默认从同级 framework 输出引用 Core、Web、Plugins、Plugins.Web，因此发布前要先构建这些项目的相同目标框架和配置。命令从 hosting/web/default 执行：
 
-以下命令仍从 `PluginDemo` 项目目录执行，以 Windows x64 为例：
-
-{% code title="发布到独立 out 目录" %}
-```shell
-dotnet publish -c Release -f net10.0 -o out
-dotnet deploy --destination:./out --framework:net10.0 --edition:Release --platform:win --architecture:x64
+{% code title="发布真实 Web 宿主" %}
+```powershell
+dotnet publish Zongsoft.Hosting.Web.csproj -c Release -f net10.0 -o ./out
 ```
 {% endcode %}
 
-第一条生成启动器及运行依赖，第二条读取当前目录 `.deploy`，把插件部署到 `out`。Linux 目标应改用实际的平台和架构；含原生库的包必须匹配目标运行环境。
+该命令只准备宿主运行文件。本地构建的 discussions 不会自动替代部署清单中的 NuGet 0.8.0；本地源码构建步骤见[业务插件](first-business-plugin.md)。
 
-{% hint style="warning" %}
-🚨 部署会写入目标文件。示例使用独立 `out` 目录；不要将目标改为已有业务运行目录来尝试。当前部署器可能在输出错误后仍返回退出码 0，必须同时检查输出和产物。
-{% endhint %}
-{% endstep %}
+## 3. 为隔离环境准备配置
 
-{% step %}
-## 检查文件并启动
+检查 hosting/.deploy/default/options 中的应用、数据、安全和文件配置，替换为自己的测试端点。Discussions 的映射含外部序号和实体驱动选择，数据库脚本必须与实际部署匹配，见[首次查询](../framework/data/quickstart.md)。
 
-至少应能找到下面这些文件；此处省略其它宿主依赖和资源目录：
+不要直接运行 deploy.cmd 作为学习验证：该脚本还会清理插件目录并可能继续打包。下面使用同一部署器和已存在的方案，目标设为上一步的 out 目录：
 
-{% code title="PluginDemo/out" %}
-```text
-out/
-	PluginDemo.dll
-	PluginDemo.deps.json
-	PluginDemo.runtimeconfig.json
-	plugins/
-		Main.plugin
-		Terminal.plugin
-		zongsoft/
-			commands/
-				Zongsoft.Commands.plugin
-				Zongsoft.Commands.dll
+{% code title="从 hosting/web/default 收集插件" %}
+```powershell
+dotnet deploy .deploy --destination:./out --host:web --site:default --scheme:default --environment:development --debug:off --edition:Release --framework:net10.0 --platform:win --architecture:x64
 ```
 {% endcode %}
 
-进入部署目录启动：
+参数来自真实部署脚本；平台与架构应按实际运行环境调整。环境目录里的配置必须先审阅，命令不会替你建立安全的测试数据库。
 
-{% code title="启动 PluginDemo" %}
-```shell
-cd out
-dotnet PluginDemo.dll
+## 4. 核对本地修改是否进入运行目录
+
+使用 NuGet 清单时运行的是包内版本。调试本地修改，应停止宿主后，把 discussions 构建的 DLL/PDB 以及相应 plugin、option、mapping 更新到 out/plugins/zongsoft/discussions，并保留 Web 模板目录。不能把旧包和新源码混在一起后依然按同一版本排障。
+
+领域与 Web 的资源清单见[部署文件格式](../references/deploy-files.md)。部署后应同时看到两个插件清单、领域映射、选项和用户列表模板。
+
+## 5. 从运行目录启动并验证
+
+{% code title="启动 Web 宿主" %}
+```powershell
+Set-Location ./out
+dotnet ./Zongsoft.Hosting.Web.dll
 ```
 {% endcode %}
 
-在出现的终端提示符中逐条输入：
+监听地址由宿主配置提供。先确认 /Application，再用 discussions/docs/http/forum.http 的只读查询验证论坛接口。401/403、404、连接失败和空结果代表不同问题，按[运行与调试](run-and-debug.md)逐层排查。
 
-{% code title="验证插件提供的命令" %}
-```text
-help
-echo hello
-plugin.list
-exit -yes
-```
-{% endcode %}
-
-预期能显示帮助、输出 `hello`、列出已加载插件，然后退出。这样既验证了发现插件，也验证了插件贡献的命令能被执行。
-{% endstep %}
-{% endstepper %}
-
-## 如果没有达到预期
-
-| 现象 | 优先检查 |
-| --- | --- |
-| 工具无法运行或提示控制台句柄错误 | Windows 使用正常交互终端；自动化终端需要 PTY/ConPTY |
-| 找不到插件或配置 | 当前目录是否为 `out`，内容根是否正确 |
-| 缺少基础构建器或工作台 | `Main.plugin`、`Terminal.plugin` 是否存在 |
-| 命令不存在 | 命令插件清单、程序集和依赖是否完整 |
-| 类型加载或方法不存在 | 宿主和插件的 Core、Plugins 及其它共享依赖是否兼容 |
-
-下一步：[编写第一个业务插件](first-business-plugin.md)，在同一宿主中增加一个只依赖 Core 的计算命令。更详细的检查步骤见[运行与调试](run-and-debug.md)。
-
-本教程根据[终端入口](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/Hosting/Application.cs)、[基础清单](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/plugins/Main.plugin)与[命令插件](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Commands)组织。
+这条路径会连接配置中的业务依赖。文档迁移阶段的离线编译和回归检查不能替代你所在环境的完整部署验收。

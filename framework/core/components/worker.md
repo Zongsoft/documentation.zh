@@ -47,21 +47,23 @@ icon: person-running
 
 `Zongsoft.Externals.Hangfire` 中的 `Server` 继承自 `WorkerBase`，启动时创建 `BackgroundJobServer`，停止时释放服务器实例。它还暴露 `Handlers` 集合，让插件把调度处理器挂载到 `/Workbench/Scheduler/Handlers`。
 
+来源：[framework/externals/hangfire/src/Zongsoft.Externals.Hangfire-daemon.plugin](https://github.com/Zongsoft/framework/blob/main/externals/hangfire/src/Zongsoft.Externals.Hangfire-daemon.plugin#L19)（节选；上下文见源文件）。
+
 {% code title="Zongsoft.Externals.Hangfire-daemon.plugin" %}
 ```xml
-<extension path="/Workspace/Externals/Hangfire">
-	<object name="Server" type="Zongsoft.Externals.Hangfire.Server, Zongsoft.Externals.Hangfire">
-		<expose name="Handlers" value="{path:../@Handlers}" />
-	</object>
-</extension>
+	<extension path="/Workspace/Externals/Hangfire">
+		<object name="Server" type="Zongsoft.Externals.Hangfire.Server, Zongsoft.Externals.Hangfire">
+			<expose name="Handlers" value="{path:../@Handlers}" />
+		</object>
+	</extension>
 
-<extension path="/Workbench/Scheduler">
-	<object name="Handlers" value="{path:/Workspace/Externals/Hangfire/Server/Handlers}" />
-</extension>
+	<extension path="/Workbench/Scheduler">
+		<object name="Handlers" value="{path:/Workspace/Externals/Hangfire/Server/Handlers}" />
+	</extension>
 
-<extension path="/Workbench/Startup">
-	<object name="Hangfire" value="{path:/Workspace/Externals/Hangfire/Server}" />
-</extension>
+	<extension path="/Workbench/Startup">
+		<object name="Hangfire" value="{path:/Workspace/Externals/Hangfire/Server}" />
+	</extension>
 ```
 {% endcode %}
 

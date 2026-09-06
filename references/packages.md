@@ -72,10 +72,10 @@ icon: boxes-stacked
 | `Zongsoft.Externals.Lua`、`Zongsoft.Externals.Python`、`Zongsoft.Externals.Scriban` | [脚本与表达式](../framework/externals/scripting.md) |
 | `Zongsoft.Externals.Hangfire`、`Zongsoft.Externals.Polly` | [任务调度与弹性执行](../framework/externals/execution.md) |
 | `Zongsoft.Externals.Hangfire.Storages.Redis`、`Zongsoft.Externals.Hangfire.Web` | [Hangfire 的部署角色](../framework/externals/execution.md) |
-| `Zongsoft.Externals.ClosedXml`、`Zongsoft.Externals.OpenXml`、`Zongsoft.Externals.Grapecity` | [表格与报表](../framework/externals/documents.md) |
+| `Zongsoft.Externals.ClosedXml`、`Zongsoft.Externals.OpenXml` | [表格与模板](../framework/externals/documents.md) |
 | `Zongsoft.Externals.Amazon`、`Zongsoft.Externals.Aliyun`、`Zongsoft.Externals.Wechat` | [云服务](../framework/externals/cloud.md) |
 | `Zongsoft.Externals.Aliyun.Gateway`、`Zongsoft.Externals.Wechat.Gateway` | [回调网关](../framework/externals/cloud.md) |
-| `Zongsoft.Externals.Opc`、`Zongsoft.Externals.Velopack` | [设备协议与桌面更新](../framework/externals/integration.md) |
+| `Zongsoft.Externals.Opc` | [OPC UA 设备协议](../framework/externals/integration.md) |
 
 ## 自动升级
 

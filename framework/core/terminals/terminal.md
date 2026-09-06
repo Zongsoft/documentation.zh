@@ -25,26 +25,20 @@ icon: terminal
 
 终端执行器运行时会打印闪屏、进入命令循环并等待用户输入。可以传入纯文本闪屏，也可以传入 `CommandOutletContent` 组合多色输出。
 
-{% code title="RunTerminal.cs" %}
+来源：[framework/Zongsoft.Net/samples/server/Program.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Net/samples/server/Program.cs#L46)（节选；上下文见源文件）。
+
+{% code title="Program.cs" %}
 ```csharp
-using Zongsoft.Components;
-using Zongsoft.Terminals;
-
-var executor = Terminal.Console.Executor;
-
-executor.Command("ping", context =>
-{
-	context.Output.WriteLine(CommandOutletColor.Green, "pong");
-});
-
 var splash = CommandOutletContent.Create()
-	.AppendLine(CommandOutletColor.Yellow, new string('-', 32))
-	.AppendLine(CommandOutletColor.Cyan, "Welcome to Zongsoft Terminal")
-	.AppendLine(CommandOutletColor.Yellow, new string('-', 32));
+	.AppendLine(CommandOutletColor.Yellow, new string('·', 50))
+	.AppendLine(CommandOutletColor.Blue, "Welcome to the TCP Server.".Justify(50))
+	.AppendLine(CommandOutletColor.Yellow, new string('·', 50));
 
 await executor.RunAsync(splash);
 ```
 {% endcode %}
+
+上面是 framework TCP 服务端样例的启动片段，executor 及 start、stop、info 命令在同一 Program.cs 前部创建；完整入口见[常规通讯](../communication/general.md)。Discussions 自己的站内信命令复用宿主执行器，不重复创建终端。
 
 命令循环会把输出编码设置为 UTF-8。每次读取命令前会重置终端样式，并显示提示符：根节点下显示 `$>`，进入某个命令节点后显示该节点完整路径。
 
@@ -80,17 +74,12 @@ await executor.RunAsync(splash);
 
 `Terminal.ReactiveAsync(...)` 让命令进入“运行中等待中断”的模式。它会检查当前执行器是否是终端执行器，挂载终端的 `Aborting` 事件，然后等待 Ctrl+C 释放信号量，最后执行退出回调。
 
-{% code title="响应式命令结构" %}
+来源：[framework/Zongsoft.Commands/src/Messaging/QueueSubscribeCommand.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Commands/src/Messaging/QueueSubscribeCommand.cs#L52)（节选；上下文见源文件）。
+
+{% code title="QueueSubscribeCommand.cs" %}
 ```csharp
-protected override ValueTask<object> OnExecuteAsync(
-	CommandContext context,
-	CancellationToken cancellation)
-{
-	return context.ReactiveAsync(
-		this.OnEnterAsync,
-		this.OnExitAsync,
-		cancellation);
-}
+protected override ValueTask<object> OnExecuteAsync(CommandContext context, CancellationToken cancellation) =>
+	context.ReactiveAsync(this.OnEnterAsync, this.OnExitAsync, cancellation);
 ```
 {% endcode %}
 
@@ -104,20 +93,31 @@ protected override ValueTask<object> OnExecuteAsync(
 
 `ITerminal` 继承 `ICommandOutlet`，因此命令可以使用 `CommandOutletContent` 组合颜色、样式和文本片段。控制台终端会把这些样式转换为 ANSI 转义序列输出。
 
-{% code title="TerminalOutput.cs" %}
+来源：[framework/Zongsoft.Core/samples/memorycache/Program.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/samples/memorycache/Program.cs#L78)（节选；上下文见源文件）。
+
+{% code title="Program.cs" %}
 ```csharp
-Terminal.WriteLine(CommandOutletColor.Green, "服务已启动。");
-Terminal.WriteLine(CommandOutletColor.Red, "命令执行失败。");
+private static void Cache_Evicted(object sender, CacheEvictedEventArgs e)
+{
+	var content = CommandOutletContent.Create(CommandOutletColor.Magenta, "** Evicted **\t")
+		.Append(CommandOutletColor.DarkGreen, Now + ' ')
+		.Append(CommandOutletColor.Blue, $"[{e.Reason}] ")
+		.Append(CommandOutletColor.DarkYellow, e.Key.ToString())
+		.Append(CommandOutletColor.DarkGray, "=")
+		.Append(CommandOutletColor.DarkYellow, e.Value?.ToString());
 
-var content = CommandOutletContent.Create()
-	.Append(CommandOutletColor.Cyan, "State: ")
-	.AppendLine(CommandOutletColor.Green, "Running");
+	if(e.State != null)
+		content
+			.Append(CommandOutletColor.DarkGray, " (")
+			.Append(CommandOutletColor.Cyan, e.State.ToString())
+			.Append(CommandOutletColor.DarkGray, ")");
 
-Terminal.Write(content);
+	Terminal.WriteLine(content);
+}
 ```
 {% endcode %}
 
-命令内部通常优先使用 `context.Output`，这样同一命令既可以在终端中输出，也可以被其它命令执行器复用。只有确定输出目标就是当前默认终端时，才直接使用 `Terminal.WriteLine(...)`。
+这段输出来自 Core 的 memorycache 交互样例，Now 是同一类的时间文本属性，e 来自缓存淘汰事件。命令内部通常优先使用 `context.Output`，这样同一命令既可以在终端中输出，也可以被其它命令执行器复用。只有确定输出目标就是当前默认终端时，才直接使用 `Terminal.WriteLine(...)`。
 
 ## 终端扩展方法
 

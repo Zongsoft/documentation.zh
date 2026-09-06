@@ -1,103 +1,61 @@
 ---
-description: 将普通 ASP.NET Core 控制器作为插件部署，并核对发现、路由和首次请求。
-icon: route
+description: 构建并部署 Discussions Web 类库，检查控制器发现和请求前提。
+icon: plug
 ---
 
 # 部署控制器插件
 
-本例在已准备好的[Web 宿主](../../hosting/web.md)中加入一个只返回固定结果的控制器。它不依赖数据库，适合先验证插件发现与 HTTP 路由，再接业务服务。
 
-## 创建控制器类库
+Discussions 的 API 项目是 Web 类库，OutputType 为 Library。它包含控制器但没有可独立启动的入口，必须与[Web 宿主](../../hosting/web.md)及领域插件一起部署。
 
-创建 `Acme.Probe.Web` 类库，目标框架与宿主一致。项目需要 ASP.NET Core 框架引用；以 .NET 10 为例：
+## 构建真实项目
 
-{% code title="Acme.Probe.Web.csproj" %}
+{% code title="从 discussions 根目录构建 API" %}
+```powershell
+dotnet build src/api/Zongsoft.Discussions.Web.csproj -f net10.0 -p:GeneratePackageOnBuild=false
+```
+{% endcode %}
+
+这会同时构建领域库。需要与当前框架联调时，先构建对应 Core/Web 程序集，再添加本地引用开关，见[业务插件](../../get-started/first-business-plugin.md)。
+
+## Web 清单依赖领域插件
+
+来源：[src/api/Zongsoft.Discussions.Web.plugin](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/api/Zongsoft.Discussions.Web.plugin#L9)（节选；上下文见源文件）。
+
+{% code title="Zongsoft.Discussions.Web.plugin" %}
 ```xml
-<Project Sdk="Microsoft.NET.Sdk">
-	<PropertyGroup>
-		<TargetFramework>net10.0</TargetFramework>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-	</PropertyGroup>
-	<ItemGroup>
-		<FrameworkReference Include="Microsoft.AspNetCore.App" />
-	</ItemGroup>
-</Project>
+<manifest>
+	<dependencies>
+		<dependency name="Zongsoft.Discussions" />
+	</dependencies>
+
+	<assemblies>
+		<assembly name="Zongsoft.Discussions.Web" />
+	</assemblies>
+</manifest>
 ```
 {% endcode %}
 
-{% code title="ProbeController.cs" %}
-```csharp
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+依赖保证先装配领域模块，程序集声明让宿主发现控制器。只部署 Web DLL 而漏掉领域映射、身份扩展和数据驱动，会导致控制器存在但业务调用失败。
 
-namespace Acme.Probe.Web;
+## 随包交付的资源
 
-[ApiController]
-[AllowAnonymous]
-[Route("probe")]
-public sealed class ProbeController : ControllerBase
-{
-	[HttpGet]
-	public IActionResult Get() => this.Ok(new { Value = 42 });
-}
+来源：[src/api/Zongsoft.Discussions.Web.deploy](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/api/Zongsoft.Discussions.Web.deploy#L1)（节选；上下文见源文件）。
+
+{% code title="Zongsoft.Discussions.Web.deploy" %}
+```ini
+artifacts/Zongsoft.Discussions.Web.plugin
+lib/$(Framework)/Zongsoft.Discussions.Web.*
+
+[templates]
+artifacts/templates/*.xlsx
 ```
 {% endcode %}
 
-这是无输入、无外部依赖的本地探针。业务控制器应调用应用服务并配置适当授权；需要公共框架契约时再增加对应包引用。
+用户归档模板在 templates 中。项目还把 docs/http 请求文件打入 artifacts/http，供核对接口；请求中的地址与凭证必须由自己的环境提供。
 
-## 声明清单并部署
+## 验证路径
 
-{% code title="Acme.Probe.Web.plugin" %}
-```xml
-<plugin name="Acme.Probe.Web">
-	<manifest>
-		<assemblies>
-			<assembly name="Acme.Probe.Web" />
-		</assemblies>
-		<dependencies>
-			<dependency name="Main" />
-		</dependencies>
-	</manifest>
-</plugin>
-```
-{% endcode %}
+先确认 Discussions 和 Discussions.Web 清单加载，再确认 Threads、Forums、Users 等控制器进入应用模型。随后检查认证、站点、连接、映射和外部文件配置，最后验证查询与业务动作。
 
-构建类库，将 DLL 与清单放入测试宿主的 `plugins/acme/probe/`，保留宿主已有的 Main 等基础清单和依赖。使用部署器时，将这两个本地源文件放入同一目标章节；相对源路径按自己的目录布局填写，详见[部署格式](../../references/deploy-files.md)。
-
-## 发起请求
-
-从测试部署目录启动宿主，下面以现成 Web 启动器及空闲回环端口为例：
-
-{% code title="启动并验证本地探针" %}
-```shell
-dotnet Zongsoft.Hosting.Web.dll --urls=http://127.0.0.1:51873
-```
-{% endcode %}
-
-在另一个终端执行：
-
-{% code title="请求探针" %}
-```shell
-curl -i http://127.0.0.1:51873/probe
-```
-{% endcode %}
-
-预期状态为 200，JSON 的 Value 对应值为 42；属性大小写可能受当前序列化选项影响。验证后用 Ctrl+C 停止测试宿主。
-
-## 发现与路由是两个阶段
-
-清单声明的程序集被加入 Web 部件集合后，MVC 才能发现控制器。发现成功后仍需要有效路由。默认宿主映射属性路由控制器，只有无模板的 HttpGet 或 Area 元数据并不保证产生可访问 URL。
-
-| 现象 | 检查方向 |
-| --- | --- |
-| 连接被拒绝 | 监听地址、端口与进程是否启动 |
-| 404 | 清单程序集、控制器发现、属性路由、请求路径 |
-| 401/403 | 身份验证方案、授权策略与调用者身份 |
-| 首次请求抛服务异常 | 依赖注册、插件配置、共享程序集版本 |
-
-{% hint style="warning" %}
-🚨 示例的 AllowAnonymous 仅用于固定本地探针。实际业务端点不应复制这一开放策略；有文件访问、用户信息或管理功能时尤其需要明确访问范围。
-{% endhint %}
-
-源码定位：[Web 应用上下文](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins.Web/src/WebApplicationContext.cs)、[控制器发现](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Web/src/ControllerFeatureProvider.cs)。
+公开动作以控制器当前路由为准。仓库早期 docs/api.md 是历史接口草稿；未经核对，不应将其中的单数路径视为当前可执行范例。主题审核的具体代码见[请求与数据服务接口](data-services.md)。

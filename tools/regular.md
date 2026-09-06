@@ -23,13 +23,17 @@ dotnet build ./regular/src/Zongsoft.Tools.Regular.csproj
 
 在输入区域放入测试文本，在表达式区域填写正则，执行匹配后观察结果树。匹配表示一次整体命中，组表示表达式中命名或编号的子部分，捕获表示重复分组在一次匹配中的各次结果。
 
-{% code title="OrderPattern.regex" %}
-```regex
-(?<name>[A-Za-z]+)=(?<value>\d+)
+Discussions 没有独立的正则调试样例，可用 Core 的 TextRegular.Web.Email 定义观察命名组。下面摘录实际规则；复制到工具的表达式框时，仅取 C# 逐字字符串中的内容，不包含 @、引号或字段声明。
+
+来源：[framework/Zongsoft.Core/src/Text/TextRegular.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Text/TextRegular.cs#L115)（节选；上下文见源文件）。
+
+{% code title="TextRegular.cs" %}
+```csharp
+public static readonly TextRegular Email = new(@"^\s*(?<value>[A-Za-z0-9]([-_\.]?[A-Za-z0-9]+)*@([A-Za-z0-9]+([-_]?[A-Za-z0-9]+)*)(\.[A-Za-z0-9]+([-_]?[A-Za-z0-9]+)*)*\.[A-Za-z]+)\s*$");
 ```
 {% endcode %}
 
-输入 `apples=12 oranges=7` 应得到两次匹配，并能分别检查 `name` 和 `value`。选中结果时，结合索引和长度核对命中位置，而不只比较显示文本。
+该规则的 value 组提取邮箱主体，外围空白不属于 value。使用待核对的应用输入观察整体匹配和分组结果；它是框架现有的邮箱格式规则，不代表对全部合法邮箱语法的完整实现。选中结果时，结合索引和长度核对命中位置，而不只比较显示文本。
 
 ## 选项影响
 

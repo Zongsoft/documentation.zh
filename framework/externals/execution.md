@@ -1,98 +1,58 @@
 ---
-description: 使用 Hangfire 执行持久后台作业，用 Polly 为当前调用配置重试、超时和熔断。
-icon: clock
+description: 通过框架 Hangfire 样例说明处理器注册、作业执行和重试边界。
+icon: calendar-check
 ---
 
 # 任务调度与弹性执行
 
-后台调度决定“什么时候由哪个工作进程执行”，弹性策略决定“一次调用遇到暂时故障时怎样处理”。Hangfire 和 Polly 可以配合使用，但持久任务、调用重试和业务幂等是三个独立问题。
+Discussions 当前没有定时清理、消息重试或日报处理器。因此本页采用框架 externals/hangfire/samples 中的 MyHandler。
 
-## Hangfire 的部署角色
+## 已存在的任务处理器
 
-| 产物 | 负责什么 |
-| --- | --- |
-| `Zongsoft.Externals.Hangfire` | 周期/延迟调度器及后台服务器集成 |
-| `Zongsoft.Externals.Hangfire-daemon.plugin` | 启动后台 Server，挂载处理器集合 |
-| `Zongsoft.Externals.Hangfire.Storages.Redis` | 可选的 Redis 作业存储，使用 `Hangfire` 连接 |
-| `Zongsoft.Externals.Hangfire.Web` | Web Dashboard 接入 |
+来源：[framework/externals/hangfire/samples/MyHandler.cs](https://github.com/Zongsoft/framework/blob/main/externals/hangfire/samples/MyHandler.cs#L11)（节选；上下文见源文件）。
 
-先配置作业存储，再启动调度器和工作器。Dashboard 展示和管理任务，不代表已有进程负责执行任务。部署附加清单时，应核对 `site` 对应的 daemon 变体是否进入运行目录。
-
-## 注册稳定的处理器名称
-
-实现 Core 的处理器契约，并在业务插件中挂载到 `/Workbench/Scheduler/Handlers`。下面的 `Report` 是任务持久化时使用的名称，应保持稳定；更名时要考虑存储中的旧任务。
-
-{% code title="ReportHandler.cs" %}
+{% code title="MyHandler.cs" %}
 ```csharp
-using Zongsoft.Components;
-using Zongsoft.Collections;
-
-namespace Acme.Jobs;
-
-public sealed class ReportHandler : HandlerBase<int>
+public class MyHandler : HandlerBase<object>
 {
-	protected override ValueTask OnHandleAsync(int reportId,
-		Parameters parameters, CancellationToken cancellation)
-	{
-		cancellation.ThrowIfCancellationRequested();
-		Console.WriteLine($"Report #{reportId}");
-		return ValueTask.CompletedTask;
-	}
+	private long _count = 0;
+
+	protected override ValueTask OnHandleAsync(object argument, Parameters parameters, CancellationToken cancellation) =>
+		Logging.GetLogging(this).DebugAsync(
+			"MyHandler handles the scheduling of the Hangfire.",
+			new
+			{
+				Count = Interlocked.Increment(ref _count),
+				Argument = argument,
+				Parameters = parameters,
+			},
+			cancellation);
 }
 ```
 {% endcode %}
 
-{% code title="Acme.Jobs.plugin（扩展片段）" %}
+处理器记录参数和执行次数；它不发送邮件、不修改论坛数据，也不持久化计数。它适合先确认调度器能够找到并调用处理器。
+
+## 清单注册
+
+来源：[framework/externals/hangfire/samples/Zongsoft.Externals.Hangfire.Samples.plugin](https://github.com/Zongsoft/framework/blob/main/externals/hangfire/samples/Zongsoft.Externals.Hangfire.Samples.plugin#L19)（节选；上下文见源文件）。
+
+{% code title="Zongsoft.Externals.Hangfire.Samples.plugin" %}
 ```xml
 <extension path="/Workbench/Scheduler/Handlers">
-	<object name="Report" type="Acme.Jobs.ReportHandler, Acme.Jobs" />
+	<object name="MyHandler" type="Zongsoft.Externals.Hangfire.Samples.MyHandler, Zongsoft.Externals.Hangfire.Samples" />
 </extension>
 ```
 {% endcode %}
 
-完整清单还需声明程序集和相应插件依赖。任务参数必须可序列化，应传业务标识而不是请求上下文或打开的连接；执行时再查询所需数据。
+稳定处理器名称是 MyHandler。程序集和清单还依赖 Hangfire 主插件。完整运行需要配置存储并启动服务器，只有加载样例 DLL 不会自动产生作业。
 
-## 调度一次或周期任务
+## 调度与执行分开理解
 
-以下片段假设宿主已经注册 Hangfire 的延迟调度器和上面的处理器。
+调度器决定什么时候执行以及传入什么数据；处理器实现执行内容。周期、延迟和重试都有各自配置，不能把一种执行结果当作所有策略的保证。现有接入方式见[Hangfire 项目](projects/hangfire.md)。
 
-{% code title="ScheduleReport.cs" %}
-```csharp
-using Zongsoft.Services;
-using Zongsoft.Scheduling;
+## 弹性策略
 
-var scheduler = ApplicationContext.Current.Services
-	.ResolveRequired<IScheduler<TriggerOptions.Latency>>();
-var identifier = await scheduler.ScheduleAsync("Report", 42,
-	new TriggerOptions.Latency(TimeSpan.FromMinutes(5)));
-Console.WriteLine(identifier);
-```
-{% endcode %}
+Polly 提供重试、超时等执行策略的集成，和任务持久化是不同层次。一次操作超时可能已经产生副作用；重试会再次调用它。因此业务动作应明确幂等键、成功判据和补偿，不要对所有异常机械重试。
 
-周期任务使用 `IScheduler<TriggerOptions.Cron>`，例如 `new TriggerOptions.Cron("daily-report", "0 2 * * *", TimeZoneInfo.Utc)`。这表示按指定时区每天 02:00 触发；应显式选择时区，并验证夏令时或停机后的实际调度结果。
-
-返回标识是任务标识，不是任务完成结果。可用 `RescheduleAsync` 再次触发、`UnscheduleAsync` 删除调度；已经开始的业务工作是否终止，需要结合取消与处理器实现判断。
-
-## 并发、重试与停机
-
-`workerCount` 控制工作线程规模，`scheduleInterval` 控制计划任务轮询。增大并发前先确认数据库及外部接口承载能力。处理器必须容忍重试和重复执行，关键副作用以业务唯一键去重。
-
-停机时应停止接收新任务并给在途任务合理时间。若任务调用链还配置 Polly 重试，总尝试次数可能叠加，应统一计算超时预算，避免一次作业在多个层次反复重试。
-
-## Polly 的执行策略
-
-Polly 插件将 Core 的[执行管线](../core/components/executor.md)接入具体弹性策略，通过插件树把管线构建器绑定到执行器。
-
-| 特性 | 用途 | 应用需要决定的边界 |
-| --- | --- | --- |
-| `RetryFeature` | 暂时失败后重试 | 哪些异常可重试，操作是否可安全重放 |
-| `TimeoutFeature` | 限制调用等待 | 被调用代码是否响应取消 |
-| `BreakerFeature` | 故障集中时暂时拒绝新请求 | 恢复探测与业务降级 |
-| `ThrottleFeature` | 控制并发或进入速率 | 被拒绝请求如何应答 |
-| `FallbackFeature` | 使用替代结果或操作 | 不能把失败伪装成真实成功 |
-
-策略顺序会影响总耗时和重试范围。回调泛型签名还必须与执行模式匹配；当前熔断开闭回调不能保证取得原始执行参数，而自定义限流与回退实现提供了相应参数路径。限流拒绝回调返回 `true` 表示已处理，会影响异常传播。
-
-先用确定的短操作验证重试次数、超时、取消和最终异常，再接入业务。不能仅部署插件就认为全部数据访问或 HTTP 调用自动带有这些策略。
-
-源码入口：[Hangfire](https://github.com/Zongsoft/framework/tree/main/externals/hangfire)、[Polly 策略与示例](https://github.com/Zongsoft/framework/tree/main/externals/polly)。
+若以后为 Discussions 增加后台任务，应先选定真实业务入口并保留 SiteId 与权限上下文，再评估事务、重复执行和存储故障。相关阅读：[调度](../core/scheduling.md)、[Polly](projects/polly.md)、[业务事务](../data/transactions.md)。

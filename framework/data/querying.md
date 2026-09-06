@@ -1,111 +1,113 @@
 ---
-description: 使用数据访问接口进行查询、导航、分页、排序和聚合。
-icon: magnifying-glass-chart
+description: 以论坛置顶主题、浏览记录和投票统计说明条件、模式、分页与聚合。
+icon: book-open
 ---
 
 # 查询与导航
 
-查询由四个部分组成：实体、条件、数据模式和分页排序。实体决定查什么，条件决定过滤哪些数据，数据模式决定返回什么形状，分页排序决定结果集顺序与窗口。
 
-## 基本查询
+Discussions 的查询同时表达四件事：读取哪个模型、筛选哪些记录、返回哪些字段或关系，以及按什么方式排序和分页。可以从 ForumService 读取置顶主题这一条真实路径入手。
 
-{% code title="SelectUsers.cs" %}
+## 查询可见的置顶主题
+
+来源：[src/Services/ForumService.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Services/ForumService.cs#L83)（节选；上下文见源文件）。
+
+{% code title="ForumService.cs" %}
 ```csharp
-var users = accessor.Select<User>(
-	Condition.Equal(nameof(User.Enabled), true),
-	"*, Roles{Name}"
-);
+public IEnumerable<Models.Thread> GetPinnedThreads(ushort forumId, string schema, Paging paging = null)
+{
+	return this.DataAccess.Select<Models.Thread>(
+		Condition.Equal(nameof(Models.Thread.ForumId), forumId) &
+		Condition.Equal(nameof(Models.Thread.IsPinned), true) &
+		Condition.Equal(nameof(Models.Thread.Visible), true),
+		schema, paging, Sorting.Descending(nameof(Models.Thread.ThreadId)));
+}
 ```
 {% endcode %}
 
-`schema` 中的 `Roles{Name}` 会显式加载角色导航属性。如果不写导航属性，默认只读取用户的简单字段。
+ForumId、IsPinned 和 Visible 使用 AND 组合；schema 由调用方提供，paging 控制根结果集，ThreadId 倒序确定返回顺序。可见标志不等于审核批准，正文的审核处理还会经过[结果过滤器](services.md)。站点条件由当前身份和 DataValidator 约束，不应仅凭一个论坛编号查询跨站数据。
 
-## 分页排序
+## 首屏的全局与置顶主题
 
-导航集合可以在 `schema` 中限量和排序，冒号后是最多条数，不是页码：
+来源：[src/Services/ForumService.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Services/ForumService.cs#L92)（节选；上下文见源文件）。
 
-```graphql
-*, Members:20(Name, ~CreatedTime){User{Name}}
-```
-
-根查询也可以通过查询参数传入分页和排序对象：
-
-{% code title="PagedSelect.cs" %}
+{% code title="ForumService.cs" %}
 ```csharp
-var page = accessor.Select<User>(
-	Condition.Like(nameof(User.Name), "%admin%"),
-	"*",
-	Paging.Page(1, 20),
-	Sorting.Descending(nameof(User.CreatedTime))
-);
+public Models.Thread[] GetTopmosts(ushort forumId, string schema, int count = 10)
+{
+	count = Math.Max(5, Math.Min(50, count));
+
+	var globals = this.GetGlobalThreads(0, schema, Paging.Page(1, count));
+	var pinneds = this.GetPinnedThreads(forumId, schema, Paging.Page(1, count));
+
+	return globals.Union(pinneds).OrderByDescending(t => t.ThreadId).Take(count).ToArray();
+}
 ```
 {% endcode %}
 
-具体重载以当前目标框架和包版本中的 `IDataAccess` 为准。
+这里限制最多取 50 条，分别读取全局主题和当前论坛置顶主题，再组合排序。这是业务层的置顶规则，不是数据引擎自动执行的默认分页行为。常规主题查询还要排除已经出现在首屏顶部的记录，避免重复展示。
 
-## 导航查询
+## 用模式展开导航
 
-导航属性来自 `.mapping` 文件中的关系定义。数据引擎根据映射推导连接关系，因此业务代码只需要表达对象图：
+来源：[src/Services/UserService.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Services/UserService.cs#L67)（节选；上下文见源文件）。
 
-```graphql
-*, Creator{Name}, Comments:50(CreatedTime){*, Author{Name}}
-```
-
-这个模式会返回当前实体、创建者、评论集合以及评论作者。
-
-## 聚合
-
-聚合既可以单独查询，也可以作为写入表达式的一部分：
-
-{% code title="AggregateOrders.cs" %}
+{% code title="UserService.cs" %}
 ```csharp
-var total = accessor.Aggregate<Order, decimal>(
-	DataAggregateFunction.Sum,
-	nameof(Order.Amount),
-	Condition.Equal(nameof(Order.CustomerId), customerId)
-);
+public IEnumerable<History> GetHistories(uint userId, Paging paging = null)
+{
+	if(userId == 0)
+		userId = this.Principal.Identity.GetIdentifier<uint>();
+
+	return this.DataAccess.Select<History>(Condition.Equal(nameof(History.UserId), userId), $"*, {nameof(History.Thread)}" + "{*}", paging);
+}
 ```
 {% endcode %}
 
-常见聚合包括计数、求和、平均值、最大值、最小值、中位数、方差和标准差。驱动会决定底层数据库支持哪些聚合和函数。
+History 的 Thread 导航来自映射；模式中的星号读取简单字段，Thread 后的花括号要求展开关联主题。导航会增加读取成本，不应把整个对象图无条件展开。参与审核和权限判断的字段必须保留，具体语法见[数据模式](schema.md)。
 
-## 数据命令
+## 只取身份初始化所需的一条记录
 
-当确实需要数据库原生命令、存储过程或复杂脚本时，可以在映射中定义命令，然后使用 `Execute` 或 `ExecuteScalar` 调用：
+来源：[src/Security/UserChallenger.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Security/UserChallenger.cs#L87)（节选；上下文见源文件）。
 
-{% code title="ExecuteCommand.cs" %}
+{% code title="UserChallenger.cs" %}
 ```csharp
-var count = accessor.ExecuteScalar(
-	"Orders.RebuildStatistics",
-	new[] { new Parameter("TenantId", tenantId) }
-);
+protected virtual ValueTask<UserProfile> GetUserAsync(uint userId, CancellationToken cancellation) =>
+	Module.Current.Accessor.SelectAsync<UserProfile>(
+		Condition.Equal(nameof(UserProfile.UserId), userId),
+		Paging.Limit(1),
+		cancellation).FirstOrDefault(cancellation);
 ```
 {% endcode %}
 
-优先使用声明式查询；只有在无法用映射、条件和模式表达时，再引入数据命令。
+这是认证质询阶段的查询，取消令牌沿调用链传入。Paging.Limit(1) 限制读取量，FirstOrDefault 消费异步序列。这里使用 Core 的 [集合扩展](../core/collections/extensions.md)，引入 `Zongsoft.Collections` 后即可调用 `.FirstOrDefault(cancellation)`；它处理空序列并释放枚举器，无需在业务项目中另写首元素辅助方法。不要把这一条身份初始化路径当作对外开放的用户搜索接口。
 
-## 一次异步读取
+## 用计数还原投票统计
 
-以下片段假设 accessor 来自[具名提供者](data-access.md)，User 及其字段已映射，cancellation 来自调用方：
+来源：[src/Services/PostService.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Services/PostService.cs#L229)（节选；上下文见源文件）。
 
-{% code title="ReadUsersAsync.cs" %}
+{% code title="PostService.cs" %}
 ```csharp
-var users = accessor.SelectAsync<User>(
-	Condition.Equal(nameof(User.Enabled), true),
-	"UserId, Name",
-	Paging.Page(1, 20),
-	new[] { Sorting.Ascending(nameof(User.UserId)) },
-	cancellation);
+private bool SetPostVotes(ulong postId)
+{
+	//获取当前帖子的点赞总数，即统计帖子投票表中投票数大于零的记录数
+	var upvotes = this.DataAccess.Count<Post.PostVoting>(Condition.Equal(nameof(Post.PostVoting.PostId), postId) & Condition.GreaterThan(nameof(Post.PostVoting.Value), 0));
 
-await foreach(var user in users)
-	Console.WriteLine(user.Name);
+	//获取当前帖子的被踩总数，即统计帖子投票表中投票数小于零的记录数
+	var downvotes = this.DataAccess.Count<Post.PostVoting>(Condition.Equal(nameof(Post.PostVoting.PostId), postId) & Condition.LessThan(nameof(Post.PostVoting.Value), 0));
+
+	//更新指定帖子的累计点赞总数和累计被踩总数
+	return this.DataAccess.Update(Model.Naming.Get<Post>(), new
+	{
+		PostId = postId,
+		TotalUpvotes = upvotes,
+		TotalDownvotes = downvotes,
+	}) > 0;
+}
 ```
 {% endcode %}
 
-排序包含稳定唯一键，可减少相同排序值带来的分页漂移；并发写入下仍需按业务要求考虑快照或游标策略。查询准备和后置事件的异常可能在枚举时传播，完整语义见[数据访问接口](data-access.md)。
+当前实现分别统计正票和负票记录数，然后更新帖子计数；它不是对 Value 求和。理解这个差异才能解释票数与投票权重。投票的事务边界见[写入操作](writing.md)。
 
-## 控制对象图成本
+## 返回集合之前还要考虑什么
 
-只包含当前页面需要的导航及字段，为集合设合理限量。集合导航可能产生从查询，不要把一段 schema 理解为必定一次数据库往返。分页总数也可能有额外计算成本；大批量导出应按实际驱动与结果生命周期分批处理。
-
-对模型未映射的计算成员，引擎不会推导其所需字段。需要完整姓名等计算值时，模式中还应包含参与计算的原始字段。
+稳定排序、分页、字段范围和身份约束一起决定查询是否适合业务页面。集合通常是延迟枚举，调用方应在有效生命周期内消费，提前结束也应释放枚举器。Discussions 的过滤器使用 [FilteredResult](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Data/FilteredResult.cs) 保留分页通知并处理正文。Discussions 当前没有原生数据命令调用，命名命令的格式与驱动边界请参见[映射文件](mapping.md)。

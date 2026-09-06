@@ -9,9 +9,9 @@ icon: bug
 
 ## 从最小可观察结果开始
 
-完成[第一个插件](deploy-first-plugin.md)后，使用 `help`、`plugin.list` 检查交互入口和加载结果。再执行[业务插件命令](first-business-plugin.md)，验证配置选择的求值器返回 `42`。
+完成 [Discussions 部署](deploy-first-plugin.md)后，先检查 Web 宿主启动和两个业务清单加载，再使用 discussions/docs/http/forum.http 中的论坛只读请求。确认运行目录中的 DLL/PDB 与本地构建一致。
 
-Web 场景先检查监听地址和 `/Application`，随后验证自己的[探针控制器](../framework/web/controllers.md)。连接不上时不要先排查控制器；404 时也不要先修改数据库。
+Web 场景先检查监听地址和 `/Application`，随后验证 Discussions 的[业务控制器](../framework/web/controllers.md)。连接不上时不要先排查控制器；404 时也不要先修改数据库。
 
 ## 分层排障
 
@@ -38,6 +38,6 @@ Web 场景先检查监听地址和 `/Application`，随后验证自己的[探针
 
 ## 建立可复现步骤
 
-保存脱敏输入、运行版本、配置差异和预期/实际结果。尽量从无数据库的命令、探针或只读查询开始，再加入外部依赖和并发。涉及写入时使用独立测试数据，并明确清理对象。
+保存脱敏输入、运行版本、配置差异和预期/实际结果。先检查进程与插件装配，再执行论坛只读查询，再加入外部依赖和并发。涉及写入时使用独立测试数据，并明确清理对象。
 
 进一步阅读：[宿主部署](../hosting/deployment.md)、[服务定位](../framework/core/services/locating.md)、[常见问题](../faq.md)。

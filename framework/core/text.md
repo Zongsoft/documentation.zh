@@ -33,41 +33,41 @@ icon: font
 
 `TextRegular` 用一个正则表达式构造可复用的文本验证器。它内部启用编译、忽略大小写、忽略模式空白和显式捕获，并设置匹配超时时间。调用 `Match(...)` 只返回是否匹配，调用 `IsMatch(...)` 则会在匹配成功时返回结果文本。
 
-{% code title="EmailValidation.cs" %}
-```csharp
-using Zongsoft.Text;
+来源：[framework/Zongsoft.Core/src/Text/TextRegular.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Text/TextRegular.cs#L115)（节选；上下文见源文件）。
 
-if(TextRegular.Web.Email.IsMatch(input, out var email))
-{
-	await SendEmailAsync(email, cancellation);
-}
+{% code title="TextRegular.cs" %}
+```csharp
+public static readonly TextRegular Email = new(@"^\s*(?<value>[A-Za-z0-9]([-_\.]?[A-Za-z0-9]+)*@([A-Za-z0-9]+([-_]?[A-Za-z0-9]+)*)(\.[A-Za-z0-9]+([-_]?[A-Za-z0-9]+)*)*\.[A-Za-z]+)\s*$");
 ```
 {% endcode %}
 
-`IsMatch(...)` 的结果提取有一个重要约定：如果正则包含名为 `value` 的捕获组，则会把该组所有捕获值连接成结果；如果没有 `value` 组，则返回整个匹配文本。这个约定适合把用户输入中的空格、分隔符、国家码等非核心内容去掉，返回更适合保存或后续处理的规范化值。
+`IsMatch(...)` 的结果提取有一个重要约定：如果正则包含名为 `value` 的捕获组，则会把该组所有捕获值连接成结果；使用结果提取时，应显式定义 value 组；当前实现对缺少该组的处理不能作为返回完整匹配文本的保证。这个约定适合把用户输入中的空格、分隔符、国家码等非核心内容去掉，返回更适合保存或后续处理的规范化值。
 
-{% code title="CellphoneNormalization.cs" %}
+来源：[framework/Zongsoft.Core/src/Text/TextRegular.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Text/TextRegular.cs#L183)（节选；上下文见源文件）。
+
+{% code title="TextRegular.cs" %}
 ```csharp
-using Zongsoft.Text;
-
-var input = "+86 138-1234-5678";
-
-if(TextRegular.Chinese.Cellphone.IsMatch(input, out var number))
-{
-	// number 通常会是 13812345678
-	await SendSmsAsync(number, message, cancellation);
-}
+public static readonly TextRegular Cellphone = new(@"^\s*((\+|00)86\s*[-\.]?)?\s*(?<value>1\d{2})(?<separator>(\s*)|(-?))(?<value>\d{4})(?<separator>(\s*)|(-?))(?<value>\d{4})\s*$");
 ```
 {% endcode %}
 
 如果只需要判断某个字符串是不是 URL，可以使用 `Match(...)`：
 
-{% code title="UrlMatch.cs" %}
-```csharp
-using Zongsoft.Text;
+来源：[framework/Zongsoft.Core/src/IO/FileSystem.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/IO/FileSystem.cs#L78)（节选；上下文见源文件）。
 
-if(TextRegular.Uri.Http.Match(url))
-	return await http.GetStringAsync(url, cancellation);
+{% code title="FileSystem.cs" %}
+```csharp
+public static string GetUrl(string virtualPath)
+{
+	if(string.IsNullOrWhiteSpace(virtualPath))
+		return virtualPath;
+
+	//如果传入的虚拟路径参数是一个URI格式，则直接返回它作为结果
+	if(Zongsoft.Text.TextRegular.Uri.Url.Match(virtualPath))
+		return virtualPath;
+
+	return GetFileSystem(virtualPath, false, out Path path)?.GetUrl(path);
+}
 ```
 {% endcode %}
 
@@ -91,17 +91,18 @@ if(TextRegular.Uri.Http.Match(url))
 
 ## 自定义验证器
 
-业务模块可以用自己的正则创建 `TextRegular`。只要在正则中使用 `(?<value>...)` 捕获真正需要的片段，调用方就能拿到规范化后的结果。
+下面是框架实际构造入口。业务模块可以用自己的正则创建 TextRegular。只要在正则中使用 `(?<value>...)` 捕获真正需要的片段，调用方就能拿到规范化后的结果。
 
-{% code title="CommandNameRegular.cs" %}
+来源：[framework/Zongsoft.Core/src/Text/TextRegular.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Text/TextRegular.cs#L43)（节选；上下文见源文件）。
+
+{% code title="TextRegular.cs" %}
 ```csharp
-using Zongsoft.Text;
-
-var regular = new TextRegular(@"^\s*(?<value>[A-Za-z][A-Za-z0-9_\.-]*)\s*$");
-
-if(regular.IsMatch(input, out var commandName))
+public TextRegular(string pattern)
 {
-	await ExecuteCommandAsync(commandName, cancellation);
+	if(string.IsNullOrWhiteSpace(pattern))
+		throw new ArgumentNullException(nameof(pattern));
+
+	_regex = new Regex(pattern, RegexOptions.Compiled | RegexOptions.ExplicitCapture | RegexOptions.IgnorePatternWhitespace | RegexOptions.IgnoreCase, TimeSpan.FromSeconds(3));
 }
 ```
 {% endcode %}
@@ -112,44 +113,36 @@ if(regular.IsMatch(input, out var commandName))
 
 ## 模板接口
 
-`ITemplate` 表示一个可求值的文本模板。它只规定模板名称和求值入口，不限定模板语法，因此实现可以来自字符串模板、脚本模板、资源文件、外部服务模板或自定义模板引擎。
+当前仓库没有现成的 ITemplate 求值实现，下面保留真实接口契约，不把未实现的通知类作为可运行范例。ITemplate 表示一个可求值的文本模板。它只规定模板名称和求值入口，不限定模板语法，因此实现可以来自字符串模板、脚本模板、资源文件、外部服务模板或自定义模板引擎。
 
-{% code title="NoticeTemplate.cs" %}
+来源：[framework/Zongsoft.Core/src/Text/ITemplate.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Text/ITemplate.cs#L37)（节选；上下文见源文件）。
+
+{% code title="ITemplate.cs" %}
 ```csharp
-using Zongsoft.Text;
-
-public sealed class NoticeTemplate : ITemplate
+public interface ITemplate
 {
-	public string Name => "notice";
+	/// <summary>获取模板名称。</summary>
+	string Name { get; }
 
-	public string Evaluate(object data, params object[] arguments)
-	{
-		var user = (User)data;
-		return $"您好 {user.Name}，您有一条新的通知。";
-	}
+	/// <summary>应用模板。</summary>
+	/// <param name="data">待应用的模板数据。</param>
+	/// <param name="arguments">附加参数集。</param>
+	/// <returns>返回应用后的文本。</returns>
+	string Evaluate(object data, params object[] arguments);
 }
 ```
 {% endcode %}
 
 `ITemplateFormatter` 更偏向“发送前格式化”。它接收模板名称、原始数据和附加参数，返回格式化后的数据对象。这个返回值可以继续被序列化为 JSON、查询字符串或供应商 API 需要的参数结构。
 
-{% code title="SmsTemplateFormatter.cs" %}
+来源：[framework/externals/aliyun/src/Telecom/Phone.cs](https://github.com/Zongsoft/framework/blob/main/externals/aliyun/src/Telecom/Phone.cs#L126)（节选；上下文见源文件）。
+
+{% code title="Phone.cs" %}
 ```csharp
-using Zongsoft.Text;
-
-public sealed class SmsTemplateFormatter : ITemplateFormatter
+//尝试进行模板数据格式化
+if(!string.IsNullOrEmpty(template.Formatter) && this.ServiceProvider.Resolve(template.Formatter) is ITemplateFormatter formatter)
 {
-	public string Name => "sms";
-
-	public object Format(string name, object data, params object[] arguments)
-	{
-		return name switch
-		{
-			"Alarm" => new { title = data?.ToString(), level = "warning" },
-			_ => data,
-		};
-	}
-}
+	argument.Parameter = formatter.Format(template.Name, argument.Parameter, argument.Extra);
 ```
 {% endcode %}
 

@@ -17,46 +17,31 @@ icon: database
 
 ## Redis 缓存闭环
 
-先部署 `Zongsoft.Externals.Redis` 并准备可达的测试 Redis。在应用 `.option` 中配置连接；以下数据库编号只用于独立测试实例，应按环境调整。
+Discussions 没有直接调用 Redis 缓存的业务用例；framework 的 distributedcache 是可运行的交互客户端。它创建名为 Redis 的独立实例，并使用 DistributedCache 键前缀。启动前按 [范例说明](https://github.com/Zongsoft/framework/blob/main/externals/redis/samples/distributedcache/README.zh-Hans.md) 准备测试 Redis，替换本地连接中的占位密码。
 
-{% code title="Application.option" %}
-```xml
-<options>
-	<option path="/Externals/Redis">
-		<connectionSettings>
-			<connectionSetting connectionSetting.name="Orders" driver="Redis"
-				value="server=127.0.0.1:6379;database=15" />
-		</connectionSettings>
-	</option>
-</options>
-```
-{% endcode %}
+set 命令从用户输入读取键、值、过期时间和写入条件，最终调用：
 
-应用初始化后，在业务命令中通过 Zongsoft 的缓存契约执行读写。这里的 `IDistributedCache` 来自 `Zongsoft.Caching`，不要与 Microsoft 同名接口混用。
+来源：[framework/externals/redis/samples/distributedcache/Program.cs](https://github.com/Zongsoft/framework/blob/main/externals/redis/samples/distributedcache/Program.cs#L40)（节选；上下文见源文件）。
 
-{% code title="VerifyCache.cs" %}
+{% code title="Program.cs" %}
 ```csharp
-using Zongsoft.Caching;
-using Zongsoft.Services;
-
-var cache = ApplicationContext.Current.Services
-	.Locate<IDistributedCache>("Orders@Redis")
-	?? throw new InvalidOperationException("Orders cache is unavailable.");
-var key = $"docs:cache:{Guid.NewGuid():N}";
-
-try
-{
-	await cache.SetValueAsync(key, "hello", TimeSpan.FromMinutes(1));
-	Console.WriteLine(await cache.GetValueAsync<string>(key));
-}
-finally
-{
-	await cache.RemoveAsync(key);
-}
+var succeeded = expiry.HasValue ?
+	await cache.SetValueAsync(key, value, expiry.Value, requisite, cancellation) :
+	await cache.SetValueAsync(key, value, requisite, cancellation);
 ```
 {% endcode %}
 
-预期读取 `hello`，最后只清理本次生成的键。提供者按名复用服务，不要为一次操作释放共享缓存。`Orders@Redis` 中 `Orders` 是连接名，`Redis` 是提供者别名；具体规则见[服务定位](../core/services/locating.md)。
+get 命令同时取回值和剩余有效期：
+
+来源：[framework/externals/redis/samples/distributedcache/Program.cs](https://github.com/Zongsoft/framework/blob/main/externals/redis/samples/distributedcache/Program.cs#L65)（节选；上下文见源文件）。
+
+{% code title="Program.cs" %}
+```csharp
+var (value, expiry) = await cache.GetValueExpiryAsync<string>(key, cancellation);
+```
+{% endcode %}
+
+完整程序提供 set、get、exists、expiry、remove 与 subscribe 命令，便于在同一前缀下观察跨进程读写和通知。独立程序负责释放自己创建的 RedisService；通过宿主提供者取得的共享缓存则由宿主管理，消费方不应逐次释放。具名服务的解析与回退规则见[服务定位](../core/services/locating.md)。
 
 普通 Redis 服务找不到具名连接时可能回退默认连接，连接名拼错并不总会立即失败。启动检查应核对实际选定配置，并用业务键前缀隔离数据。
 
@@ -71,7 +56,7 @@ Redis 服务可通过 `WithDatabase()` 和 `WithNamespace()` 创建不可变作�
 etcd 的设置位于 `/Externals/Etcd/ConnectionSettings`，驱动为 `etcd`。序号通过公共 `ISequence` 提供者取得；多个提供者同时存在时，由应用组合层明确注入所选实现。
 
 {% hint style="info" %}
-💡 当前 etcd 提供者没有注册 `Etcd` 别名，不能把 `Orders@Redis` 机械改写为 `Orders@Etcd`。连接名也不会自动成为 etcd 的键命名空间。
+💡 当前 etcd 提供者没有注册 `Etcd` 别名，不能仅替换具名服务表达式中的提供者名字来取得 etcd 服务。连接名也不会自动成为 etcd 的键命名空间。
 {% endhint %}
 
 序号递增使用比较并交换事务，首次返回 `seed + interval`，不是 `seed`。过期设置用于创建缺失序号；递增保留已有租约。序号原子分配不意味着无间断业务编号，也不会与业务数据提交自动形成同一个事务。
@@ -91,3 +76,7 @@ Redis 的消息存储工厂挂载于 `/Workspace/Messaging/Storages/Redis`，要
 首次调用出现缺少方法等异常时，应先检查最终部署目录中的第三方 DLL 版本，而非只检查项目引用。当前 Redis 部署链存在传递依赖覆盖版本的风险；修复时以实际项目依赖为准，停止测试宿主后重新部署兼容版本，再验证首次连接。
 
 源码入口：[Redis](https://github.com/Zongsoft/framework/tree/main/externals/redis)、[etcd](https://github.com/Zongsoft/framework/tree/main/externals/etcd)、[Garnet](https://github.com/Zongsoft/framework/tree/main/externals/garnet)。
+
+## 按项目继续阅读
+
+[Etcd](projects/etcd.md) · [Garnet](projects/garnet.md) · [Redis](projects/redis.md)

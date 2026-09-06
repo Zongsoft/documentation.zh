@@ -1,200 +1,136 @@
 ---
-description: Zongsoft.Resources 资源定位、资源访问和资源键命名约定。
+description: 以 Discussions 的资源键和框架现有测试说明本地化资源、定位回退与组件标题。
 icon: book
 ---
 
 # Zongsoft.Resources
 
-`Zongsoft.Resources` 提供一组围绕程序集资源集的访问抽象，用于统一读取本地化文本、嵌入对象资源和带上下文的资源键。它的重点不是替代 .NET 的资源系统，而是在 Zongsoft 框架内部提供一层更贴近模块、类型和成员上下文的资源定位能力。
+Resources 为程序集资源提供统一访问入口。一个资源键可以保持稳定，而展示文本随文化设置变化；类型和成员的位置则帮助框架确定去哪个资源集查找。它常用于组件标题、枚举描述、命令帮助和错误提示。
 
-典型使用场景包括：为命令、分类节点、组件描述、异常消息、插件构件或 UI 元数据提供本地化文本；按类型位置查找资源；在多个候选资源键之间做回退；以及为模块定义自定义资源定位规则。
+## Discussions 中的资源组织
 
-## 主要职责
+Discussions 的 [Properties/Resources.resx](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Properties/Resources.resx) 已经保存论坛领域文本，无需再创建假想的 UserCategory 或安全模块资源集。
 
-* 定义 `IResource` 资源访问接口，统一读取字符串和对象资源。
-* 定义 `IResourceLocator` 资源定位器接口，把类型、成员或字符串位置转换为资源集候选路径。
-* 提供 `Resource` 默认实现，扫描程序集内的 `.resources` 资源集并封装 .NET 资源管理器。
-* 提供 `ResourceUtility` 扩展方法，让调用方可以从 `Type`、`MemberInfo` 或 `Assembly` 直接读取资源。
-* 支持多个候选资源键的顺序查找，便于按“精确键、简化键、默认键”的方式回退。
+| 真实资源键 | 中文文本 | 用途 |
+| --- | --- | --- |
+| Accessibility | 可访问性 | 访问范围的显示名称 |
+| Accessibility.Internal | 内部人员 | 枚举值文本 |
+| Accessibility.Moderator | 版主 | 枚举值文本 |
+| Accessibility.Specified | 限定人员 | 枚举值文本 |
+| Approved | 已审核 | 审核状态的显示名称 |
+| Forum | 论坛 | 领域对象名称 |
+| ForumId | 论坛编号 | 字段名称 |
 
-## 关键类型
+Resources.Designer.cs 是对应的生成访问器。调整文本应编辑 resx，再使用项目的资源生成流程更新访问器；直接修改生成文件不能稳定保留变更。资源键存在只说明文本可供查找，并不表示每个前端都已使用它。
 
-| 类型 | 说明 |
+## 主要对象怎样协作
+
+| 对象 | 职责 |
 | --- | --- |
-| `IResource` | 资源访问接口，提供 `GetString(...)`、`GetObject(...)` 和对应 `TryGet*` 方法。 |
-| `Resource` | 默认资源对象，基于程序集中的 `.resources` 资源集读取字符串或对象。 |
-| `IResourceLocator` | 资源定位器接口，根据调用位置返回资源集候选路径。 |
-| `ResourceLocator` | 默认定位器，按类型命名空间、资源集约定和程序集名称生成候选路径。 |
-| `ResourceUtility` | 资源访问扩展方法，封装按类型、成员、程序集和候选键读取资源的常用入口。 |
+| IResource | 按键读取字符串、对象，以及尝试读取的结果 |
+| Resource | 扫描程序集内的资源集并组织读取 |
+| IResourceLocator | 把调用位置转换为资源集候选名称 |
+| ResourceLocator | 提供默认的逐级定位规则 |
+| ResourceUtility 与 Resource 扩展 | 接收类型、成员和候选键，减少调用方的重复转换 |
 
-## 资源定位规则
+资源集定位与资源键查找是两个步骤：先找到可能包含文本的资源集，再在其中查找键。位置通常来自类型的命名空间，不能把位置字符串当作资源键。
 
-`Resource` 会在构造时扫描程序集清单资源名称，并把以 `.resources` 结尾的资源集交给 .NET 资源管理器管理。读取资源时，调用方提供资源键 `name` 和可选位置 `location`；定位器负责把位置转换为一个或多个资源集名称，再按顺序尝试读取。
+## 完整读取范例：枚举描述测试
 
-默认 `ResourceLocator` 的定位规则通常可以理解为从“更具体的位置”逐步回退到“更通用的位置”：
+Discussions 没有独立的资源读取测试，因此使用框架 ResourceTest。这里的 Gender 来自该测试项目，不是 Discussions.Models.Gender；两个项目各自拥有资源文件。
 
-{% code title="ResourceLocation.txt" %}
-```text
-Zongsoft.Security.Users.UserService.Properties.Resources
-Zongsoft.Security.Users.UserService.Resources
-Zongsoft.Security.Users.UserService
-Zongsoft.Security.Users.Properties.Resources
-Zongsoft.Security.Users.Resources
-Zongsoft.Security.Users
-Zongsoft.Security.Properties.Resources
-Zongsoft.Security.Resources
-Zongsoft.Security
-```
-{% endcode %}
+来源：[framework/Zongsoft.Core/test/Resources/ResourceTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Resources/ResourceTest.cs#L14)（节选；上下文见源文件）。
 
-如果程序集内只有一个资源集，默认定位器会优先返回这个资源集。随后才会根据调用位置和程序集名称继续生成候选路径。这样简单程序集可以只维护一个资源文件，而较大的模块也可以按命名空间或类型拆分资源。
-
-{% hint style="info" %}
-位置字符串通常来自类型或成员，例如 `ResourceUtility` 会把 `Zongsoft.Security.Users.UserService` 这样的类型转换为同名位置。资源文件命名越贴近类型所在命名空间，默认定位器越容易按预期找到资源。
-{% endhint %}
-
-## 基本读取
-
-最直接的方式是从类型或程序集读取资源字符串。适合命令标题、错误消息、菜单文本、分类节点标题等需要本地化但又不想把资源文件路径写死的场景。
-
-{% code title="ReadResourceString.cs" %}
+{% code title="ResourceTest.cs" %}
 ```csharp
-using Zongsoft.Resources;
-
-var title = typeof(UserService).GetResourceString("Title");
-var description = typeof(UserService).GetResourceString("Description");
-```
-{% endcode %}
-
-如果调用方已经拿到了 `IResource`，也可以显式指定类型作为定位上下文：
-
-{% code title="ReadWithResource.cs" %}
-```csharp
-using Zongsoft.Resources;
-
-var resource = Resource.GetResource<UserService>();
-
-var title = resource.GetString<UserService>("Title");
-var icon = resource.GetObject("Icon", typeof(UserService));
-```
-{% endcode %}
-
-`GetString(...)` 和 `GetObject(...)` 在找不到资源时返回 `null`。如果需要区分“找不到”和“资源值为空”，可以使用 `TryGetString(...)` 或 `TryGetObject(...)`。
-
-## 候选键回退
-
-有些组件需要先查找精确键，再回退到通用键。例如分类节点可以优先使用完整路径，再退回到节点名称；命令可以优先使用完整命令路径，再退回到命令类型名称。
-
-{% code title="FallbackResourceKeys.cs" %}
-```csharp
-using Zongsoft.Resources;
-
-var title = typeof(UserCategory).GetResourceString(
-	"Security.Users.Title",
-	"Users.Title",
-	"Title");
-
-var description = typeof(UserCategory).GetResourceString(
-	"Security.Users.Description",
-	"Users.Description",
-	"Description");
-```
-{% endcode %}
-
-这种写法适合资源键需要兼容历史命名或多层上下文的场景。候选键按传入顺序查找，第一次命中即返回。
-
-{% content-ref url="collections/category.md" %}
-[category.md](collections/category.md)
-{% endcontent-ref %}
-
-## 组件标题和描述
-
-在组件模型里，资源常被用来补充“可展示文本”。例如分类、命令、插件构件或服务描述可以保存稳定的代码名称，而把面向用户的标题和说明放到资源文件中。这样框架对象保持稳定，界面文本可以随文化或模块资源调整。
-
-{% code title="CategoryResourceUsage.cs" %}
-```csharp
-using Zongsoft.Resources;
-
-var resource = Resource.GetResource(typeof(UserCategory));
-
-var title = resource.GetString(
-	"Security.Users.Title",
-	typeof(UserCategory));
-
-var description = resource.GetString(
-	"Security.Users.Description",
-	typeof(UserCategory));
-```
-{% endcode %}
-
-这种方式尤其适合插件化模块：插件声明和代码类型使用稳定名称，资源文件负责提供不同语言、不同部署环境下的展示文本。
-
-## 对象资源
-
-除了字符串，`IResource` 也支持对象资源。对象资源通常用于图标、模板、二进制片段或其它嵌入资源。调用方式与字符串资源相同，只是入口换成 `GetObject(...)` 或 `TryGetObject(...)`。
-
-{% code title="ReadObjectResource.cs" %}
-```csharp
-using Zongsoft.Resources;
-
-var icon = typeof(UserService).GetResourceObject("Icon");
-
-if(icon is not null)
-	await RenderIconAsync(icon, cancellation);
-```
-{% endcode %}
-
-对象资源的实际类型取决于资源文件内容。调用方在使用前应进行类型检查或转换，不要假定所有资源都能转换为某个固定类型。
-
-## 自定义定位器
-
-默认定位器适合按命名空间和资源集约定查找资源。如果模块有自己的资源集命名约定，可以实现 `IResourceLocator`。例如一个安全模块可能希望先查类型所在位置对应的资源集，再回退到模块级默认资源集。
-
-{% code title="ModuleResourceLocator.cs" %}
-```csharp
-using Zongsoft.Resources;
-
-public sealed class ModuleResourceLocator : IResourceLocator
+public void Test()
 {
-	public IEnumerable<string> Locate(string origin)
-	{
-		if(!string.IsNullOrEmpty(origin))
-			yield return $"{origin}.Resources";
+	var resource = Resource.GetResource<Gender>();
+	Assert.NotNull(resource);
 
-		yield return "Zongsoft.Security.Resources";
-		yield return "Zongsoft.Security.Properties.Resources";
-	}
+	var text = resource.GetString("Gender.Male");
+	Assert.NotNull(text);
+	Assert.Equal("男士", text);
+
+	text = resource.GetString("Gender.Female");
+	Assert.NotNull(text);
+	Assert.Equal("女士", text);
+
+	text = EnumUtility.GetEnumDescription(Gender.Male);
+	Assert.NotNull(text);
+	Assert.Equal("男士", text);
+
+	text = EnumUtility.GetEnumDescription(Gender.Female);
+	Assert.NotNull(text);
+	Assert.Equal("女士", text);
 }
 ```
 {% endcode %}
 
-使用自定义定位器时，可以直接构造 `Resource`，或者在首次取得程序集资源对象时传入定位器：
+测试先直接读取 Gender.Male / Gender.Female，再经 EnumUtility 取得枚举说明。两条路径应得到同样文本。这说明界面可展示资源文本，业务仍保留稳定的枚举值。进一步用法见[枚举工具](common/enum-utility.md)。
 
-{% code title="UseCustomLocator.cs" %}
+## 定位器的真实回退规则
+
+来源：[framework/Zongsoft.Core/src/Resources/ResourceLocator.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Resources/ResourceLocator.cs#L44)（节选；上下文见源文件）。
+
+{% code title="ResourceLocator.cs" %}
 ```csharp
-using Zongsoft.Resources;
+public IEnumerable<string> Locate(string origin)
+{
+	//如果资源管理器中没有资源集，则无需定位
+	if(_resource.Count == 0)
+		yield break;
 
-var resource = new Resource(
-	typeof(UserService).Assembly,
-	new ModuleResourceLocator());
+	//如果资源管理器中只有一个资源集，则只能定位它
+	if(_resource.Count == 1)
+		yield return _resource.Resources.First().BaseName;
 
-var title = resource.GetString("Title", typeof(UserService));
+	if(!string.IsNullOrEmpty(origin))
+	{
+		foreach(var location in GetLocations(origin))
+			yield return location;
+	}
+
+	foreach(var location in GetLocations($"{_resource.Assembly.GetName().Name}"))
+		yield return location;
+}
 ```
 {% endcode %}
 
-{% hint style="warning" %}
-`Resource.GetResource(...)` 会按程序集缓存资源对象。如果同一程序集需要使用自定义定位器，建议显式构造 `Resource`，或确保首次缓存该程序集资源对象时就传入正确定位器，避免后续调用拿到已缓存的默认定位器实例。
+默认定位器首先处理没有资源集、只有一个资源集的情况，然后尝试来源位置以及程序集名称。GetLocations 会从完整位置逐级回退，每一级依次尝试 Properties.Resources、Resources 和位置本身。实际候选名称由程序集与调用类型决定，不需要手写另一个模块的资源树。
+
+## 组件怎样选择候选键
+
+来源：[framework/Zongsoft.Core/src/Collections/CategoryBase.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Collections/CategoryBase.cs#L130)（节选；上下文见源文件）。
+
+{% code title="CategoryBase.cs" %}
+```csharp
+protected virtual string GetTitle() => Resources.ResourceUtility.GetString(_resource,
+[
+	$"{this.FullPath.Trim(PathSeparator).Replace(PathSeparator, '.')}.{nameof(Category)}.{nameof(this.Title)}",
+	$"{this.FullPath.Trim(PathSeparator).Replace(PathSeparator, '.')}.{nameof(Category)}",
+	$"{this.FullPath.Trim(PathSeparator).Replace(PathSeparator, '.')}.{nameof(this.Title)}",
+	this.FullPath.Trim(PathSeparator).Replace(PathSeparator, '.'),
+	$"{this.Name}.{nameof(Category)}.{nameof(this.Title)}",
+	$"{this.Name}.{nameof(Category)}",
+	$"{this.Name}.{nameof(this.Title)}",
+	this.Name,
+]);
+```
+{% endcode %}
+
+Category 优先按完整分类路径查标题，再退回节点名称。这个规则允许同名节点在不同位置显示不同文本；也允许小型分类树只提供通用名称。完整分类树范例见[Category](collections/category.md)。
+
+## 对象资源与自定义定位
+
+GetObject 用于读取非字符串资源，实际类型由资源文件决定。当前 Discussions 没有通过此接口读取图标并渲染的完整用例，因此不提供依赖未实现 RenderIconAsync 的代码。需要展示资源对象时，调用者应先检查类型，再交给相应呈现组件。
+
+项目若采用不同的资源集命名方式，可以实现 IResourceLocator，并把实例交给 Resource 构造函数。默认实现已经适用于 Discussions 的 Properties.Resources 组织，无需为本案例添加新定位器。
+
+{% hint style="info" %}
+💡 Resource.GetResource 按程序集缓存实例。需要专用定位器时，显式创建拥有该定位器的 Resource，或者确保首次缓存时使用正确配置；后续取得缓存对象不会自动替换定位规则。
 {% endhint %}
 
-## 使用建议
+## 缺失文本时怎样排查
 
-资源键建议保持稳定、短小并带有上下文，例如 `Title`、`Description`、`Commands.Start.Title`、`Security.Users.Description`。面向用户的文本放在资源文件中，代码和插件声明中尽量保存稳定名称，这样更利于本地化和插件复用。
-
-资源文件的组织可以按模块大小调整：简单模块使用一个 `Properties.Resources` 即可；大型模块可以按命名空间或类型拆分资源集。默认定位器会沿着类型位置逐级回退，因此资源集命名最好与命名空间保持一致。
-
-读取资源时，如果缺失资源不会影响主流程，可以使用 `GetString(...)` 并处理 `null`；如果缺失资源意味着配置错误，建议使用 `TryGetString(...)` 后明确抛出业务可读的错误信息。
-
-## 相关资源
-
-* [Resources 源码目录](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Core/src/Resources)
-* [Category 资源用法](collections/category.md)
+先检查 resx 是否包含目标键，再检查编译产物是否带有对应资源集，最后核对当前文化和来源位置。区分“键未命中”与“命中的文本为空”；主流程可以接受缺失时保留回退文本，配置错误则应明确报告。框架实现见 [Resource.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Resources/Resource.cs)。

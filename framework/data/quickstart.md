@@ -1,90 +1,65 @@
 ---
-description: 在插件宿主中部署数据引擎和 SQLite，通过公共契约完成无表的首次查询。
-icon: bolt
+description: 沿 Discussions 论坛查询核对映射、身份、连接和结果。
+icon: play
 ---
 
 # 完成首次数据查询
 
-本教程接着[业务命令示例](../../get-started/first-business-plugin.md)，用 SQLite 内存连接执行 `SELECT 42`。目标是验证提供者、连接设置、驱动、映射和调用的完整链路，不涉及业务表或数据库初始化。
+第一次查询使用 Discussions 已有论坛接口。前提是[业务插件已部署](../../get-started/deploy-first-plugin.md)，宿主连接的是自己的隔离环境。
 
-## 部署引擎与驱动
+## 1. 核对真实数据契约
 
-在 PluginDemo 的部署清单中追加：
+同时阅读 Discussions 的 Models/Forum.cs、Zongsoft.Discussions.mapping 和 database 下所选数据库脚本。Forum 使用 SiteId 与 ForumId 复合键；外部序号需要相应服务；Message 还有 ClickHouse 驱动标记。这些约束不能靠只修改数据库连接字符串解决。
 
-{% code title="PluginDemo/.deploy（追加内容）" %}
-```ini
-[plugins zongsoft data]
-nuget:Zongsoft.Data
+数据库脚本可能重建对象，应先审阅并只在临时数据库执行。映射文件不会自动创建这些表。
 
-[plugins zongsoft data sqlite]
-nuget:Zongsoft.Data.SQLite
-```
-{% endcode %}
+## 2. 核对访问器、连接与身份
 
-业务仍只引用 Core。为业务清单 `Acme.Rules.plugin` 增加 `Zongsoft.Data` 依赖，并将后面的映射文件一同复制到业务插件目录。
+来源：[src/Module.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Module.cs#L52)（节选；上下文见源文件）。
 
-## 配置连接和命名命令
-
-在 `Acme.Rules.option` 根节点中追加：
-
-{% code title="Acme.Rules.option（追加片段）" %}
-```xml
-<option path="/Data">
-	<connectionSettings>
-		<connectionSetting connectionSetting.name="Docs" driver="SQLite"
-			value="Database=:memory:;Mode=Memory" />
-	</connectionSettings>
-</option>
-```
-{% endcode %}
-
-创建映射：
-
-{% code title="Docs.mapping" %}
-```xml
-<schema xmlns="http://schemas.zongsoft.com/data">
-	<container name="Docs">
-		<command name="Answer" type="text" mutability="none">
-			<script driver="SQLite">SELECT 42</script>
-		</command>
-	</container>
-</schema>
-```
-{% endcode %}
-
-默认加载器递归搜索应用目录的映射。`Docs` 是访问器/连接名，`Docs.Answer` 是映射命令限定名；两者分别解决连接选择和命令定位。
-
-## 在命令中调用
-
-把入门示例 `EvaluateCommand` 的执行方法替换为以下内容，并增加 `using Zongsoft.Data;`：
-
-{% code title="EvaluateCommand.cs（替换执行方法）" %}
+{% code title="Module.cs" %}
 ```csharp
-protected override async ValueTask<object> OnExecuteAsync(CommandContext context, CancellationToken cancellation)
+public IDataAccess Accessor => _accessor ??= this.Services.ResolveRequired<IDataAccessProvider>().GetAccessor(this.Name);
+```
+{% endcode %}
+
+访问器名是 Discussions。连接配置与驱动必须允许该访问器选到正确数据源；身份需要包含 Discussions 方案及 SiteId，参见[连接配置](connections.md)和[认证](../security/authentication.md)。
+
+## 3. 使用仓库中的论坛请求
+
+以下仅摘录请求行，省略 Host 和 Authorization；page 是原请求中的环境变量，由你的请求工具提供：
+
+来源：[docs/http/forum.http](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/docs/http/forum.http#L2)（节选；上下文见源文件）。
+
+{% code title="forum.http" %}
+```http
+GET /Discussions/Forums?page={{page}} HTTP/1.1
+```
+{% endcode %}
+
+这条请求读取论坛集合。可见性规则由 ForumService 处理，站点条件由数据验证器补充；空集合可能表示当前范围没有数据，不一定是查询失败。
+
+## 4. 顺着服务检查结果
+
+来源：[src/Services/ForumService.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Services/ForumService.cs#L83)（节选；上下文见源文件）。
+
+{% code title="ForumService.cs" %}
+```csharp
+public IEnumerable<Models.Thread> GetPinnedThreads(ushort forumId, string schema, Paging paging = null)
 {
-	var provider = ApplicationContext.Current.Services
-		.ResolveRequired<Zongsoft.Services.IServiceProvider<IDataAccess>>();
-	var data = provider.GetService("Docs")
-		?? throw new InvalidOperationException("未取得 Docs 访问器。");
-	var result = await data.ExecuteScalarAsync("Docs.Answer", cancellation);
-	context.Output.WriteLine(result);
-	return result;
+	return this.DataAccess.Select<Models.Thread>(
+		Condition.Equal(nameof(Models.Thread.ForumId), forumId) &
+		Condition.Equal(nameof(Models.Thread.IsPinned), true) &
+		Condition.Equal(nameof(Models.Thread.Visible), true),
+		schema, paging, Sorting.Descending(nameof(Models.Thread.ThreadId)));
 }
 ```
 {% endcode %}
 
-在业务部署章节补充 `../Acme.Rules/Docs.mapping`，重新构建业务类库，停止示例宿主后部署。进入 `out` 启动宿主并执行 `evaluate`，预期输出 `42`。
+这是同一模块里读取置顶主题的真实调用：条件、数据模式、分页和排序都有明确来源。理解接口集合查询后，可以在这个方法及数据过滤器设置断点，观察访问器如何工作。
 
-## 如何判断失败位置
+## 成功标准与排障
 
-- 提供者解析失败：检查 Data 清单和程序集扫描；当前建议消费契约为 `Zongsoft.Services.IServiceProvider<IDataAccess>`。
-- 连接不存在：检查配置是否关联业务清单，名称和 XML 属性是否正确。
-- 驱动不存在：同时检查连接设置驱动和数据驱动的注册。
-- 命令不存在：检查映射文件、XML 命名空间与 `Docs.Answer` 限定名。
-- 原生库加载失败：检查 SQLite 包产物、操作系统和架构，尤其是 `e_sqlite3` 的可解析位置。
+确认请求进入正确控制器、访问器选中预期连接、数据只属于当前站点、字段形状符合 schema、未审核正文没有暴露。进一步的写入和事务验证使用独立测试数据；不要把一次 SELECT 成功当作整个论坛业务已经验收。
 
-{% hint style="info" %}
-💡 SQLite 内存库不保证不同连接共享数据。本例只做常量查询；业务示例需要持久数据时应使用独立文件库，并另外准备表结构。更换数据库驱动不会自动翻译映射中手写的 SQL。
-{% endhint %}
-
-下一步：[映射业务实体](mapping.md)、[连接配置](connections.md)、[数据访问接口](data-access.md)。源码入口：[提供者注册](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Data/src/DataAccessProvider.cs)、[映射加载器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Data/src/Metadata/Profiles/MetadataFileLoader.cs)。
+找不到实体时检查映射部署；找不到驱动时检查插件；无法连接时检查数据源；缺少序号服务时检查依赖装配。更多阅读：[映射](mapping.md)、[查询](querying.md)、[服务](services.md)。

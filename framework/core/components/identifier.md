@@ -1,46 +1,36 @@
 ---
-description: Zongsoft.Components 标识抽象与 Identifier 值对象。
+description: 从 Discussions 用户身份理解类型和值共同组成的标识。
 icon: fingerprint
 ---
 
 # 标识
 
-标识模型用于把对象的身份抽象出来。对象只要表达“我是谁”，调用方就不必依赖具体用户类、角色类、机构类或业务实体类型，从而降低安全、权限、审计和展示逻辑之间的耦合。
 
-`Identifier` 保存的是“类型 + 值”，并可附带标签和描述。类型用于说明身份所属的对象类别，值用于稳定定位对象，标签和描述则用于日志、界面或诊断输出。
+Identifier 将标识类别与标识值放在一起，使通用安全组件不必依赖具体的论坛用户类。Discussions 的 UserIdentity 实现用户契约，将 UserId 转换为通用标识。
 
-## 关键类型
+来源：[src/Security/UserIdentity.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Security/UserIdentity.cs#L102)（节选；上下文见源文件）。
 
-| 类型 | 说明 |
-| --- | --- |
-| `IIdentifiable` | 可标识对象接口。 |
-| `Identifier` | 通用标识值，包含 `Type`、`Value`、`Label` 和 `Description`。 |
-| `Identifier<T>` | 强类型标识值，适合值类型已经确定的场景。 |
-
-## Identifier 结构
-
-`Identifier` 不只是一个 ID 字符串。它同时包含标识类型和值，还可以携带面向显示的标签和描述，因此很适合跨模块传递“对象身份”。
-
-{% code title="构造标识" %}
+{% code title="UserIdentity.cs" %}
 ```csharp
-var user = new Identifier(
-	typeof(User),
-	10001,
-	label: "admin",
-	description: "系统管理员");
-
-if(user.Validate<User, int>(out var userId))
-	await LoadUserAsync(userId, cancellation);
+Identifier IIdentifiable.Identifier
+{
+	get => new(typeof(IUser), this.UserId);
+	set => this.UserId = value.Validate<uint>(out var id) ? id : this.UserId;
+}
+#endregion
 ```
 {% endcode %}
 
-在安全模型中，`IUser`、`IRole` 等权限主体可以通过统一标识参与权限判断、审计记录和授权上下文传递。业务代码无需知道权限主体的具体实现类，只要读取其标识即可。
+这里的类型是 IUser，而不是 UserIdentity。设置标识时先验证值能否作为 uint，再更新 UserId；不符合要求时保持原编号。标识用于回答对象是谁，不会自动加载用户资料或授予权限。
 
-`Identifier` 更适合表达跨模块的对象引用，例如用户、角色、机构和租户；它只表达身份，不承载完整业务状态。需要业务字段时仍应加载对应对象。持久化审计日志时，可以同时保存 `Type`、`Value` 和 `Label`，便于后续查询和显示。如果只在单个聚合内部传递主键，直接使用业务主键通常会更清晰。
+## 相关契约
 
-## 参考实现
+| 类型 | 责任 |
+| --- | --- |
+| IIdentifiable | 提供统一标识属性 |
+| Identifier | 保存类型、值及可选标签、描述 |
+| Identifier&lt;T&gt; | 值类型已确定的标识 |
 
-* [Identifier.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/Identifier.cs)
-* [IIdentifiable.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IIdentifiable.cs)
-* [IUser.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Security/Privileges/IUser.cs)
-* [IRole.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Security/Privileges/IRole.cs)
+UserIdentity 还包含 SiteId。用户编号和站点范围承担不同责任，跨模块传递 Identifier 后，业务操作仍需恢复或验证当前站点和资源权限。参见[认证与授权](../../security/authentication.md)。
+
+框架定义：[Identifier](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/Identifier.cs)、[IIdentifiable](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IIdentifiable.cs)。

@@ -5,6 +5,8 @@ icon: plug-circle-bolt
 
 # 扩展插件
 
+![不同外部能力通过适配接口连接到框架](../.gitbook/assets/zongsoft-externals-cover.png)
+
 外部扩展把第三方运行时、基础设施或云服务接入 Zongsoft。业务模块尽量依赖框架契约，应用组合层负责选择提供者；实际协议、资源及故障行为仍由具体实现决定。
 
 ## 按需求阅读
@@ -14,9 +16,13 @@ icon: plug-circle-bolt
 | 缓存、序号、分布式锁、进程内缓存服务器 | Redis、etcd、Garnet | [缓存与分布式协作](externals/caching.md) |
 | 规则计算、语言脚本、文本表达式 | Lua、Python、Scriban | [脚本与表达式](externals/scripting.md) |
 | 后台作业、重试、超时与熔断 | Hangfire、Polly | [任务调度与弹性执行](externals/execution.md) |
-| 工作簿交换、模板与报表引擎 | ClosedXml、OpenXml、Grapecity | [表格与报表扩展](externals/documents.md) |
+| 工作簿交换、模板与单元格操作 | ClosedXml、OpenXml | [表格与模板扩展](externals/documents.md) |
 | 对象存储、短信推送、微信及回调 | Amazon、Aliyun、Wechat | [云服务与回调](externals/cloud.md) |
-| 工业通讯和桌面应用更新 | Opc、Velopack | [设备协议与桌面更新](externals/integration.md) |
+| 工业通讯与设备数据接入 | Opc | [OPC UA 设备协议](externals/integration.md) |
+
+## 按项目阅读
+
+如果已经确定项目名称，可从[项目索引](externals/projects/README.md)进入 Aliyun、Amazon、Redis、etcd、Hangfire 等 14 个项目的独立页面，查看包、配置入口和实现限制。
 
 ## 接入的共同路径
 

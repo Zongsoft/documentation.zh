@@ -23,38 +23,35 @@ icon: hand-pointer
 | `HandlerUtility` | 处理器 URL、名称和元数据辅助方法。 |
 | `Handler` | 静态工厂，可把委托包装成处理器代理。 |
 
-{% code title="声明处理器模板" %}
+来源：[framework/Zongsoft.Diagnostics/protocols/server/samples/MetricHandler.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Diagnostics/protocols/server/samples/MetricHandler.cs#L12)（节选；上下文见源文件）。
+
+{% code title="MetricHandler.cs" %}
 ```csharp
-[Handler("sms/[handler]")]
-public sealed class SendHandler : HandlerBase<Message>
+public class MetricHandler : HandlerBase<IEnumerable<Zongsoft.Diagnostics.Telemetry.Metrics.Meter>>
 {
-	protected override ValueTask OnHandleAsync(
-		Message message,
-		Parameters parameters,
-		CancellationToken cancellation)
+	protected override ValueTask OnHandleAsync(IEnumerable<Telemetry.Metrics.Meter> meters, Parameters parameters, CancellationToken cancellation)
 	{
-		return SendAsync(message, cancellation);
+		foreach(var meter in meters)
+			Terminal.WriteLine(CommandOutletDumper.Dump(meter));
+
+		return ValueTask.CompletedTask;
 	}
 }
 ```
 {% endcode %}
 
-`HandlerUtility.GetUrls(...)` 会读取 `HandlerAttribute`，并把模板中的 `[handler]` 替换为去掉 `Handler` 后缀的类型名。上例通常会得到 `sms/Send`。
+这个处理器来自诊断协议服务端样例：输入是一组已经转换为框架模型的 Meter，处理方法逐项输出到终端。它没有声明 HandlerAttribute；监听器通过插件集合取得它。HandlerUtility 的 URL 模板能力属于另一种按地址选择处理器的机制，不能据此推断所有处理器都需要 URL。
 
 ## 插件化处理器集合
 
-消息、事件和调度场景经常需要让其他业务模块“往集合里挂一个处理器”。`Zongsoft.Messaging.ZeroMQ.plugin` 就暴露了请求器和应答器的处理器集合，其他模块可以把自己的处理器挂载到对应路径下。
+诊断样例把 MetricHandler 挂到 Metrics 监听器暴露的集合中。这里的路径、对象名和类型都来自同一个样例插件；启动顺序与监听地址见 [OTLP 接收](../../diagnostics/otlp.md)。
 
-{% code title="Zongsoft.Messaging.ZeroMQ.plugin" %}
+来源：[framework/Zongsoft.Diagnostics/protocols/server/samples/Zongsoft.Diagnostics.Protocols.Server.Samples.plugin](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Diagnostics/protocols/server/samples/Zongsoft.Diagnostics.Protocols.Server.Samples.plugin#L19)（节选；上下文见源文件）。
+
+{% code title="Zongsoft.Diagnostics.Protocols.Server.Samples.plugin" %}
 ```xml
-<extension path="/Workbench/Messaging/Zero">
-	<object name="Requester" type="Zongsoft.Messaging.ZeroMQ.ZeroRequester, Zongsoft.Messaging.ZeroMQ">
-		<expose name="Handlers" value="{path:../@Handlers}" />
-	</object>
-
-	<object name="Responder" type="Zongsoft.Messaging.ZeroMQ.ZeroResponder, Zongsoft.Messaging.ZeroMQ">
-		<expose name="Handlers" value="{path:../@Handlers}" />
-	</object>
+<extension path="/Workbench/Diagnostics/Telemetry/Listener/Metrics">
+	<object name="MetricHandler" type="Zongsoft.Diagnostics.Protocols.Server.Samples.MetricHandler, Zongsoft.Diagnostics.Protocols.Server.Samples" />
 </extension>
 ```
 {% endcode %}

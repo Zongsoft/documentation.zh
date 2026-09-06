@@ -11,14 +11,30 @@ icon: gears
 
 当前入口使用 `Application.Daemon("zongsoft.daemon", ...)`，并传入 `host=daemon`、`site=daemon`。按构建平台条件集成 Windows Service 或 systemd。
 
-{% code title="Program.cs（平台集成片段）" %}
-```csharp
-// Windows 分支
-builder.Services.AddWindowsService(options =>
-	options.ServiceName = builder.Environment.ApplicationName);
+来源：[hosting/daemon/Program.cs](https://github.com/Zongsoft/hosting/blob/main/daemon/Program.cs#L9)（节选；上下文见源文件）。
 
-// Linux 分支
-builder.Services.AddSystemd();
+{% code title="Program.cs" %}
+```csharp
+static void Main(string[] args)
+{
+	#if WINDOWS
+	Zongsoft.Plugins.Hosting.Application
+		.Daemon("zongsoft.daemon", [.. args, "host=daemon", "site=daemon"], builder =>
+		{
+			builder.Services.AddWindowsService(options => options.ServiceName = builder.Environment.ApplicationName);
+		}).Run();
+	#elif LINUX
+	Zongsoft.Plugins.Hosting.Application
+		.Daemon("zongsoft.daemon", [.. args, "host=daemon", "site=daemon"], builder =>
+		{
+			builder.Services.AddSystemd();
+		}).Run();
+	#else
+	Zongsoft.Plugins.Hosting.Application
+		.Daemon("zongsoft.daemon", [.. args, "host=daemon", "site=daemon"])
+		.Run();
+	#endif
+}
 ```
 {% endcode %}
 

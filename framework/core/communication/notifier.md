@@ -14,21 +14,27 @@ icon: bell
 | `Notify` | 同步激发通知。 |
 | `NotifyAsync` | 异步激发通知。 |
 
-{% code title="NotifierShape.cs" %}
+来源：[framework/Zongsoft.Core/src/Communication/INotifier.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Communication/INotifier.cs#L38)（节选；上下文见源文件）。
+
+{% code title="INotifier.cs" %}
 ```csharp
 public interface INotifier
 {
-	object Notify(
-		string name,
-		object content,
-		object destination,
-		object settings = null);
+	/// <summary>激发一个通知给指定的接受者。</summary>
+	/// <param name="name">指定要激发的通知名。</param>
+	/// <param name="content">指定的通知内容。</param>
+	/// <param name="destination">指定通知的接受者，由具体实现者定义支持的接受者类型。</param>
+	/// <param name="settings">指定的通知设置。</param>
+	/// <returns>返回通知结果对象，由具体实现者定义。</returns>
+	object Notify(string name, object content, object destination, object settings = null);
 
-	ValueTask<object> NotifyAsync(
-		string name,
-		object content,
-		object destination,
-		object settings = null);
+	/// <summary>异步激发一个通知给指定的接受者。</summary>
+	/// <param name="name">指定要激发的通知名。</param>
+	/// <param name="content">指定的通知内容。</param>
+	/// <param name="destination">指定通知的接受者，由具体实现者定义支持的接受者类型。</param>
+	/// <param name="settings">指定的通知设置。</param>
+	/// <returns>返回通知结果对象，由具体实现者定义。</returns>
+	ValueTask<object> NotifyAsync(string name, object content, object destination, object settings = null);
 }
 ```
 {% endcode %}
@@ -42,54 +48,41 @@ public interface INotifier
 | `INotifier` | 激发一条命名通知，目标、设置和结果由实现定义。 | 站内通知、会话通知、桌面推送、自定义业务提醒。 |
 | `ITransmitter` | 按发送器、通道、模板和参数发送模板化信息。 | 模板短信、语音通知、微信模板消息、验证码发送。 |
 
-## 自定义实现示例
+## Discussions 的站内消息路径
 
-{% code title="SessionNotifier.cs" %}
+当前 Discussions 和 framework 中没有可供复用的 INotifier 完整实现。Discussions 使用 MessageService 保存站内消息与接收者关系；它不是 INotifier 的实现，也不负责把消息实时推送到在线会话。
+
+来源：[src/Services/MessageService.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Services/MessageService.cs#L49)（节选；上下文见源文件）。
+
+{% code title="MessageService.cs" %}
 ```csharp
-using System.Threading.Tasks;
-using Zongsoft.Communication;
-
-public sealed class SessionNotifier : INotifier
+public int Send(Message message, IEnumerable<uint> users)
 {
-	public object Notify(
-		string name,
-		object content,
-		object destination,
-		object settings = null)
-	{
-		return this.NotifyAsync(name, content, destination, settings)
-			.AsTask()
-			.GetAwaiter()
-			.GetResult();
-	}
+	if(message == null)
+		throw new ArgumentNullException(nameof(message));
 
-	public async ValueTask<object> NotifyAsync(
-		string name,
-		object content,
-		object destination,
-		object settings = null)
-	{
-		var sessionId = destination as string;
-		if(string.IsNullOrEmpty(sessionId))
-			return false;
+	if(users == null || !users.Any())
+		return 0;
 
-		await SendToSessionAsync(sessionId, name, content, settings);
-		return true;
-	}
-
-	private static ValueTask SendToSessionAsync(
-		string sessionId,
-		string name,
-		object content,
-		object settings)
+	using(var transaction = new Transaction())
 	{
-		return ValueTask.CompletedTask;
+		//插入消息
+		if(this.Insert(message) < 1)
+			return 0;
+
+		//插入用户消息
+		var count = this.DataAccess.InsertMany(users.Select(uid => new UserMessage(uid, message.MessageId)));
+
+		//提交事务
+		transaction.Commit();
+
+		return count;
 	}
 }
 ```
 {% endcode %}
 
-这个实现可以把 `destination` 解释为会话标识，也可以解释为用户编号、设备编号、连接对象或任何业务端点。
+Send 接收消息对象及用户编号集合，在事务中写入消息和 UserMessage。读取状态由 MessageService 的查询钩子更新。若需要理解通用模板短信的真实发送过程，请继续阅读 [Transmitter](transmitter.md)。
 
 ## 相关资源
 

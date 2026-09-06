@@ -40,14 +40,29 @@ icon: shield
 | `Creation`、`Modification` | 创建和修改时间。 |
 | `Authorization` | 授权相关声明，通常作为可重复声明处理。 |
 
-`ClaimUtility` 负责 Claim 值与 .NET 类型之间的转换。它根据 Claim 的 `ValueType` 识别 `bool`、`DateTime`、`DateOnly`、`TimeOnly`、整数、浮点数、`TimeSpan` 或 Zongsoft 类型别名。设置 Claim 时，`ClaimsIdentityExtension.SetClaim(...)` 会反向生成合适的 `ValueType`。
+`ClaimUtility` 负责 Claim 值与 .NET 类型之间的转换。它根据 Claim 的 `ValueType` 识别 `bool`、[`DateTime`](https://learn.microsoft.com/zh-cn/dotnet/api/system.datetime) _[源码](https://source.dot.net/#System.Private.CoreLib/DateTime.cs)_、[`DateOnly`](https://learn.microsoft.com/zh-cn/dotnet/api/system.dateonly) _[源码](https://source.dot.net/#System.Private.CoreLib/DateOnly.cs)_、[`TimeOnly`](https://learn.microsoft.com/zh-cn/dotnet/api/system.timeonly) _[源码](https://source.dot.net/#System.Private.CoreLib/TimeOnly.cs)_、整数、浮点数、[`TimeSpan`](https://learn.microsoft.com/zh-cn/dotnet/api/system.timespan) _[源码](https://source.dot.net/#System.Private.CoreLib/TimeSpan.cs)_ 或 Zongsoft 类型别名。设置 Claim 时，`ClaimsIdentityExtension.SetClaim(...)` 会反向生成合适的 `ValueType`。
 
-{% code title="SetClaims.cs" %}
+来源：[src/Security/UserChallenger.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Security/UserChallenger.cs#L126)（节选；上下文见源文件）。
+
+{% code title="UserChallenger.cs" %}
 ```csharp
-identity.SetNamespace(user.Namespace);
-identity.SetClaim(nameof(UserIdentity.TenantId), user.TenantId, ClaimValueTypes.UInteger32);
-identity.SetClaim(nameof(UserIdentity.Language), user.Language, ClaimValueTypes.String);
-identity.AddRoles(roleNames);
+private ClaimsIdentity Identity(UserProfile user)
+{
+	var identity = user.Identity(UserIdentity.Scheme, "Zongsoft");
+
+	identity.SetClaim(nameof(UserProfile.SiteId), user.SiteId);
+	identity.SetClaim(nameof(UserProfile.Gender), user.Gender);
+	identity.SetClaim(nameof(UserProfile.Avatar), user.Avatar);
+	identity.SetClaim(nameof(UserProfile.Grade), user.Grade);
+	identity.SetClaim(nameof(UserProfile.TotalPosts), user.TotalPosts);
+	identity.SetClaim(nameof(UserProfile.TotalThreads), user.TotalThreads);
+
+	//进行其他声明定义
+	this.OnClaims(identity, user);
+
+	//返回新构建的身份
+	return identity;
+}
 ```
 {% endcode %}
 
@@ -65,9 +80,9 @@ Claims 应保存“认证后需要频繁读取的小事实”，例如用户编�
 
 ## 凭证主体
 
-`CredentialIdentity` 是登录身份，构造时会写入名称声明和签发者声明。签发者使用 `ClaimTypes.System` 保存，因此同一个 `ClaimsPrincipal` 可以按认证方案或模块查找对应身份。
+`CredentialIdentity` 是登录身份，构造时会写入名称声明和签发者声明。签发者使用 `ClaimTypes.System` 保存，因此同一个 [`ClaimsPrincipal`](https://learn.microsoft.com/zh-cn/dotnet/api/system.security.claims.claimsprincipal) _[源码](https://source.dot.net/#System.Security.Claims/ClaimsPrincipal.cs)_ 可以按认证方案或模块查找对应身份。
 
-`CredentialPrincipal` 是登录后的凭证主体，扩展了标准 `ClaimsPrincipal`：
+`CredentialPrincipal` 是登录后的凭证主体，扩展了标准 [`ClaimsPrincipal`](https://learn.microsoft.com/zh-cn/dotnet/api/system.security.claims.claimsprincipal) _[源码](https://source.dot.net/#System.Security.Claims/ClaimsPrincipal.cs)_：
 
 | 属性 | 说明 |
 | --- | --- |
@@ -88,34 +103,46 @@ Claims 应保存“认证后需要频繁读取的小事实”，例如用户编�
 * `Authentication.Transformer` 中的 `ClaimsPrincipalTransformer.Transformers`。
 * 当前应用服务容器中的 `IClaimsIdentityTransformer`。
 
-转换结果会以 `CredentialId` 和 _scheme_ 为键缓存；凭证主体释放时缓存随之失效。远山项目的 `Identity.Current` 就是对这个机制的封装：
+转换结果会以 `CredentialId` 和 _scheme_ 为键缓存；凭证主体释放时缓存随之失效。Discussions 的 UserIdentity.Current 按 Zongsoft.Discussions 方案读取模型：
 
-{% code title="Identity.cs" %}
+来源：[src/Security/UserIdentity.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Security/UserIdentity.cs#L110)（节选；上下文见源文件）。
+
+{% code title="UserIdentity.cs" %}
 ```csharp
-public static Identity Current =>
-	ApplicationContext.Current.Principal.GetModel(identity => new Identity(identity));
+public static UserIdentity Current => ClaimsIdentityModeling.GetModel<UserIdentity>(Scheme);
 ```
 {% endcode %}
 
 业务 _转换器_ 通常只处理自己认识的认证方案，把 _Claim_ 转成业务身份属性：
 
-{% code title="UserIdentityTransformer.cs" %}
-```csharp
-public object Transform(ClaimsIdentity identity) =>
-	identity.AsModel<UserIdentity>(this.OnTransform);
+来源：[src/Security/UserIdentity.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Security/UserIdentity.cs#L130)（节选；上下文见源文件）。
 
-protected override bool OnTransform(UserIdentity user, Claim claim)
+{% code title="UserIdentity.cs" %}
+```csharp
+private bool OnTransform(UserIdentity user, Claim claim)
 {
 	switch(claim.Type)
 	{
-		case nameof(UserIdentity.TenantId):
-			user.TenantId = claim.GetValue<uint>();
+		case nameof(UserIdentity.SiteId):
+			user.SiteId = (claim.Value != null && uint.TryParse(claim.Value, out var siteId)) ? siteId : 0;
 			return true;
-		case nameof(UserIdentity.Language):
-			user.Language = claim.Value;
+		case nameof(UserIdentity.Gender):
+			user.Gender = (claim.Value != null && Enum.TryParse<Models.Gender>(claim.Value, out var gender)) ? gender : Models.Gender.None;
+			return true;
+		case nameof(UserIdentity.Avatar):
+			user.Avatar = claim.Value;
+			return true;
+		case nameof(UserIdentity.Grade):
+			user.Grade = (claim.Value != null && byte.TryParse(claim.Value, out var grade)) ? grade : (byte)0;
+			return true;
+		case nameof(UserIdentity.TotalPosts):
+			user.TotalPosts = (claim.Value != null && uint.TryParse(claim.Value, out var totalPosts)) ? totalPosts : 0;
+			return true;
+		case nameof(UserIdentity.TotalThreads):
+			user.TotalThreads = (claim.Value != null && uint.TryParse(claim.Value, out var totalThreads)) ? totalThreads : 0;
 			return true;
 		default:
-			return base.OnTransform(user, claim);
+			return false;
 	}
 }
 ```
@@ -125,9 +152,7 @@ protected override bool OnTransform(UserIdentity user, Claim claim)
 
 `Password` 是核心库推荐的密码摘要结构。它把算法、指数、随机数和派生值打包在同一个值中，文本格式类似：
 
-```text
-SHA256#10:1A2B3C4D5E6F7890|Base64String
-```
+算法#指数:随机数|派生值。这是格式说明，真实序列化与验证输入见 [PasswordTest](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Security/PasswordTest.cs)。
 
 `Password.Generate(...)` 使用 PBKDF2 生成摘要；省略算法参数时默认使用 SHA256。`Verify(...)` 根据摘要中保存的算法、随机数和指数重新计算，因此已有 SHA1 摘要仍可继续验证。旧的 `PasswordUtility` 已标记为过时，新的实现应优先使用 `Password`；业务服务中的 `Passworder` 目前仍保留旧格式兼容路径，后续需要配合重哈希迁移。
 
@@ -142,19 +167,21 @@ SHA256#10:1A2B3C4D5E6F7890|Base64String
 | `Transmitter` | 发送秘密，可接入短信、邮件、站内信和验证码校验。 |
 
 {% hint style="warning" %}
-验证码名称应包含业务场景和目标标识，例如 `user.phone:13800000000` 或 `user.forget:1001`，并确保全局唯一。过宽的名称会导致不同用户或不同场景互相覆盖。
+验证码名称应包含业务场景和目标标识，可参照 Secretor.Transmitter.GetKey 对方案、目的地、模板、场景和通道的组合，并确保全局唯一。过宽的名称会导致不同用户或不同场景互相覆盖。
 {% endhint %}
 
 ## 证书、签名与挑战
 
 `ICertificate`、`ICertificateProvider<TCertificate>`、`ICertificateResolver` 和 `Certificate` 封装证书标识、颁发者、主体、有效期以及 RSA/X509 证书适配。`ISignaturer` 和 `ISecretor` 分别覆盖签名与秘密校验场景。
 
-`IChallenger` 是认证后的补充质询点。认证器只负责“凭据是否正确”和“签发基础身份”，challenger 负责登录后的业务检查与 claims 增强。例如远山业务系统在 `UserChallengerBase` 中完成：
+`IChallenger` 是认证后的补充质询点。认证器只负责“凭据是否正确”和“签发基础身份”，challenger 负责登录后的业务检查与 claims 增强。Discussions 的 UserChallenger 完成以下工作：
 
-* 根据 `NameIdentifier` 读取用户编号并重新加载用户。
-* 更新心跳和登录日志。
-* 检查用户是否可见、员工是否有效、租户状态是否允许登录。
-* 写入租户、机构、语言、许可模块、分支机构和角色 claims。
+* 从主身份读取用户编号，并查询或创建 Discussions 用户资料。
+* 创建资料时从身份命名空间确定 SiteId；已有资料保留自己的站点信息。
+* 调用 OnVerify 扩展点，再创建 Zongsoft.Discussions 身份加入主体。
+* 写入 SiteId、Gender、Avatar、Grade、TotalPosts 和 TotalThreads 声明。
+
+当前 OnVerify 是空实现，不能据此宣称已校验账号启用状态、站点状态或许可范围；这些业务准入规则需要由实际模块补充。资料统计声明也是签发时的快照，不会随每次发帖自动刷新。
 
 这种拆分能让密码登录、验证码登录等不同认证方式共享同一组业务质询规则。
 

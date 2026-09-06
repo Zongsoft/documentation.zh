@@ -1,51 +1,82 @@
 ---
-description: 理解登录、凭据续期撤销、角色权限与数据范围，核对 Web 接口的真实接入路径。
-icon: user-shield
+description: 从 Discussions 的身份质询、声明转换和 SiteId 验证理解认证边界。
+icon: shield-halved
 ---
 
 # 认证与授权
 
-认证成功后得到的凭据是后续请求的身份证明。凭据的存在不能代替操作授权，角色名称也不能代替数据范围过滤。设计业务接口时，应把这几层分别验证。
 
-## 登录与凭据生命周期
+Discussions 在基础认证后补充论坛身份。用户编号回答“是谁”，SiteId 表达论坛业务范围，版主和可见性规则进一步约束“能做什么”。这些问题需要分层处理。
 
-典型流程为：根据策略完成人机或带外验证，按已注册认证方案登录，保存返回凭据，后续请求通过对应认证处理器携带凭据，在到期前按策略续期，退出时撤销。
+## 插件挂载身份扩展
 
-默认安全插件挂载 Identity 与 Secretor 等认证器。scheme 表示认证方式，scenario 表示登录场景；客户端不能自行假定任意名称都有效。准确请求模板可查[安全 HTTP 示例](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Security/docs/http)，并与当前部署的 OpenAPI 核对。
+来源：[src/Zongsoft.Discussions.plugin](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Zongsoft.Discussions.plugin#L41)（节选；上下文见源文件）。
 
-{% code title="Security.option（认证配置片段）" %}
+{% code title="Zongsoft.Discussions.plugin" %}
 ```xml
-<option path="/Security">
-	<authentication period="08:00:00">
-		<attempter limit="5" window="00:01:00" period="00:05:00" />
-		<expiration>
-			<scenario scenario.name="api" period="1.00:00:00" />
-		</expiration>
-	</authentication>
-</option>
+<extension path="/Workbench/Security/Authentication/Challengers">
+	<object value="{static:Zongsoft.Discussions.Security.UserChallenger.Instance, Zongsoft.Discussions}" />
+</extension>
+```
+{% endcode %}
+来源：[src/Zongsoft.Discussions.plugin](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Zongsoft.Discussions.plugin#L46)（节选；上下文见源文件）。
+
+{% code title="Zongsoft.Discussions.plugin" %}
+```xml
+<extension path="/Workbench/Security/Authentication/Transformers">
+	<object value="{static:Zongsoft.Discussions.Security.UserIdentity+Transformer.Instance, Zongsoft.Discussions}" />
+</extension>
 ```
 {% endcode %}
 
-这些值展示配置形状，应用应根据实际使用场景选择期限与失败限制。登录成功后还要验证缓存中的凭据能被后续请求读取；多实例部署必须协调缓存和身份配置。
+质询器读取或创建论坛用户资料，再向主体加入 Discussions 方案的身份；转换器把声明恢复为 UserIdentity。两者不是重复认证，承担不同阶段的工作。
 
-## Web 接入
+## 用户资料成为声明
 
-Security.Web 的 AuthenticationController 提供登录、退出、续期与秘密签发核验。User、Role 和嵌套权限控制器维护相应状态，AuthorizationController 提供授权相关查询。
+来源：[src/Security/UserChallenger.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Security/UserChallenger.cs#L126)（节选；上下文见源文件）。
 
-凭据方案的 Web 管线接入来自 Zongsoft.Web。插件宿主已经装配认证和授权中间件，具体策略和受保护端点仍由应用决定。遇到 401 先核对凭据方案与有效性，遇到 403 再核对主体、操作与数据范围；实际失败状态还应对照当前端点实现。
+{% code title="UserChallenger.cs" %}
+```csharp
+private ClaimsIdentity Identity(UserProfile user)
+{
+	var identity = user.Identity(UserIdentity.Scheme, "Zongsoft");
 
-## 角色、成员与权限
+	identity.SetClaim(nameof(UserProfile.SiteId), user.SiteId);
+	identity.SetClaim(nameof(UserProfile.Gender), user.Gender);
+	identity.SetClaim(nameof(UserProfile.Avatar), user.Avatar);
+	identity.SetClaim(nameof(UserProfile.Grade), user.Grade);
+	identity.SetClaim(nameof(UserProfile.TotalPosts), user.TotalPosts);
+	identity.SetClaim(nameof(UserProfile.TotalThreads), user.TotalThreads);
 
-用户和角色通过成员关系组织，角色可形成继承关系。直接权限与过滤权限具有不同职责：前者表达资源/操作允许与否，后者约束可操作的数据范围。管理接口修改成员或权限时，要区分追加和 reset 语义，避免把局部变更变成整组替换。
+	//进行其他声明定义
+	this.OnClaims(identity, user);
 
-业务层应该经安全服务维护这些关系，避免直接修改表而遗漏相关不变量。对租户或命名空间中的资源，验证身份、目标资源归属和查询范围，不能只验证一个全局角色名。
+	//返回新构建的身份
+	return identity;
+}
+```
+{% endcode %}
 
-## 应用验证清单
+SiteId、Gender、Avatar、Grade 与统计信息都来自用户资料。身份快照不应视为永久实时业务数据；字段变更后何时刷新凭证，仍由安全宿主的有效期与更新策略决定。
 
-验证凭据时覆盖有效、过期、撤销和续期失败；验证权限时覆盖匿名、普通用户、允许和拒绝；验证数据范围时使用两个不同归属的对象，确保不能通过替换 URL 中的 ID 越界访问。
+## 当前论坛身份
+
+来源：[src/Security/UserIdentity.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Security/UserIdentity.cs#L110)（节选；上下文见源文件）。
+
+{% code title="UserIdentity.cs" %}
+```csharp
+public static UserIdentity Current => ClaimsIdentityModeling.GetModel<UserIdentity>(Scheme);
+```
+{% endcode %}
+
+Scheme 是 Zongsoft.Discussions。只有建立该方案并注册转换器，当前模型才可用；普通 ClaimsPrincipal 或匿名访问并不自动带有这份身份。
+
+## 站点范围与资源权限
+
+DataValidator 对含 SiteId 的查询与写入约束当前站点，创建时还填写站点、创建人和时间。即使请求指定另一个 SiteId，也不能替代当前身份范围。认证初始化期间尚无论坛身份，因此相关查询必须由受控的认证流程调用。
+
+站点隔离不等于版主权限，也不等于审核可见性。ThreadService 的业务动作、ForumService 的可见性条件、查询结果过滤器共同参与判断，见[数据服务](../data/services.md)。
 
 {% hint style="warning" %}
-🚨 客户端超时或取消不证明权限变更已回滚。对于重试的用户、成员或权限管理操作，应重新读取状态或使用业务幂等机制。凭据、秘密和密码不应进入日志或查询字符串。
+🚨 不能把“验证器会补 SiteId”推广为所有匿名查询、所有关联实体和所有自定义接口都自动安全。每个入口仍要核对身份建立时机、映射关系和资源权限。
 {% endhint %}
-
-源码入口：[认证控制器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Security/api/Controllers/AuthenticationController.cs)、[持久化权限服务](https://github.com/Zongsoft/framework/tree/main/Zongsoft.Security/src/Privileges)、[凭据提供者](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Security/src/CredentialProvider.cs)。

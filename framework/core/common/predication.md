@@ -1,119 +1,56 @@
 ---
-description: Predication 条件断言接口、基类和组合集合。
+description: 从安全模块事件与日志过滤说明可组合的条件断言。
 icon: circle-check
 ---
 
 # Predication
 
-`Predication` 用于表达可异步执行的条件判断。它把“某个对象是否满足条件”抽象为 `IPredication` / `IPredication<T>`，再通过基类、工厂方法和集合组合支持复用、命名匹配和短路执行。
+Predication 将“条件是否成立”表达为可同步或异步执行的对象。Discussions 的业务条件主要使用数据引擎 Condition；它没有自定义 PredicationBase。因此这里采用 framework 安全模块的事件注册作为真实用例。
 
-## 类型关系
+## 将委托用于事件描述
 
-| 类型 | 说明 |
-| --- | --- |
-| `IPredication` | 非泛型断言接口，接收 `object` 参数和可选 `Parameters`。 |
-| `IPredication<T>` | 泛型断言接口，提供强类型参数入口。 |
-| `PredicationBase<T>` | 带名称、参数转换和服务匹配能力的抽象基类。 |
-| `Predication` | 从委托快速创建断言对象的静态工厂。 |
-| `PredicationCollection` | 非泛型断言集合。 |
-| `PredicationCollection<T>` | 泛型断言集合。 |
-| `PredicationCombination` | 集合内断言的 `And` / `Or` 组合方式。 |
+来源：[framework/Zongsoft.Security/src/Module.Events.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Security/src/Module.Events.cs#L63)（节选；上下文见源文件）。
 
-## 快速创建断言
-
-`Predication.Predicate` 可以把同步或异步委托包装成 `IPredication`。这种写法适合临时规则、测试规则或不需要独立类型承载的轻量规则。
-
-{% code title="CreatePredication.cs" %}
+{% code title="Module.Events.cs" %}
 ```csharp
-using Zongsoft.Common;
-
-var adult = Predication.Predicate<int>(age => age >= 18);
-
-if(await adult.PredicateAsync(20))
-	Console.WriteLine("Allowed");
+public static readonly EventDescriptor<Privileges.AuthenticatedEventArgs> Authenticated = new(Predication.Predicate<Privileges.AuthenticatedEventArgs>(OnAuthenticated), $"{nameof(Privileges.Authentication)}.{nameof(Privileges.Authentication.Authenticated)}");
+public static readonly EventDescriptor<Privileges.AuthenticatingEventArgs> Authenticating = new(Predication.Predicate<Privileges.AuthenticatingEventArgs>(OnAuthenticating), $"{nameof(Privileges.Authentication)}.{nameof(Privileges.Authentication.Authenticating)}");
 ```
 {% endcode %}
 
-需要附加参数时，可以使用带 `Parameters` 参数的重载。
+安全模块用 Predication.Predicate 将方法包装成对应参数类型的断言。事件描述器和绑定逻辑仍由模块负责，断言工厂不自动完成事件注册。
 
-{% code title="PredicationWithParameters.cs" %}
+来源：[framework/Zongsoft.Security/src/Module.Events.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Security/src/Module.Events.cs#L114)（节选；上下文见源文件）。
+
+{% code title="Module.Events.cs" %}
 ```csharp
-using Zongsoft.Collections;
-using Zongsoft.Common;
-
-var rule = Predication.Predicate<int>((value, parameters) =>
+private static bool OnAuthenticating(Privileges.AuthenticatingEventArgs args)
 {
-	parameters.TryGetValue<int>("minimum", out var minimum);
-	return value >= minimum;
-});
+	Current.Meter.Authentication.Authenticating.Add(1,
+		new KeyValuePair<string, object>(nameof(args.Scheme), args.Scheme),
+		new KeyValuePair<string, object>(nameof(args.Scenario), args.Scenario));
 
-var parameters = new Parameters();
-parameters.SetValue("minimum", 10);
-
-var passed = await rule.PredicateAsync(12, parameters);
-```
-{% endcode %}
-
-## 实现命名断言
-
-继承 `PredicationBase<T>` 可以得到名称、服务匹配和对象参数转换能力。它适合注册到服务集合后按名称查找，例如策略、过滤器、权限规则或业务前置条件。
-
-{% code title="NamedPredication.cs" %}
-```csharp
-using System;
-using System.Threading;
-using System.Threading.Tasks;
-using Zongsoft.Collections;
-using Zongsoft.Common;
-
-public sealed class TenantPredication : PredicationBase<string>
-{
-	public TenantPredication() : base("tenant") { }
-
-	public override ValueTask<bool> PredicateAsync(
-		string argument,
-		Parameters parameters,
-		CancellationToken cancellation = default)
-	{
-		return ValueTask.FromResult(
-			parameters != null &&
-			parameters.TryGetValue<string>("tenant", out var expected) &&
-			string.Equals(argument, expected, StringComparison.OrdinalIgnoreCase));
-	}
+	return true;
 }
 ```
 {% endcode %}
 
-默认的 `OnConvert` 会调用 `Convert.ConvertValue<T>` 把 `object` 参数转换为强类型参数。如果断言需要更严格或更宽松的转换规则，可以重写 `OnConvert`。
+这个真实回调先记录认证指标，再返回 true。它说明断言可能包含副作用；组合和短路会影响后续回调是否执行，因此不能无条件把带副作用断言当作纯函数重排。
 
-## 组合多个断言
+## 类型与组合
 
-`PredicationCollection` 和 `PredicationCollection<T>` 可以把多个断言组合成一条断言链。`And` 组合遇到失败时短路返回失败；`Or` 组合遇到成功时短路返回成功。集合为空时返回成功。
+| 类型 | 责任 |
+| --- | --- |
+| IPredication、IPredication&lt;T&gt; | 非泛型与强类型判断契约 |
+| Predication | 从委托创建实现 |
+| PredicationBase&lt;T&gt; | 命名、参数转换与服务匹配 |
+| PredicationCollection | 组合多个断言 |
+| PredicationCombination | AND 或 OR 的短路规则 |
 
-{% code title="PredicationCollection.cs" %}
-```csharp
-using Zongsoft.Common;
+集合为空时返回成功；AND 在失败时短路，OR 在成功时短路。默认对象转换会影响弱类型入口，扩展时应检查参数类型、附加 Parameters 与取消语义。
 
-var rules = new PredicationCollection<int>(PredicationCombination.And)
-{
-	Predication.Predicate<int>(value => value > 0),
-	Predication.Predicate<int>(value => value < 100),
-};
+## 日志中的实际使用
 
-var passed = await rules.PredicateAsync(42);
-```
-{% endcode %}
+框架 LoggerPredication 根据日志来源、异常类型和级别进行判断。配置由 Initialize 读取，具体实现见 [LoggerPredication](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Diagnostics/LoggerPredication.cs)。这类规则适合输出筛选，不应代替业务授权。
 
-{% hint style="info" %}
-`Predication` 关注“条件是否成立”；如果要表达数据是否有效并收集失败消息，请使用 [Validator](validator.md)。
-{% endhint %}
-
-## 相关资源
-
-* [IPredication.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Common/IPredication.cs)
-* [IPredication&lt;T&gt;.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Common/IPredication%601.cs)
-* [Predication.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Common/Predication.cs)
-* [PredicationBase.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Common/PredicationBase.cs)
-* [PredicationCollection.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Common/PredicationCollection.cs)
-* [PredicationCollection&lt;T&gt;.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Common/PredicationCollection%601.cs)
-* [PredicationCombination.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Common/PredicationCombination.cs)
+需要返回具体失败原因时使用[验证器](validator.md)；需要让数据库筛选记录时使用[数据条件](../../data/conditions-and-operands.md)。

@@ -46,21 +46,57 @@ icon: shield-halved
 {% endstep %}
 {% endstepper %}
 
-{% code title="登录失败限制示意" %}
+来源：[framework/Zongsoft.Core/src/Security/Privileges/Authenticators.Identity.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Security/Privileges/Authenticators.Identity.cs#L86)（节选；上下文见源文件）。
+
+{% code title="Authenticators.Identity.cs" %}
 ```csharp
-if(!await attempter.CheckAsync(userName, cancellation))
-	throw new InvalidOperationException("尝试次数过多，请稍后再试。");
-
-if(await ValidatePasswordAsync(userName, password, cancellation))
+public async ValueTask<Ticket> VerifyAsync(string key, Requirement requirement, string scenario, Parameters parameters, CancellationToken cancellation = default)
 {
-	await attempter.DoneAsync(userName, cancellation);
-	return;
-}
+	if(string.IsNullOrWhiteSpace(requirement.Identity))
+	{
+		if(string.IsNullOrEmpty(key))
+			throw new AuthenticationException(SecurityReasons.InvalidIdentity, "Missing identity.");
 
-if(await attempter.FailAsync(userName, cancellation))
-	throw new InvalidOperationException("尝试次数过多，请稍后再试。");
+		requirement.Identity = key;
+	}
+
+	//获取验证失败的解决器
+	var attempter = this.Attempter;
+	var attempterKey = $"{this.GetType().Name}:{requirement.Identity}@{requirement.Namespace}";
+
+	//确认验证失败是否超出限制数，如果超出则返回账号被禁用
+	if(attempter != null && !await attempter.CheckAsync(attempterKey, cancellation))
+		throw new AuthenticationException(SecurityReasons.AccountSuspended);
+
+	//获取当前用户的密钥信息
+	var cipher = await Authentication.Servicer.Users.Passworder.GetAsync(requirement.Identity, requirement.Namespace, cancellation);
+
+	//如果帐户不存在则验证失败
+	if(cipher == null)
+		throw new AuthenticationException(SecurityReasons.InvalidIdentity);
+
+	//执行密码验证，如果成功则返回验证成功的票证
+	if(await Authentication.Servicer.Users.Passworder.VerifyAsync(requirement.Password, cipher, cancellation))
+	{
+		//通知验证尝试成功，即清空验证失败记录
+		if(attempter != null)
+			await attempter.DoneAsync(attempterKey, cancellation);
+
+		//返回验证成功的票证
+		return this.CreateTicket(cipher.Identifier, requirement);
+	}
+
+	//通知验证尝试失败
+	if(attempter != null)
+		await attempter.FailAsync(attempterKey, cancellation);
+
+	//抛出验证失败异常
+	throw new AuthenticationException(SecurityReasons.InvalidPassword);
+}
 ```
 {% endcode %}
+
+Discussions 使用框架安全认证入口，模块质询器在其后补充站点身份。上面是核心密码认证器的真实检查、成功清理和失败登记流程，键由认证器类型、用户身份及命名空间构成。不存在的账号在读取密钥失败后直接抛出，不能把这里的 FailAsync 理解为覆盖所有失败类型。
 
 `Attempter` 依赖的缓存需要支持 `ISequence` 递增操作，否则失败登记无法原子计数。安全模块会把认证尝试器作为插件构件暴露，方便通过配置调整限制策略。
 

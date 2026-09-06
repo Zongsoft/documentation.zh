@@ -22,15 +22,33 @@ icon: code-branch
 
 层级节点以 `/` 作为路径分隔符。根节点名称为 `/`，根节点的 `Path` 为空字符串，`FullPath` 为 `/`。
 
-{% code title="HierarchicalPath.cs" %}
-```csharp
-var root = new Category();
-var file = root.Categories.Add("File");
-var save = file.Categories.Add("Save");
+来源：[framework/Zongsoft.Core/test/Collections/CategoryTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Collections/CategoryTest.cs#L11)（节选；上下文见源文件）。
 
-Console.WriteLine(root.FullPath); // /
-Console.WriteLine(file.FullPath); // /File
-Console.WriteLine(save.FullPath); // /File/Save
+{% code title="CategoryTest.cs" %}
+```csharp
+public void TestName()
+{
+	var root = Initialize();
+
+	Assert.True(root.IsRoot());
+	Assert.Equal("/", root.Name);
+	Assert.Equal(string.Empty, root.Path);
+	Assert.Equal("/", root.FullPath);
+
+	var category = new Category();
+	Assert.True(root.IsRoot());
+
+	Assert.IsType<ArgumentException>(Record.Exception(() => root.Categories.Add(category)));
+	Assert.IsType<ArgumentException>(Record.Exception(() => new Category("/")));
+	Assert.IsType<ArgumentException>(Record.Exception(() => new Category("ABC\\")));
+	Assert.IsType<ArgumentException>(Record.Exception(() => new Category("ABC/DEF")));
+	Assert.IsType<ArgumentNullException>(Record.Exception(() => new Category(string.Empty)));
+	Assert.IsType<ArgumentNullException>(Record.Exception(() => new Category(" ")));
+	Assert.IsType<ArgumentNullException>(Record.Exception(() => new Category("\t")));
+	Assert.IsType<ArgumentNullException>(Record.Exception(() => new Category("\n")));
+	Assert.IsType<ArgumentNullException>(Record.Exception(() => new Category("\r")));
+	Assert.IsType<ArgumentNullException>(Record.Exception(() => new Category(Environment.NewLine)));
+}
 ```
 {% endcode %}
 
@@ -48,18 +66,7 @@ Console.WriteLine(save.FullPath); // /File/Save
 | `../A` | 从父节点开始查找。 |
 | 空字符串 | 返回当前节点。 |
 
-{% code title="FindHierarchicalNode.cs" %}
-```csharp
-var root = new Category();
-var file = root.Categories.Add("File");
-file.Categories.Add("Open");
-file.Categories.Add("Save");
-
-var open = root.Find("/File/Open");
-var save = file.Find("./Save");
-var again = file.Find("../File/Open");
-```
-{% endcode %}
+完整的创建与查找过程见 [Category 的真实测试范例](category.md#路径查找)，这里复用同一棵 File / Edit / Help 分类树。
 
 路径分段两端的空白会被忽略。找不到节点时返回 `null`。
 
@@ -67,17 +74,18 @@ var again = file.Find("../File/Open");
 
 `HierarchicalExpression` 用来解析“节点路径 + 成员访问器”。表达式由路径和可选成员访问两部分组成。
 
-{% code title="ParseHierarchicalExpression.cs" %}
+来源：[framework/Zongsoft.Core/test/Collections/HierarchicalExpressionTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Collections/HierarchicalExpressionTest.cs#L16)（节选；上下文见源文件）。
+
+{% code title="HierarchicalExpressionTest.cs" %}
 ```csharp
-using Zongsoft.Collections;
+var TEXT = @"/";
+var expression = HierarchicalExpressionParser.Parse(TEXT);
 
-var expression = HierarchicalExpression.Parse(
-	" / segment1 / segment2 @ property1 [100] . property2 ");
-
-Console.WriteLine(expression.Path);      // /segment1/segment2
-Console.WriteLine(expression.Anchor);    // Root
-Console.WriteLine(expression.Segments);  // segment1, segment2
-Console.WriteLine(expression.Accessor);  // property1[100].property2
+Assert.NotNull(expression);
+Assert.Null(expression.Accessor);
+Assert.Equal(PathAnchor.Root, expression.Anchor);
+Assert.Equal("/", expression.Path);
+Assert.True(expression.Segments == null || expression.Segments.Length == 0);
 ```
 {% endcode %}
 

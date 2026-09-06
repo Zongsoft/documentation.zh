@@ -13,11 +13,20 @@ Web 宿主承载控制器、认证授权及 HTTP 协议扩展。业务接口由�
 
 当前入口传入 `host=web`、`site=default`、`daemon=zongsoft.web`，将根路径重定向到 `/Application` 后运行应用：
 
-{% code title="Program.cs（关键调用）" %}
+来源：[hosting/web/default/Program.cs](https://github.com/Zongsoft/hosting/blob/main/web/default/Program.cs#L12)（节选；上下文见源文件）。
+
+{% code title="Program.cs" %}
 ```csharp
-var app = Zongsoft.Web.Application.Web(
-	[.. args, "host=web", "site=default", "daemon=zongsoft.web"]);
-app.Run();
+static void Main(string[] args)
+{
+	var app = Zongsoft.Web.Application.Web([..args, "host=web", "site=default", "daemon=zongsoft.web"]);
+
+	//如果要启用私有部署模式则打开下行代码注释
+	//app.Configuration["Deployment"] = "private";
+
+	app.Map("/", ctx => { ctx.Response.Redirect("/Application"); return Task.CompletedTask; });
+	app.Run();
+}
 ```
 {% endcode %}
 

@@ -38,22 +38,37 @@ icon: terminal
 
 ## 快速启动
 
-最小终端程序通常直接使用 `Terminal.Console.Executor`，向命令树挂载业务命令，然后运行命令循环。
+Discussions 的实际命令是 MessageSendCommand：从命令选项构建站内信，解析收件人后交给 MessageService。它不创建自己的控制台循环，宿主通过命令树和插件装配提供执行入口。
 
-{% code title="TerminalProgram.cs" %}
+来源：[src/Services/Commands/MessageSendCommand.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Services/Commands/MessageSendCommand.cs#L63)（节选；上下文见源文件）。
+
+{% code title="MessageSendCommand.cs" %}
 ```csharp
-using Zongsoft.Components;
-using Zongsoft.Terminals;
-
-var executor = Terminal.Console.Executor;
-
-executor.Command("info", context =>
+protected override ValueTask<object> OnExecuteAsync(CommandContext context, CancellationToken cancellation)
 {
-	context.Output.Write(CommandOutletColor.Cyan, "State: ");
-	context.Output.WriteLine(CommandOutletColor.Green, "Running");
-});
+	if(context.Arguments == null || context.Arguments.IsEmpty)
+		throw new CommandException("Missing arguments of the command.");
 
-await executor.RunAsync("Zongsoft Demo");
+	var content = context.Options.GetValue<string>(CONTENT_OPTION);
+	var contentType = context.Options.GetValue<string>(CONTENTTYPE_OPTION);
+
+	//根据内容类型解析得到真实内容
+	content = GetContent(content, ref contentType);
+
+	var message = Zongsoft.Data.Model.Build<Models.Message>(entity =>
+	{
+		entity.Content = content;
+		entity.ContentType = contentType;
+		entity.Referer = context.Options.GetValue<string>(SOURCE_OPTION);
+		entity.Subject = context.Options.GetValue<string>(SUBJECT_OPTION);
+		entity.MessageType = context.Options.GetValue<string>(MESSAGETYPE_OPTION);
+	});
+
+	if(this.Service.Send(message, GetUsers(context.Arguments)) > 0)
+		return ValueTask.FromResult<object>(message);
+
+	return ValueTask.FromResult<object>(null);
+}
 ```
 {% endcode %}
 
@@ -67,9 +82,12 @@ await executor.RunAsync("Zongsoft Demo");
 
 在插件宿主中，终端插件会把 `/Workbench/Executor` 指向 `Terminal.Console.Executor`，并把它设为 `CommandExecutor.Default`。这样其它插件挂载到命令树上的命令，可以直接在终端宿主里输入执行。
 
+来源：[framework/Zongsoft.Plugins/plugins/Terminal.plugin](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/plugins/Terminal.plugin#L15)（节选；上下文见源文件）。
+
 {% code title="Terminal.plugin" %}
 ```xml
 <extension path="/Workbench">
+	<!-- 将默认的命令执行器替换成控制台终端命令执行器 -->
 	<object name="Executor" value="{static:Zongsoft.Terminals.Terminal.Console.Executor, Zongsoft.Core}">
 		<object.property name="Default" target="{type:Zongsoft.Components.CommandExecutor, Zongsoft.Core}" value="{path:.}" />
 	</object>

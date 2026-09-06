@@ -33,24 +33,42 @@ icon: paper-plane
 
 ## 构建描述符
 
-{% code title="BuildTransmitterDescriptor.cs" %}
+Discussions 当前没有模板短信或语音发送用例。framework 的 Aliyun PhoneTransmitter 从真实选项集合读取短信、语音模板，创建描述符。模板标识和参数来自已配置的服务，不在文档中另造收件人或告警模板。
+
+来源：[framework/externals/aliyun/src/Telecom/PhoneTransmitter.cs](https://github.com/Zongsoft/framework/blob/main/externals/aliyun/src/Telecom/PhoneTransmitter.cs#L65)（节选；上下文见源文件）。
+
+{% code title="PhoneTransmitter.cs" %}
 ```csharp
-using Zongsoft.Communication;
+public TransmitterDescriptor Descriptor
+{
+	get
+	{
+		if(_descriptor == null)
+		{
+			_descriptor = new TransmitterDescriptor(this.Name, AnnotationUtility.GetDisplayName(this.GetType()), AnnotationUtility.GetDescription(this.GetType()));
 
-var descriptor = new TransmitterDescriptor(
-	"Phone",
-	"电话通知",
-	"发送模板短信和语音通知。");
+			var channel = _descriptor.Channel(MESSAGE_CHANNEL, Properties.Resources.Text_Phone_Message);
+			foreach(var option in this.Phone.Options.Message.Templates)
+			{
+				var template = channel.Template(option.Name);
 
-descriptor
-	.Channel("message", "模板短信")
-	.Template("User.Password.Forget", "忘记密码")
-	.Parameter("code", "验证码");
+				foreach(var parameter in option.Parameters)
+					template.Parameter(parameter.Name, parameter.Title, parameter.Description);
+			}
 
-descriptor
-	.Channel("voice", "语音通知")
-	.Template("Alarm.High", "高危告警")
-	.Parameter("name", "告警名称");
+			channel = _descriptor.Channel(VOICE_CHANNEL, Properties.Resources.Text_Phone_Voice);
+			foreach(var option in this.Phone.Options.Voice.Templates)
+			{
+				var template = channel.Template(option.Name);
+
+				foreach(var parameter in option.Parameters)
+					template.Parameter(parameter.Name, parameter.Title, parameter.Description);
+			}
+		}
+
+		return _descriptor;
+	}
+}
 ```
 {% endcode %}
 
@@ -58,37 +76,53 @@ descriptor
 
 ## 执行发送
 
-`ITransmitter` 的核心方法是 `TransmitAsync`。`destination` 是目的地，例如手机号、OpenId、邮箱或自定义地址；`channel` 是通道；`template` 是模板标识；`argument` 是模板参数对象。
+`ITransmitter` 的核心方法是 `TransmitAsync`。`destination` 是目的地，例如手机号、OpenId、邮箱或自定义地址；`channel` 是通道；`template` 是模板标识；`data` 是模板参数对象。下面是框架 Secretor 完成方案和验证码验证后生成确认码、委托发送器投递的实际调用片段；其变量来自外层 TransmitAsync 方法，不能脱离验证步骤直接暴露为公共发送接口。
 
-{% code title="TransmitMessage.cs" %}
+来源：[framework/Zongsoft.Core/src/Security/Secretor.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Security/Secretor.cs#L355)（节选；上下文见源文件）。
+
+{% code title="Secretor.cs" %}
 ```csharp
-using System.Threading;
-using Zongsoft.Communication;
+var token = GetKey(scheme, destination, template, scenario, channel);
+var value = await _secretor.GenerateAsync(token, null, extra, cancellation);
 
-ITransmitter transmitter = GetPhoneTransmitter();
-CancellationToken cancellation = default;
-
-await transmitter.TransmitAsync(
-	destination: "13800138000",
-	channel: "message",
-	template: "User.Password.Forget",
-	argument: new { code = "308815" },
-	cancellation: cancellation);
+//发送验证码到目的地
+await transmitter.TransmitAsync(destination, channel, template, new SecretTemplateData(value), cancellation);
 ```
 {% endcode %}
 
 `TransmitterHandler` 则把发送动作包装成通用处理器。它会按 `Argument.Name` 查找 `ITransmitter`，再按 `Argument.Channel`、`Argument.Template` 和 `Argument.Destination` 执行发送。
 
-{% code title="TransmitterHandlerArgument.cs" %}
-```csharp
-using Zongsoft.Communication;
+来源：[framework/Zongsoft.Core/src/Communication/TransmitterHandler.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Communication/TransmitterHandler.cs#L49)（节选；上下文见源文件）。
 
-var argument = new TransmitterHandler.Argument(
-	name: "Phone",
-	channel: "message",
-	template: "User.Password.Forget",
-	parameter: new { code = "308815" },
-	destination: "13800138000");
+{% code title="TransmitterHandler.cs" %}
+```csharp
+protected override ValueTask OnHandleAsync(Argument argument, Collections.Parameters parameters, CancellationToken cancellation)
+{
+	if(argument == null)
+		return ValueTask.CompletedTask;
+
+	//获取指定名称的发送器
+	var transmitter = _serviceProvider.FindRequired<ITransmitter>(argument.Name);
+
+	//获取指定的发送通道
+	if(!transmitter.Descriptor.Channels.TryGetValue(argument.Channel ?? string.Empty, out var channel))
+		channel = transmitter.Descriptor.Channels.Count > 0 ? transmitter.Descriptor.Channels[0] : null;
+
+	//如果没有指定参数对象则尝试通过参数转换器将参数集转换成发送模板的参数对象
+	if(argument.Parameter == null)
+	{
+		//获取指定的发送器参数转换器
+		var argumenter = _serviceProvider.Find<ITransmitterArgumenter>(argument);
+
+		if(argumenter != null)
+			argument.Parameter = argumenter.GetArgument(transmitter, channel?.Name ?? argument.Channel, argument.Template, argument.Parameter, parameters);
+		else
+			argument.Parameter = parameters;
+	}
+
+	//执行发送任务
+	return transmitter.TransmitAsync(argument.Destination, argument.Channel, argument.Template, argument.Parameter, cancellation);
+}
 ```
 {% endcode %}
 
@@ -103,24 +137,28 @@ var argument = new TransmitterHandler.Argument(
 * `Descriptor` 根据 `Phone.Options.Voice.Templates` 生成 `voice` 通道。
 * `TransmitAsync` 中，`message` 通道调用 `Phone.SendAsync`，`voice` 通道调用 `Phone.CallAsync`。
 
-{% code title="PhoneTransmitterChannels.cs" %}
+来源：[framework/externals/aliyun/src/Telecom/PhoneTransmitter.cs](https://github.com/Zongsoft/framework/blob/main/externals/aliyun/src/Telecom/PhoneTransmitter.cs#L98)（节选；上下文见源文件）。
+
+{% code title="PhoneTransmitter.cs" %}
 ```csharp
-var message = descriptor.Channel("message", "模板短信");
-foreach(var option in phone.Options.Message.Templates)
+public async ValueTask TransmitAsync(string destination, string channel, string template, object data, CancellationToken cancellation)
 {
-	var template = message.Template(option.Name);
+	if(data == null)
+		throw new ArgumentNullException(nameof(data));
 
-	foreach(var parameter in option.Parameters)
-		template.Parameter(parameter.Name, parameter.Title, parameter.Description);
+	if(string.IsNullOrEmpty(channel) || string.Equals(channel, MESSAGE_CHANNEL, StringComparison.OrdinalIgnoreCase))
+		await this.Phone.SendAsync(template, new[] { destination }, data, cancellation:cancellation);
+	else if(string.Equals(channel, VOICE_CHANNEL, StringComparison.OrdinalIgnoreCase))
+		await this.Phone.CallAsync(template, destination, data, cancellation:cancellation);
+	else
+		throw new ArgumentException($"Unsupported ‘{channel}’ channel.", nameof(channel));
 }
-
-var voice = descriptor.Channel("voice", "语音通知");
 ```
 {% endcode %}
 
 ## GUI 配置场景
 
-一个通知规则界面可以按这样的步骤使用 Transmitter：
+以下是基于描述符能力的界面设计建议，Discussions 尚未实现这样的通知规则界面：
 
 {% stepper %}
 {% step %}

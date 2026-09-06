@@ -1,0 +1,2081 @@
+[
+	{
+		"page": "overview/concepts.md",
+		"file": "src/Zongsoft.Discussions.plugin",
+		"start": 31,
+		"end": 33,
+		"code": "<extension path=\"/Workbench/Data/Validators\">\n\t<object name=\"Discussions\" type=\"Zongsoft.Discussions.Data.DataValidator, Zongsoft.Discussions\" />\n</extension>"
+	},
+	{
+		"page": "get-started/deploy-first-plugin.md",
+		"file": "hosting/web/web.deploy",
+		"start": 29,
+		"end": 31,
+		"code": "[plugins zongsoft discussions]\nnuget:Zongsoft.Discussions@0.8.0\nnuget:Zongsoft.Discussions.Web@0.8.0"
+	},
+	{
+		"page": "get-started/first-business-plugin.md",
+		"file": "src/Module.cs",
+		"start": 31,
+		"end": 40,
+		"code": "[assembly: ApplicationModule(Zongsoft.Discussions.Module.NAME)]\n\nnamespace Zongsoft.Discussions;\n\npublic class Module : ApplicationModule<Module.EventRegistry>\n{\n\t#region 常量定义\n\t/// <summary>表示论坛模块的名称常量值。</summary>\n\tpublic const string NAME = nameof(Discussions);\n\t#endregion"
+	},
+	{
+		"page": "get-started/first-business-plugin.md",
+		"file": "src/Services/ThreadService.cs",
+		"start": 41,
+		"end": 50,
+		"code": "[Service(nameof(ThreadService))]\n[DataService(typeof(ThreadCriteria))]\npublic class ThreadService : DataServiceBase<Models.Thread>\n{\n\t#region 成员字段\n\tprivate PostService _posting;\n\t#endregion\n\n\t#region 构造函数\n\tpublic ThreadService(IServiceProvider serviceProvider) : base(serviceProvider) { }"
+	},
+	{
+		"page": "get-started/first-business-plugin.md",
+		"file": "src/Zongsoft.Discussions.plugin",
+		"start": 20,
+		"end": 29,
+		"code": "<extension path=\"/Workbench/Modules\">\n\t<object name=\"Discussions\" value=\"{static:Zongsoft.Discussions.Module.Current, Zongsoft.Discussions}\">\n\t\t<expose name=\"Accessor\" value=\"{path:../@Accessor}\">\n\t\t\t<expose name=\"Filters\" value=\"{path:../@Filters}\" />\n\t\t</expose>\n\n\t\t<expose name=\"Events\" value=\"{path:../@Events}\" />\n\t\t<expose name=\"Properties\" value=\"{path:../@Properties}\" />\n\t</object>\n</extension>"
+	},
+	{
+		"page": "get-started/first-business-plugin.md",
+		"file": "src/Zongsoft.Discussions.deploy",
+		"start": 1,
+		"end": 4,
+		"code": "artifacts/Zongsoft.Discussions.plugin\nartifacts/Zongsoft.Discussions.option\nartifacts/Zongsoft.Discussions.mapping\nlib/$(Framework)/Zongsoft.Discussions.*"
+	},
+	{
+		"page": "framework/core/caching/memory-cache.md",
+		"file": "framework/Zongsoft.Core/samples/memorycache/Program.cs",
+		"start": 13,
+		"end": 21,
+		"code": "const int FREQUENCY  = 1;\nconst int EXPIRATION = 30;\nconst int LIMIT      = 5;\n\nusing var cache = new MemoryCache(TimeSpan.FromSeconds(FREQUENCY), LIMIT);\nusing var scanner = new MemoryCacheScanner(cache);\n\ncache.Limited += Cache_Limited;\ncache.Evicted += Cache_Evicted;"
+	},
+	{
+		"page": "framework/core/caching/memory-cache.md",
+		"file": "framework/Zongsoft.Core/test/Caching/MemoryCacheTest.cs",
+		"start": 14,
+		"end": 35,
+		"code": "public void Test()\n{\n\tobject value;\n\n\tvar cache = new MemoryCache();\n\tAssert.Equal(0, cache.Count);\n\tAssert.False(cache.Contains(\"KEY\"));\n\tAssert.False(cache.Remove(\"KEY\", out _));\n\tAssert.False(cache.TryGetValue(\"KEY\", out _));\n\n\tvalue = cache.GetOrCreate(\"K1\", () => \"V1\");\n\tAssert.NotNull(value);\n\tAssert.True(cache.Contains(\"K1\"));\n\tAssert.Equal(\"V1\", value);\n\tAssert.True(cache.Remove(\"K1\", out value));\n\tAssert.Equal(\"V1\", value);\n\tAssert.Equal(0, cache.Count);\n\n\tconst int COUNT = 10000;\n\tParallel.For(0, COUNT, index => cache.SetValue($\"KEY#{index}\", $\"Value#{index}@{Environment.CurrentManagedThreadId}\"));\n\tAssert.Equal(COUNT, cache.Count);\n}"
+	},
+	{
+		"page": "framework/core/caching/memory-cache.md",
+		"file": "framework/Zongsoft.Core/src/Data/DataAccessProviderBase.cs",
+		"start": 52,
+		"end": 62,
+		"code": "public TDataAccess GetAccessor(string name, IDataAccessOptions options = null)\n{\n\tif(string.IsNullOrEmpty(name) || options == null || options.Settings == null || !options.Settings.Any())\n\t\tname = GetName(name);\n\n\treturn _accesses.GetOrCreate(name, key =>\n\t{\n\t\tvar accessor = this.CreateAccessor(name, options);\n\t\treturn (accessor, accessor.Disposed);\n\t});\n}"
+	},
+	{
+		"page": "framework/core/caching/memory-cache.md",
+		"file": "framework/Zongsoft.Core/samples/memorycache/Program.cs",
+		"start": 72,
+		"end": 72,
+		"code": "cache.SetValue($\"Key#{++count}\", text, TimeSpan.FromSeconds(EXPIRATION), Now);"
+	},
+	{
+		"page": "framework/core/caching/memory-cache.md",
+		"file": "framework/Zongsoft.Core/test/Caching/MemoryCacheTest.cs",
+		"start": 38,
+		"end": 88,
+		"code": "public void TestDependency()\n{\n\tvar cache = new MemoryCache();\n\tcache.Evicted += this.Cache_Evicted;\n\n\tvar cancellation = new CancellationTokenSource();\n\tvar value = cache.GetOrCreate(\"KEY\", key =>\n\t{\n\t\treturn (\"Value1\", new CancellationChangeToken(cancellation.Token));\n\t});\n\n\tAssert.NotNull(value);\n\tAssert.Equal(\"Value1\", value);\n\tAssert.Equal(1, cache.Count);\n\n\t//通知缓存项过期\n\tcancellation.Cancel();\n\tAssert.False(cache.Contains(\"KEY\"));\n\tAssert.Equal(0, cache.Count);\n\n\t//清理缓存\n\tcache.Compact();\n\n\t//等待缓存项过期事件的触发\n\tAssert.True(SpinWait.SpinUntil(() => Volatile.Read(ref _reason) >= 0, 10_000), \"等待缓存项过期事件回调超时。\");\n\n\t//确认缓存过期的原因\n\tAssert.Equal(CacheEvictedReason.Depended, (CacheEvictedReason)Volatile.Read(ref _reason));\n\n\t//创建一个已经过期的缓存项\n\tvalue = cache.GetOrCreate(\"KEY\", key =>\n\t{\n\t\treturn (\"Value2\", new CancellationChangeToken(cancellation.Token));\n\t});\n\n\tAssert.NotNull(value);\n\tAssert.Equal(\"Value2\", value);\n\tAssert.False(cache.Contains(\"KEY\"));\n\tAssert.Equal(0, cache.Count);\n\n\t//创建一个依赖失效的缓存项\n\tvalue = cache.GetOrCreate(\"KEY\", key =>\n\t{\n\t\treturn (\"Value3\", Common.Notification.GetToken());\n\t});\n\n\tAssert.NotNull(value);\n\tAssert.Equal(\"Value3\", value);\n\tAssert.False(cache.Contains(\"KEY\"));\n\tAssert.Equal(0, cache.Count);\n}"
+	},
+	{
+		"page": "framework/core/caching/memory-cache.md",
+		"file": "framework/Zongsoft.Core/samples/memorycache/Program.cs",
+		"start": 96,
+		"end": 107,
+		"code": "private static void Cache_Limited(object sender, CacheLimitedEventArgs e)\n{\n\tvar content = CommandOutletContent.Create(CommandOutletColor.Magenta, \"** Limited **\\t\")\n\t\t.Append(CommandOutletColor.DarkYellow, e.Limit.ToString())\n\t\t.Append(CommandOutletColor.DarkGray, \"/\")\n\t\t.Append(CommandOutletColor.DarkYellow, e.Count.ToString());\n\n\tTerminal.WriteLine(content);\n\n\t//清空缓存\n\t((MemoryCache)sender).Clear();\n}"
+	},
+	{
+		"page": "framework/core/caching/memory-cache.md",
+		"file": "framework/Zongsoft.Core/src/Caching/MemoryCacheScanner.cs",
+		"start": 52,
+		"end": 53,
+		"code": "public void Start() => _timer.Change(TimeSpan.Zero, _cache.Options.ScanFrequency);\npublic void Stop() => _timer.Change(Timeout.Infinite, Timeout.Infinite);"
+	},
+	{
+		"page": "framework/core/caching/spooler.md",
+		"file": "framework/Zongsoft.Core/src/Diagnostics/FileLogger.cs",
+		"start": 57,
+		"end": 62,
+		"code": "protected FileLogger(TimeSpan period, int capacity, string filePath, int fileLimit = FILE_LIMIT)\n{\n\tthis.FilePath = filePath?.Trim();\n\tthis.FileLimit = Math.Max(fileLimit, 0);\n\tthis.Logging = period > TimeSpan.Zero || capacity > 1 ? new(this.OnFlushAsync, period, capacity) : null;\n}"
+	},
+	{
+		"page": "framework/core/caching/spooler.md",
+		"file": "framework/Zongsoft.Core/test/Caching/SpoolerTest.cs",
+		"start": 30,
+		"end": 55,
+		"code": "public async Task TestFlushAsync()\n{\n\tconst int COUNT = 1000;\n\n\tvar flusher = new Flusher<string>();\n\tusing var spooler = new Spooler<string>(flusher.OnFlushAsync, TimeSpan.FromHours(1));\n\tAssert.True(spooler.IsEmpty);\n\tAssert.Equal(0, flusher.Count);\n\n\tawait spooler.FlushAsync(TestContext.Current.CancellationToken);\n\tAssert.True(spooler.IsEmpty);\n\tAssert.Equal(0, flusher.Count);\n\n\t#if NET8_0_OR_GREATER\n\tawait Parallel.ForAsync(0, COUNT, TestContext.Current.CancellationToken, async (index, cancellation) => await spooler.PutAsync($\"Value#{index}\", cancellation));\n\t#else\n\tfor(int i = 0; i < COUNT; i++)\n\t\tawait spooler.PutAsync($\"Value#${i}\", TestContext.Current.CancellationToken);\n\t#endif\n\n\tAssert.Equal(COUNT, spooler.Count);\n\n\tawait spooler.FlushAsync(TestContext.Current.CancellationToken);\n\tAssert.True(spooler.IsEmpty);\n\tAssert.Equal(COUNT, flusher.Count);\n}"
+	},
+	{
+		"page": "framework/core/caching/spooler.md",
+		"file": "framework/Zongsoft.Core/test/Caching/SpoolerTest.cs",
+		"start": 58,
+		"end": 77,
+		"code": "public async Task TestLimitAsync()\n{\n\tvar flusher = new Flusher<string>();\n\tusing var spooler = new Spooler<string>(flusher.OnFlushAsync, TimeSpan.FromHours(1), 3);\n\tAssert.True(spooler.IsEmpty);\n\tAssert.Equal(0, flusher.Count);\n\n\tawait spooler.PutAsync(\"A\", TestContext.Current.CancellationToken);\n\tawait spooler.PutAsync(\"B\", TestContext.Current.CancellationToken);\n\tawait spooler.PutAsync(\"C\", TestContext.Current.CancellationToken);\n\tAssert.Equal(3, spooler.Count);\n\tAssert.Equal(0, flusher.Count);\n\n\t//触发数量限制\n\tawait spooler.PutAsync(\"D\", TestContext.Current.CancellationToken);\n\n\tAssert.False(spooler.IsEmpty);\n\tAssert.Equal(1, spooler.Count);\n\tAssert.Equal(3, flusher.Count);\n}"
+	},
+	{
+		"page": "framework/core/caching/spooler.md",
+		"file": "framework/Zongsoft.Core/test/Caching/SpoolerTest.cs",
+		"start": 105,
+		"end": 124,
+		"code": "public async Task TestConcurrentFlushAsync()\n{\n\tconst int COUNT = 256;\n\tconst int CONCURRENCY = 16;\n\n\tvar flusher = new RecordingFlusher<int>(TimeSpan.FromMilliseconds(10));\n\tusing var spooler = new Spooler<int>(flusher.OnFlushAsync, TimeSpan.FromHours(1));\n\n\tfor(int i = 0; i < COUNT; i++)\n\t\tawait spooler.PutAsync(i, TestContext.Current.CancellationToken);\n\n\tvar tasks = Enumerable.Range(0, CONCURRENCY).Select(_ => spooler.FlushAsync(TestContext.Current.CancellationToken).AsTask()).ToArray();\n\tawait Task.WhenAll(tasks);\n\n\tAssert.True(spooler.IsEmpty);\n\tAssert.Equal(1, flusher.Calls);\n\tAssert.Equal(1, flusher.MaximumConcurrency);\n\tAssert.Equal(COUNT, flusher.Count);\n\tAssert.Equal(Enumerable.Range(0, COUNT), flusher.Values.OrderBy(value => value));\n}"
+	},
+	{
+		"page": "framework/core/collections/category.md",
+		"file": "framework/Zongsoft.Core/test/Collections/CategoryTest.cs",
+		"start": 119,
+		"end": 137,
+		"code": "private static Category Initialize()\n{\n\tvar root = new Category();\n\n\tvar file = root.Categories.Add(\"File\");\n\tvar edit = root.Categories.Add(\"Edit\");\n\tvar help = root.Categories.Add(\"Help\");\n\n\tfile.Categories.Add(\"Open\");\n\tfile.Categories.Add(\"Close\");\n\tfile.Categories.Add(\"Save\");\n\tfile.Categories.Add(\"SaveAs\");\n\tfile.Categories.Add(\"Recents\").Categories.AddRange(\n\t\tnew Category(\"Document-1\"),\n\t\tnew Category(\"Document-2\")\n\t);\n\n\treturn root;\n}"
+	},
+	{
+		"page": "framework/core/collections/category.md",
+		"file": "framework/Zongsoft.Core/test/Collections/CategoryTest.cs",
+		"start": 36,
+		"end": 94,
+		"code": "public void TestFind()\n{\n\tvar root = Initialize();\n\n\tvar found = root.Find(\"File\");\n\tAssert.NotNull(found);\n\tAssert.Equal(\"File\", found.Name);\n\tAssert.Equal(\"/\", found.Path);\n\tAssert.Equal(\"/File\", found.FullPath);\n\n\tfound = root.Find(\"Edit\");\n\tAssert.NotNull(found);\n\tAssert.Equal(\"Edit\", found.Name);\n\tAssert.Equal(\"/\", found.Path);\n\tAssert.Equal(\"/Edit\", found.FullPath);\n\n\tfound = root.Find(\"Help\");\n\tAssert.NotNull(found);\n\tAssert.Equal(\"Help\", found.Name);\n\tAssert.Equal(\"/\", found.Path);\n\tAssert.Equal(\"/Help\", found.FullPath);\n\n\tfound = root.Find(\" File / Save\");\n\tAssert.NotNull(found);\n\tAssert.Equal(\"Save\", found.Name);\n\tAssert.Equal(\"/File\", found.Path);\n\tAssert.Equal(\"/File/Save\", found.FullPath);\n\n\tAssert.NotNull(root.Find(\" File/ Recents\"));\n\tAssert.NotNull(root.Find(\" File /Recents / Document-1\"));\n\n\tAssert.NotNull(root.Find(\" /File/ Save\"));\n\tAssert.NotNull(root.Find(\"/ File  /Recents\"));\n\tAssert.NotNull(root.Find(\" / File  /  Recents/Document-2\"));\n\n\tfound = root.Find(\"File\").Find(\" Open\");\n\tAssert.NotNull(found);\n\tAssert.Equal(\"Open\", found.Name);\n\tAssert.Equal(\"/File\", found.Path);\n\tAssert.Equal(\"/File/Open\", found.FullPath);\n\n\tfound = root.Find(\"File\").Find(\"./ Recents\");\n\tAssert.NotNull(found);\n\tAssert.Equal(\"Recents\", found.Name);\n\tAssert.Equal(\"/File\", found.Path);\n\tAssert.Equal(\"/File/Recents\", found.FullPath);\n\n\tfound = root.Find(\"File\").Find(\"Recents\").Find(\"Document-2  \");\n\tAssert.NotNull(found);\n\tAssert.Equal(\"Document-2\", found.Name);\n\tAssert.Equal(\"/File/Recents\", found.Path);\n\tAssert.Equal(\"/File/Recents/Document-2\", found.FullPath);\n\n\tfound = root.Find(\"Edit\").Find(\".. / File / Save\");\n\tAssert.NotNull(found);\n\tAssert.Equal(\"Save\", found.Name);\n\tAssert.Equal(\"/File\", found.Path);\n\tAssert.Equal(\"/File/Save\", found.FullPath);\n}"
+	},
+	{
+		"page": "framework/core/collections/category.md",
+		"file": "framework/Zongsoft.Core/test/Collections/CategoryTest.cs",
+		"start": 97,
+		"end": 115,
+		"code": "public void TestOrdinal()\n{\n\tconst int COUNT = 100;\n\n\tvar root = new Category();\n\n\tfor(int i = 0; i < COUNT; i++)\n\t{\n\t\tvar ordinal = Random.Shared.Next() % COUNT;\n\t\troot.Categories.Add(new Category($\"A{(i + 1):000}\") { Ordinal = ordinal });\n\t}\n\n\tfor(int i = 1; i < root.Categories.Count; i++)\n\t{\n\t\tAssert.NotNull(root.Categories[i]);\n\t\tAssert.NotNull(root.Categories[i - 1]);\n\t\tAssert.True(root.Categories[i].Ordinal >= root.Categories[i - 1].Ordinal);\n\t}\n}"
+	},
+	{
+		"page": "framework/core/collections/hierarchical.md",
+		"file": "framework/Zongsoft.Core/test/Collections/CategoryTest.cs",
+		"start": 11,
+		"end": 33,
+		"code": "public void TestName()\n{\n\tvar root = Initialize();\n\n\tAssert.True(root.IsRoot());\n\tAssert.Equal(\"/\", root.Name);\n\tAssert.Equal(string.Empty, root.Path);\n\tAssert.Equal(\"/\", root.FullPath);\n\n\tvar category = new Category();\n\tAssert.True(root.IsRoot());\n\n\tAssert.IsType<ArgumentException>(Record.Exception(() => root.Categories.Add(category)));\n\tAssert.IsType<ArgumentException>(Record.Exception(() => new Category(\"/\")));\n\tAssert.IsType<ArgumentException>(Record.Exception(() => new Category(\"ABC\\\\\")));\n\tAssert.IsType<ArgumentException>(Record.Exception(() => new Category(\"ABC/DEF\")));\n\tAssert.IsType<ArgumentNullException>(Record.Exception(() => new Category(string.Empty)));\n\tAssert.IsType<ArgumentNullException>(Record.Exception(() => new Category(\" \")));\n\tAssert.IsType<ArgumentNullException>(Record.Exception(() => new Category(\"\\t\")));\n\tAssert.IsType<ArgumentNullException>(Record.Exception(() => new Category(\"\\n\")));\n\tAssert.IsType<ArgumentNullException>(Record.Exception(() => new Category(\"\\r\")));\n\tAssert.IsType<ArgumentNullException>(Record.Exception(() => new Category(Environment.NewLine)));\n}"
+	},
+	{
+		"page": "framework/core/collections/hierarchical.md",
+		"file": "framework/Zongsoft.Core/test/Collections/HierarchicalExpressionTest.cs",
+		"start": 16,
+		"end": 23,
+		"code": "var TEXT = @\"/\";\nvar expression = HierarchicalExpressionParser.Parse(TEXT);\n\nAssert.NotNull(expression);\nAssert.Null(expression.Accessor);\nAssert.Equal(PathAnchor.Root, expression.Anchor);\nAssert.Equal(\"/\", expression.Path);\nAssert.True(expression.Segments == null || expression.Segments.Length == 0);"
+	},
+	{
+		"page": "framework/core/collections/parameters.md",
+		"file": "framework/Zongsoft.Core/test/Collections/ParametersTest.cs",
+		"start": 18,
+		"end": 46,
+		"code": "public async Task GetOrAdd_ConcurrentSameName_CreatesSingleValueAsync()\n{\n\tconst int COUNT = 64;\n\tvar parameters = new Parameters();\n\tvar factoryCalls = 0;\n\tvar start = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);\n\tvar tasks = new Task<object>[COUNT];\n\n\tfor(var index = 0; index < tasks.Length; index++)\n\t{\n\t\ttasks[index] = Task.Run(async () =>\n\t\t{\n\t\t\tawait start.Task;\n\t\t\treturn parameters.GetOrAdd(\"Shared\", _ =>\n\t\t\t{\n\t\t\t\tInterlocked.Increment(ref factoryCalls);\n\t\t\t\treturn new object();\n\t\t\t});\n\t\t});\n\t}\n\n\tstart.SetResult();\n\tvar results = await Task.WhenAll(tasks);\n\n\tAssert.Equal(1, factoryCalls);\n\tAssert.Single(parameters);\n\tAssert.Same(results[0], parameters.GetValue(\"shared\"));\n\tAssert.All(results, result => Assert.Same(results[0], result));\n}"
+	},
+	{
+		"page": "framework/core/collections/parameters.md",
+		"file": "framework/Zongsoft.Core/test/Collections/ParametersTest.cs",
+		"start": 49,
+		"end": 58,
+		"code": "public void GetOrAdd_TypeKey_ReusesExistingValueWithoutCallingFactory()\n{\n\tvar parameters = new Parameters();\n\tvar expected = parameters.GetOrAdd(() => new ParameterMarker());\n\n\tvar actual = parameters.GetOrAdd<ParameterMarker>(() => throw new InvalidOperationException(\"The existing value must win.\"));\n\n\tAssert.Same(expected, actual);\n\tAssert.Same(expected, parameters.GetValue<ParameterMarker>());\n}"
+	},
+	{
+		"page": "framework/core/collections/parameters.md",
+		"file": "framework/Zongsoft.Core/test/Collections/ParametersTest.cs",
+		"start": 107,
+		"end": 113,
+		"code": "var json = Serializer.Json.Serialize(parameters);\nAssert.NotNull(json);\nAssert.NotEmpty(json);\n\nvar result = Serializer.Json.Deserialize<Parameters>(json);\nAssert.NotNull(result);\nAssert.NotEmpty(result);"
+	},
+	{
+		"page": "framework/core/collections/synchronized.md",
+		"file": "framework/Zongsoft.Core/test/Collections/SynchronizedListTest.cs",
+		"start": 13,
+		"end": 40,
+		"code": "public void Add()\n{\n\tconst int COUNT = 1_0000;\n\n\tvar list = new SynchronizedList<int>(COUNT);\n\n\tParallel.For(0, COUNT, index =>\n\t{\n\t\tlist.Add(index);\n\n\t\tif(index % 100 == 0)\n\t\t{\n\t\t\tforeach(var item in list)\n\t\t\t{\n\t\t\t\tAssert.True(item >= 0);\n\t\t\t}\n\n\t\t\tfor(int i = 0; i < list.Count; i++)\n\t\t\t{\n\t\t\t\tAssert.True(list[i] >= 0);\n\t\t\t}\n\t\t}\n\t});\n\n\tAssert.Equal(COUNT, list.Count);\n\tvar hashset = new HashSet<int>(list);\n\tAssert.Equal(COUNT, hashset.Count);\n}"
+	},
+	{
+		"page": "framework/core/collections/synchronized.md",
+		"file": "framework/Zongsoft.Core/test/Collections/SynchronizedDictionaryTest.cs",
+		"start": 139,
+		"end": 176,
+		"code": "public void GetOrAdd()\n{\n\tconst int COUNT = 1_0000;\n\n\tvar keys = System.Linq.Enumerable.Range(0, COUNT).ToArray();\n\tRandom.Shared.Shuffle(keys);\n\n\tvar dictionary = new SynchronizedDictionary<int, string>(COUNT);\n\tfor(int i = 0; i < COUNT; i++)\n\t{\n\t\tif(i % 2 == 1)\n\t\t\tdictionary[i] = $\"Value#{i}\";\n\t}\n\n\tAssert.Equal(COUNT / 2, dictionary.Count);\n\n\tParallel.For(0, COUNT, index =>\n\t{\n\t\tvar key = keys[index];\n\t\tvar value = dictionary.GetOrAdd(key, key => $\"Added#{key}\");\n\n\t\tif(key % 2 == 0)\n\t\t\tAssert.Equal($\"Added#{key}\", value);\n\t\telse\n\t\t\tAssert.Equal($\"Value#{key}\", value);\n\n\t\tif(index % 100 == 0)\n\t\t{\n\t\t\tforeach(var item in dictionary)\n\t\t\t{\n\t\t\t\tAssert.True(item.Key >= 0);\n\t\t\t\tAssert.True(dictionary.ContainsKey(item.Key));\n\t\t\t}\n\t\t}\n\t});\n\n\tAssert.Equal(COUNT, dictionary.Count);\n}"
+	},
+	{
+		"page": "framework/core/collections/extensions.md",
+		"file": "framework/Zongsoft.Core/test/Collections/EnumerableTest.cs",
+		"start": 241,
+		"end": 257,
+		"code": "public async Task EnumerateAdapters_PrioritizeCollectionsAndConvertScalarValues()\n{\n\tvar items = new List<int>([1, 2]);\n\tvar syncObjects = Enumerable.Enumerate<object>(items);\n\tvar asyncObjects = Enumerable.EnumerateAsync<object>(items);\n\tvar syncDecimals = Enumerable.Enumerate<decimal>(10);\n\tvar asyncDecimals = Enumerable.EnumerateAsync<decimal>(10);\n\n\tAssert.Collection(syncObjects,\n\t\titem => Assert.Equal(1, item),\n\t\titem => Assert.Equal(2, item));\n\tAssert.Collection(await CollectAsync(asyncObjects),\n\t\titem => Assert.Equal(1, item),\n\t\titem => Assert.Equal(2, item));\n\tAssert.Equal([10m], syncDecimals);\n\tAssert.Equal([10m], await CollectAsync(asyncDecimals));\n}"
+	},
+	{
+		"page": "framework/core/collections/extensions.md",
+		"file": "framework/Zongsoft.Core/test/Collections/CollectionTest.cs",
+		"start": 12,
+		"end": 29,
+		"code": "public void TestGenericCollection()\n{\n\tobject list = new List<int>();\n\n\tAssert.True(CollectionUtility.TryAdd(list, 1));\n\tAssert.NotEmpty((ICollection<int>)list);\n\tAssert.Equal(1, ((IList<int>)list)[0]);\n\n\tAssert.True(CollectionUtility.TryAdd(list, 2));\n\tAssert.Equal(2, ((IList<int>)list).Count);\n\tAssert.Equal(1, ((IList<int>)list)[0]);\n\tAssert.Equal(2, ((IList<int>)list)[1]);\n\n\tAssert.True(CollectionUtility.TryRemove(list, 1));\n\tAssert.Single((IList<int>)list);\n\tAssert.True(CollectionUtility.TryRemove(list, 2));\n\tAssert.Empty((IList<int>)list);\n}"
+	},
+	{
+		"page": "framework/core/collections/extensions.md",
+		"file": "framework/Zongsoft.Core/test/Collections/DictionaryTest.cs",
+		"start": 12,
+		"end": 29,
+		"code": "public void TestGenericDictionary()\n{\n\tobject dictionary = new Dictionary<string, int>();\n\n\tAssert.True(DictionaryUtility.TryAdd(dictionary, \"K1\", 1));\n\tAssert.NotEmpty((IDictionary<string, int>)dictionary);\n\tAssert.Equal(1, ((IDictionary<string, int>)dictionary)[\"K1\"]);\n\n\tAssert.True(DictionaryUtility.TryAdd(dictionary, \"K2\", 2));\n\tAssert.Equal(2, ((IDictionary<string, int>)dictionary).Count);\n\tAssert.Equal(1, ((IDictionary<string, int>)dictionary)[\"K1\"]);\n\tAssert.Equal(2, ((IDictionary<string, int>)dictionary)[\"K2\"]);\n\n\tAssert.True(DictionaryUtility.TryRemove(dictionary, \"K1\"));\n\tAssert.Single((IDictionary<string, int>)dictionary);\n\tAssert.True(DictionaryUtility.TryRemove(dictionary, \"K2\"));\n\tAssert.Empty((IDictionary<string, int>)dictionary);\n}"
+	},
+	{
+		"page": "framework/core/common/aggregate-exception-utility.md",
+		"file": "framework/externals/wechat/gateway/Controllers/FallbackController.cs",
+		"start": 72,
+		"end": 79,
+		"code": "return (IActionResult)ae.Handle<OperationException>(ex => ex.Reason switch\n{\n\tnameof(OperationException.Unfound) => this.NotFound(new { ex.Reason, ex.Message }),\n\tnameof(OperationException.Unsupported) => this.BadRequest(new { ex.Reason, ex.Message }),\n\tnameof(OperationException.Unprocessed) => this.UnprocessableEntity(new { ex.Reason, ex.Message }),\n\tnameof(OperationException.Unsatisfied) => this.StatusCode(StatusCodes.Status412PreconditionFailed, new { ex.Reason, ex.Message }),\n\t_ => this.StatusCode(StatusCodes.Status500InternalServerError, new { ex.Reason, ex.Message }),\n});"
+	},
+	{
+		"page": "framework/core/common/annotation-utility.md",
+		"file": "framework/externals/aliyun/src/Telecom/PhoneTransmitter.cs",
+		"start": 71,
+		"end": 71,
+		"code": "_descriptor = new TransmitterDescriptor(this.Name, AnnotationUtility.GetDisplayName(this.GetType()), AnnotationUtility.GetDescription(this.GetType()));"
+	},
+	{
+		"page": "framework/core/common/bit-vector.md",
+		"file": "framework/Zongsoft.Core/test/Common/ConvertTest.cs",
+		"start": 94,
+		"end": 112,
+		"code": "public void TestBitVector32()\n{\n\tZongsoft.Common.BitVector32 vector = 1;\n\n\tAssert.Equal(1, vector.Data);\n\tAssert.True(vector[1]);\n\tAssert.False(vector[2]);\n\tAssert.False(vector[3]);\n\tAssert.False(vector[4]);\n\tAssert.False(vector[5]);\n\n\tvector[5] = true;\n\tAssert.Equal(5, vector.Data);\n\tAssert.True(vector[1]);\n\tAssert.False(vector[2]);\n\tAssert.False(vector[3]);\n\tAssert.True(vector[4]);\n\tAssert.True(vector[5]);\n}"
+	},
+	{
+		"page": "framework/core/common/buffer.md",
+		"file": "framework/Zongsoft.Core/test/Common/BufferTest.cs",
+		"start": 10,
+		"end": 20,
+		"code": "public void Lease_Array_CopiesValidPrefixAndDoesNotObserveCallerMutation()\n{\n\tvar source = new[] { 1, 2, 3, 4 };\n\tusing var owner = source.Lease(3);\n\n\tsource[0] = 10;\n\tsource[3] = 40;\n\n\tAssert.Equal(3, owner.Memory.Length);\n\tAssert.Equal([1, 2, 3], owner.Memory.ToArray());\n}"
+	},
+	{
+		"page": "framework/core/common/buffer.md",
+		"file": "framework/Zongsoft.Core/test/Common/BufferTest.cs",
+		"start": 35,
+		"end": 45,
+		"code": "public void Lease_Array_DisposeIsIdempotentAndMakesOwnerInaccessible()\n{\n\tvar source = new byte[] { 1, 2, 3 };\n\tvar owner = source.Lease();\n\n\towner.Dispose();\n\towner.Dispose();\n\n\tAssert.Equal([1, 2, 3], source);\n\tAssert.Throws<ObjectDisposedException>(() => _ = owner.Memory);\n}"
+	},
+	{
+		"page": "framework/core/common/checksum.md",
+		"file": "framework/Zongsoft.Core/test/Common/ChecksumTest.cs",
+		"start": 71,
+		"end": 92,
+		"code": "public void Compute()\n{\n\tvar checksum1 = Checksum.Compute(\"SHA256\", _data);\n\tAssert.False(checksum1.IsEmpty);\n\tAssert.False(checksum1.Value.IsEmpty);\n\tAssert.Equal(\"SHA256\", checksum1.Name, true);\n\tAssert.Equal(SHA256.HashSizeInBytes, checksum1.Value.Length);\n\tAssert.NotEmpty(checksum1.ToString());\n\tAssert.StartsWith(\"SHA256:\", checksum1.ToString());\n\n\tvar checksum2 = new Checksum(SHA256.HashData(_data));\n\tAssert.False(checksum2.IsEmpty);\n\tAssert.False(checksum2.Value.IsEmpty);\n\tAssert.Equal(\"SHA256\", checksum2.Name, true);\n\tAssert.Equal(SHA256.HashSizeInBytes, checksum2.Value.Length);\n\tAssert.NotEmpty(checksum2.ToString());\n\tAssert.StartsWith(\"SHA256:\", checksum2.ToString());\n\n\tAssert.Equal(checksum1.Name, checksum2.Name, true);\n\tAssert.True(checksum1.Value.Span.SequenceEqual(checksum2.Value.Span));\n\tAssert.Equal(checksum1, checksum2);\n}"
+	},
+	{
+		"page": "framework/core/common/checksum.md",
+		"file": "framework/Zongsoft.Core/test/Common/ChecksumTest.cs",
+		"start": 111,
+		"end": 124,
+		"code": "public void Verify()\n{\n\tvar checksum = Checksum.Compute(\"SHA3-512\", _data);\n\tAssert.False(checksum.IsEmpty);\n\tAssert.False(checksum.Value.IsEmpty);\n\n\tvar data = new byte[_data.Length];\n\tArray.Copy(_data, data, data.Length);\n\n\tAssert.True(checksum.Verify(data));\n\tAssert.True(checksum.Verify(_data));\n\tAssert.False(checksum.Verify(Randomizer.Generate(512)));\n\tAssert.False(checksum.Verify(Randomizer.Generate(data.Length)));\n}"
+	},
+	{
+		"page": "framework/core/common/checksum.md",
+		"file": "framework/Zongsoft.Core/test/Common/ChecksumTest.cs",
+		"start": 95,
+		"end": 108,
+		"code": "public void Parse()\n{\n\tvar checksum = Checksum.Compute(\"SHA512\", _data);\n\tAssert.False(checksum.IsEmpty);\n\tAssert.False(checksum.Value.IsEmpty);\n\tAssert.Equal(\"SHA512\", checksum.Name, true);\n\tAssert.Equal(SHA512.HashSizeInBytes, checksum.Value.Length);\n\tAssert.NotEmpty(checksum.ToString());\n\tAssert.StartsWith(\"SHA512:\", checksum.ToString());\n\n\tvar result = Checksum.Parse(checksum.ToString());\n\tAssert.False(result.IsEmpty);\n\tAssert.Equal(checksum, result);\n}"
+	},
+	{
+		"page": "framework/core/common/convert.md",
+		"file": "framework/Zongsoft.Core/test/Common/ConvertTest.cs",
+		"start": 15,
+		"end": 26,
+		"code": "Assert.Null(Zongsoft.Common.Convert.ConvertValue<int?>(\"\", default(int?)));\nAssert.Null(Zongsoft.Common.Convert.ConvertValue<int?>(\"x\", () => default(int?)));\nAssert.NotNull(Zongsoft.Common.Convert.ConvertValue<int?>(\"123\", () => default(int?)));\nAssert.Equal(123, Zongsoft.Common.Convert.ConvertValue<int?>(\"123\", () => default(int?)));\n\nobject value = 123;\nAssert.Equal(123.0f, Zongsoft.Common.Convert.ConvertValue<float>(value));\nAssert.Equal(123.0d, Zongsoft.Common.Convert.ConvertValue<double>(value));\nAssert.Equal(123.0m, Zongsoft.Common.Convert.ConvertValue<decimal>(value));\n\nvalue = \"123\";\nAssert.Equal(123, Zongsoft.Common.Convert.ConvertValue<int>(value));"
+	},
+	{
+		"page": "framework/core/common/convert.md",
+		"file": "framework/Zongsoft.Core/test/Common/ConvertTest.cs",
+		"start": 33,
+		"end": 42,
+		"code": "var duration = TimeSpan.Parse(\"1:20:30\");\nAssert.Equal(duration, Zongsoft.Common.Convert.ConvertValue<TimeSpan>(\"1:20:30\"));\nAssert.True(TimeSpanUtility.TryParse(\"15S\", out duration));\nAssert.Equal(duration, Zongsoft.Common.Convert.ConvertValue<TimeSpan>(\"15s\"));\nAssert.True(TimeSpanUtility.TryParse(\"20m\", out duration));\nAssert.Equal(duration, Zongsoft.Common.Convert.ConvertValue<TimeSpan>(\"20M\"));\nAssert.True(TimeSpanUtility.TryParse(\"30h\", out duration));\nAssert.Equal(duration, Zongsoft.Common.Convert.ConvertValue<TimeSpan>(\"30H\"));\nAssert.True(TimeSpanUtility.TryParse(\"40D\", out duration));\nAssert.Equal(duration, Zongsoft.Common.Convert.ConvertValue<TimeSpan>(\"40d\"));"
+	},
+	{
+		"page": "framework/core/common/convert.md",
+		"file": "framework/Zongsoft.Core/test/Common/ConvertTest.cs",
+		"start": 70,
+		"end": 91,
+		"code": "public void TestToHexString()\n{\n\tvar source = new byte[16];\n\n\tfor(int i = 0; i < source.Length; i++)\n\t\tsource[i] = (byte)i;\n\n\tvar hexString1 = Zongsoft.Common.Convert.ToHexString(source);\n\tvar hexString2 = Zongsoft.Common.Convert.ToHexString(source, '-');\n\n\tAssert.Equal(\"000102030405060708090A0B0C0D0E0F\", hexString1);\n\tAssert.Equal(\"00-01-02-03-04-05-06-07-08-09-0A-0B-0C-0D-0E-0F\", hexString2);\n\n\tvar bytes1 = Zongsoft.Common.Convert.FromHexString(hexString1);\n\tvar bytes2 = Zongsoft.Common.Convert.FromHexString(hexString2, '-');\n\n\tAssert.Equal(source.Length, bytes1.Length);\n\tAssert.Equal(source.Length, bytes2.Length);\n\n\tAssert.True(BinaryCompare(source, bytes1));\n\tAssert.True(BinaryCompare(source, bytes2));\n}"
+	},
+	{
+		"page": "framework/core/common/enum-utility.md",
+		"file": "framework/Zongsoft.Core/test/Common/EnumUtilityTest.cs",
+		"start": 12,
+		"end": 29,
+		"code": "public void TestGetEnumEntry()\n{\n\tvar entry = EnumUtility.GetEnumEntry(Gender.Female);\n\n\tAssert.Equal(\"Female\", entry.Name);\n\tAssert.Equal(Gender.Female, entry.Value); //注意：entry.Value 为枚举类型\n\tAssert.True(entry.HasAlias(\"F\"));\n\tAssert.Equal(\"女士\", entry.Description);\n\tAssert.Equal(\"女士\", EnumUtility.GetEnumDescription(Gender.Female));\n\n\tentry = EnumUtility.GetEnumEntry(Gender.Male, true);\n\n\tAssert.Equal(\"Male\", entry.Name);\n\tAssert.Equal((byte)1, entry.Value); //注意：entry.Value 为枚举项的基元类型\n\tAssert.True(entry.HasAlias(\"M\"));\n\tAssert.Equal(\"男士\", entry.Description);\n\tAssert.Equal(\"男士\", EnumUtility.GetEnumDescription(Gender.Male));\n}"
+	},
+	{
+		"page": "framework/core/common/enum-utility.md",
+		"file": "framework/Zongsoft.Core/test/Common/EnumUtilityTest.cs",
+		"start": 32,
+		"end": 49,
+		"code": "public void TestGetEnumEntries()\n{\n\tvar entries = EnumUtility.GetEnumEntries(typeof(Gender), true);\n\n\tAssert.Equal(2, entries.Length);\n\tAssert.Contains(entries, entry => entry.Name == \"Male\");\n\tAssert.Contains(entries, entry => entry.Name == \"Female\");\n\n\tentries = EnumUtility.GetEnumEntries(typeof(Nullable<Gender>), true, null, \"<Unknown>\");\n\n\tAssert.Equal(3, entries.Length);\n\tAssert.Equal(\"\", entries[0].Name);\n\tAssert.Null(entries[0].Value);\n\tAssert.Equal(\"<Unknown>\", entries[0].Description);\n\n\tAssert.Contains(entries, entry => entry.Name == \"Male\");\n\tAssert.Contains(entries, entry => entry.Name == \"Female\");\n}"
+	},
+	{
+		"page": "framework/core/common/hierarchy-vector32.md",
+		"file": "framework/Zongsoft.Data/test/Models/AddressConditionConverter.cs",
+		"start": 10,
+		"end": 27,
+		"code": "public override ICondition Convert(ConditionConverterContext context)\n{\n\tif(context.Value == null)\n\t\treturn null;\n\n\tstatic ICondition GetCondition(string name, uint id)\n\t{\n\t\tif(id == 0)\n\t\t\treturn Condition.Equal(name, 0u);\n\n\t\treturn Zongsoft.Data.Range.Create((HierarchyVector32)id).ToCondition(name);\n\t}\n\n\tif(context.Names.Length == 1)\n\t\treturn GetCondition(context.GetFullName(), Zongsoft.Common.Convert.ConvertValue<uint>(context.Value));\n\n\treturn ConditionCollection.Or(context.Names.Select(name => GetCondition(context.GetFullName(name), Zongsoft.Common.Convert.ConvertValue<uint>(context.Value))));\n}"
+	},
+	{
+		"page": "framework/core/common/locker.md",
+		"file": "framework/Zongsoft.Core/test/Common/LockerTest.cs",
+		"start": 135,
+		"end": 149,
+		"code": "public void Lock()\n{\n\tvar count = 0;\n\tvar locker = new Locker();\n\n\tParallel.For(0, COUNT, i =>\n\t{\n\t\tusing(locker.Lock())\n\t\t{\n\t\t\tcount++;\n\t\t}\n\t});\n\n\tAssert.Equal(COUNT, count);\n}"
+	},
+	{
+		"page": "framework/core/common/locker.md",
+		"file": "framework/Zongsoft.Core/test/Common/LockerTest.cs",
+		"start": 189,
+		"end": 208,
+		"code": "public async Task LockAsync2()\n{\n\tconst int TIMES = 50;\n\n\tvar count = 0;\n\tvar locker = new Locker();\n\n\tawait Parallel.ForAsync(0, TIMES, async (_, cancellation) =>\n\t{\n\t\tfor(int i = 0; i < COUNT; i++)\n\t\t{\n\t\t\tawait using(await locker.LockAsync(cancellation))\n\t\t\t{\n\t\t\t\tcount++;\n\t\t\t}\n\t\t}\n\t});\n\n\tAssert.Equal(COUNT * TIMES, count);\n}"
+	},
+	{
+		"page": "framework/core/common/notification.md",
+		"file": "framework/Zongsoft.Core/src/Data/DataAccessBase.cs",
+		"start": 120,
+		"end": 120,
+		"code": "public IChangeToken Disposed => Notification.GetToken(_cancellation);"
+	},
+	{
+		"page": "framework/core/common/operation-exception.md",
+		"file": "framework/Zongsoft.Core/test/Messaging/MessageQueueBaseTest.cs",
+		"start": 59,
+		"end": 69,
+		"code": "public async Task UnsupportedDelayFailsBeforeDriverOperation()\n{\n\tusing var queue = new TestQueue();\n\tvar options = new MessageEnqueueOptions(TimeSpan.FromSeconds(1));\n\n\tvar exception = await Assert.ThrowsAsync<OperationException>(() => queue.ProduceAsync(\"tests/delay\", ReadOnlyMemory<byte>.Empty, options).AsTask());\n\n\tAssert.Equal(nameof(OperationException.Unsupported), exception.Reason);\n\tAssert.Contains(MessageQueueFeature.Delay.Name, exception.Message);\n\tAssert.Equal(0, queue.ProduceCount);\n}"
+	},
+	{
+		"page": "framework/core/common/predication.md",
+		"file": "framework/Zongsoft.Security/src/Module.Events.cs",
+		"start": 63,
+		"end": 64,
+		"code": "public static readonly EventDescriptor<Privileges.AuthenticatedEventArgs> Authenticated = new(Predication.Predicate<Privileges.AuthenticatedEventArgs>(OnAuthenticated), $\"{nameof(Privileges.Authentication)}.{nameof(Privileges.Authentication.Authenticated)}\");\npublic static readonly EventDescriptor<Privileges.AuthenticatingEventArgs> Authenticating = new(Predication.Predicate<Privileges.AuthenticatingEventArgs>(OnAuthenticating), $\"{nameof(Privileges.Authentication)}.{nameof(Privileges.Authentication.Authenticating)}\");"
+	},
+	{
+		"page": "framework/core/common/predication.md",
+		"file": "framework/Zongsoft.Security/src/Module.Events.cs",
+		"start": 114,
+		"end": 121,
+		"code": "private static bool OnAuthenticating(Privileges.AuthenticatingEventArgs args)\n{\n\tCurrent.Meter.Authentication.Authenticating.Add(1,\n\t\tnew KeyValuePair<string, object>(nameof(args.Scheme), args.Scheme),\n\t\tnew KeyValuePair<string, object>(nameof(args.Scenario), args.Scenario));\n\n\treturn true;\n}"
+	},
+	{
+		"page": "framework/core/common/randomizer.md",
+		"file": "src/Services/PostService.cs",
+		"start": 222,
+		"end": 225,
+		"code": "protected virtual string GetContentFilePath(ulong postId, string contentType)\n{\n\treturn Utility.GetFilePath(string.Format(\"posts/post-{0}-{1}.txt\", postId.ToString(), Zongsoft.Common.Randomizer.GenerateString()));\n}"
+	},
+	{
+		"page": "framework/core/common/sequence.md",
+		"file": "src/Zongsoft.Discussions.mapping",
+		"start": 293,
+		"end": 293,
+		"code": "<property name=\"ThreadId\" type=\"ulong\" nullable=\"false\" sequence=\"#\" />"
+	},
+	{
+		"page": "framework/core/common/sequence.md",
+		"file": "src/Zongsoft.Discussions.mapping",
+		"start": 203,
+		"end": 203,
+		"code": "<property name=\"ForumId\" type=\"ushort\" nullable=\"false\" sequence=\"#(SiteId)\" />"
+	},
+	{
+		"page": "framework/core/common/timer.md",
+		"file": "framework/Zongsoft.Core/test/Common/TimerTest.cs",
+		"start": 22,
+		"end": 26,
+		"code": "public TimerTest()\n{\n\t_timer = new Timer(TimeSpan.FromMilliseconds(1), this.OnTick);\n\t_completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);\n}"
+	},
+	{
+		"page": "framework/core/common/timer.md",
+		"file": "framework/Zongsoft.Core/test/Common/TimerTest.cs",
+		"start": 31,
+		"end": 40,
+		"code": "public async Task Test()\n{\n\tAssert.False(_timer.IsRunning);\n\t_timer.Start(TestContext.Current.CancellationToken);\n\tAssert.True(_timer.IsRunning);\n\n\tawait _completion.Task.WaitAsync(TimeSpan.FromSeconds(30), TestContext.Current.CancellationToken);\n\tAssert.Equal(LIMIT, _count);\n\tAssert.False(_timer.IsRunning);\n}"
+	},
+	{
+		"page": "framework/core/common/timer.md",
+		"file": "framework/Zongsoft.Core/test/Common/TimerTest.cs",
+		"start": 44,
+		"end": 53,
+		"code": "private ValueTask OnTick(object state, CancellationToken cancellation)\n{\n\tif(Interlocked.Increment(ref _count) >= LIMIT)\n\t{\n\t\t_timer.Stop();\n\t\t_completion.TrySetResult();\n\t}\n\n\treturn ValueTask.CompletedTask;\n}"
+	},
+	{
+		"page": "framework/core/common/timestamp.md",
+		"file": "src/api/Controllers/FileController.cs",
+		"start": 79,
+		"end": 81,
+		"code": "var infos = this.Accessor.Write(this.Request,\n\t\t\t\t\t\t\t  this.DataService.GetDirectory(id),\n\t\t\t\t\t\t\t  args => args.FileName = $\"{Timestamp.Millennium.Epoch.GetElapsed().Days}-{Randomizer.GenerateString()}\", cancellation);"
+	},
+	{
+		"page": "framework/core/common/validator.md",
+		"file": "framework/Zongsoft.Security/src/Validators/PasswordValidator.cs",
+		"start": 42,
+		"end": 43,
+		"code": "[Service(typeof(IValidator<string>))]\npublic class PasswordValidator : IValidator<string>, IMatchable"
+	},
+	{
+		"page": "framework/core/common/validator.md",
+		"file": "framework/Zongsoft.Security/src/Validators/PasswordValidator.cs",
+		"start": 58,
+		"end": 71,
+		"code": "var options = parameter as Configuration.IdentityOptions;\n\n//如果没有设置密码验证策略，则返回验证成功\nif(options == null || options.PasswordLength < 1)\n\treturn true;\n\n//如果如果密码长度小于配置要求的长度，则返回验证失败\nif(string.IsNullOrEmpty(data) || data.Length < options.PasswordLength)\n{\n\tfailure?.Invoke($\"The password length must be no less than {options.PasswordLength} characters.\");\n\treturn false;\n}\n\nbool isValidate;"
+	},
+	{
+		"page": "framework/core/common/type-alias.md",
+		"file": "framework/Zongsoft.Core/test/Common/TypeAliasTest.cs",
+		"start": 15,
+		"end": 31,
+		"code": "Assert.Same(typeof(void), TypeAlias.Parse(\"void\"));\nAssert.Same(typeof(object), TypeAlias.Parse(\" object\"));\nAssert.Same(typeof(object[]), TypeAlias.Parse(\"object []\"));\nAssert.Same(typeof(object), TypeAlias.Parse(\"System.object\"));\nAssert.Same(typeof(object[]), TypeAlias.Parse(\"System.object []\"));\n\nAssert.Same(typeof(string), TypeAlias.Parse(\" string \"));\nAssert.Same(typeof(string[]), TypeAlias.Parse(\"string[ ]\"));\nAssert.Same(typeof(string), TypeAlias.Parse(\"System.string\"));\nAssert.Same(typeof(string[]), TypeAlias.Parse(\"System.string [ ]\"));\n\nAssert.Same(typeof(int), TypeAlias.Parse(\" int \"));\nAssert.Same(typeof(int), TypeAlias.Parse(\"int32\"));\nAssert.Same(typeof(int), TypeAlias.Parse(\"System.Int32\"));\nAssert.Same(typeof(int?), TypeAlias.Parse(\"int? \"));\nAssert.Same(typeof(int[]), TypeAlias.Parse(\"int [ ] \"));\nAssert.Same(typeof(int?[]), TypeAlias.Parse(\" int?[]\"));"
+	},
+	{
+		"page": "framework/core/common/type-alias.md",
+		"file": "framework/Zongsoft.Core/test/Common/TypeAliasTest.cs",
+		"start": 107,
+		"end": 117,
+		"code": "public void TestParseNested()\n{\n\tAssert.Same(typeof(NestedClass), TypeAlias.Parse(\"Zongsoft.Common.Tests.TypeAliasTest+NestedClass@Zongsoft.Core.Tests\"));\n\tAssert.Same(typeof(NestedStruct), TypeAlias.Parse(\"Zongsoft.Common.Tests.TypeAliasTest+NestedStruct@Zongsoft.Core.Tests\"));\n\n\tAssert.Same(typeof(NestedClass.DeepenedClass), TypeAlias.Parse(\"Zongsoft.Common.Tests.TypeAliasTest+NestedClass+DeepenedClass@Zongsoft.Core.Tests\"));\n\tAssert.Same(typeof(NestedClass.DeepenedStruct), TypeAlias.Parse(\"Zongsoft.Common.Tests.TypeAliasTest+NestedClass+DeepenedStruct@Zongsoft.Core.Tests\"));\n\n\tAssert.Same(typeof(NestedStruct.DeepenedClass), TypeAlias.Parse(\"Zongsoft.Common.Tests.TypeAliasTest+NestedStruct+DeepenedClass@Zongsoft.Core.Tests\"));\n\tAssert.Same(typeof(NestedStruct.DeepenedStruct), TypeAlias.Parse(\"Zongsoft.Common.Tests.TypeAliasTest+NestedStruct+DeepenedStruct@Zongsoft.Core.Tests\"));\n}"
+	},
+	{
+		"page": "framework/core/common/type-alias.md",
+		"file": "framework/Zongsoft.Core/test/Common/TypeAliasTest.cs",
+		"start": 120,
+		"end": 191,
+		"code": "public void TestGetAlias()\n{\n\tAssert.Equal(\"object\", TypeAlias.GetAlias(typeof(object)), true);\n\tAssert.Equal(\"object[]\", TypeAlias.GetAlias(typeof(object[])), true);\n\tAssert.Equal(\"DBNull\", TypeAlias.GetAlias(typeof(DBNull)), true);\n\tAssert.Equal(\"DBNull[]\", TypeAlias.GetAlias(typeof(DBNull[])), true);\n\n\tAssert.Equal(\"void\", TypeAlias.GetAlias(typeof(void)), true);\n\tAssert.Equal(\"string\", TypeAlias.GetAlias(typeof(string)), true);\n\tAssert.Equal(\"string[]\", TypeAlias.GetAlias(typeof(string[])), true);\n\n\tAssert.Equal(\"int32\", TypeAlias.GetAlias(typeof(int)), true);\n\tAssert.Equal(\"int32?\", TypeAlias.GetAlias(typeof(int?)), true);\n\tAssert.Equal(\"int32[]\", TypeAlias.GetAlias(typeof(int[])), true);\n\tAssert.Equal(\"int32?[]\", TypeAlias.GetAlias(typeof(int?[])), true);\n\n\tAssert.Equal(\"Single\", TypeAlias.GetAlias(typeof(float)), true);\n\tAssert.Equal(\"Single?\", TypeAlias.GetAlias(typeof(float?)), true);\n\tAssert.Equal(\"Single[]\", TypeAlias.GetAlias(typeof(float[])), true);\n\tAssert.Equal(\"Single?[]\", TypeAlias.GetAlias(typeof(float?[])), true);\n\n\tAssert.Equal(\"Date\", TypeAlias.GetAlias(typeof(DateOnly)), true);\n\tAssert.Equal(\"Date?\", TypeAlias.GetAlias(typeof(DateOnly?)), true);\n\tAssert.Equal(\"date[]\", TypeAlias.GetAlias(typeof(DateOnly[])), true);\n\tAssert.Equal(\"date?[]\", TypeAlias.GetAlias(typeof(DateOnly?[])), true);\n\n\tAssert.Equal(\"Range<Timestamp>\", TypeAlias.GetAlias(typeof(Zongsoft.Data.Range<DateTimeOffset>)), true);\n\tAssert.Equal(\"Range<Timestamp>?\", TypeAlias.GetAlias(typeof(Zongsoft.Data.Range<DateTimeOffset>?)), true);\n\tAssert.Equal(\"Range<Timestamp>[]\", TypeAlias.GetAlias(typeof(Zongsoft.Data.Range<DateTimeOffset>[])), true);\n\tAssert.Equal(\"Range<Timestamp>?[]\", TypeAlias.GetAlias(typeof(Zongsoft.Data.Range<DateTimeOffset>?[])), true);\n\n\tAssert.Equal(\"Zongsoft.Tests.Gender@Zongsoft.Core.Tests\", TypeAlias.GetAlias(typeof(Gender)), true);\n\tAssert.Equal(\"Zongsoft.Tests.Gender?@Zongsoft.Core.Tests\", TypeAlias.GetAlias(typeof(Gender?)), true);\n\tAssert.Equal(\"Zongsoft.Tests.Gender[]@Zongsoft.Core.Tests\", TypeAlias.GetAlias(typeof(Gender[])), true);\n\tAssert.Equal(\"Zongsoft.Tests.Gender?[]@Zongsoft.Core.Tests\", TypeAlias.GetAlias(typeof(Gender?[])), true);\n\n\tAssert.Equal(\"IEnumerable<Zongsoft.Tests.Gender@Zongsoft.Core.Tests>\", TypeAlias.GetAlias(typeof(IEnumerable<Gender>)), true);\n\tAssert.Equal(\"IEnumerable<Zongsoft.Tests.Gender?@Zongsoft.Core.Tests>\", TypeAlias.GetAlias(typeof(IEnumerable<Gender?>)), true);\n\tAssert.Equal(\"IEnumerable<Zongsoft.Tests.Gender[]@Zongsoft.Core.Tests>\", TypeAlias.GetAlias(typeof(IEnumerable<Gender[]>)), true);\n\tAssert.Equal(\"IEnumerable<Zongsoft.Tests.Gender?[]@Zongsoft.Core.Tests>\", TypeAlias.GetAlias(typeof(IEnumerable<Gender?[]>)), true);\n\n\tAssert.Equal(\"List<Zongsoft.Tests.Gender@Zongsoft.Core.Tests>\", TypeAlias.GetAlias(typeof(List<Gender>)), true);\n\tAssert.Equal(\"List<Zongsoft.Tests.Gender?@Zongsoft.Core.Tests>\", TypeAlias.GetAlias(typeof(List<Gender?>)), true);\n\tAssert.Equal(\"List<Zongsoft.Tests.Gender[]@Zongsoft.Core.Tests>\", TypeAlias.GetAlias(typeof(List<Gender[]>)), true);\n\tAssert.Equal(\"List<Zongsoft.Tests.Gender?[]@Zongsoft.Core.Tests>\", TypeAlias.GetAlias(typeof(List<Gender?[]>)), true);\n\n\tAssert.Equal(\"IDictionary<String, Zongsoft.Tests.Gender@Zongsoft.Core.Tests>\", TypeAlias.GetAlias(typeof(IDictionary<string, Gender>)), true);\n\tAssert.Equal(\"IDictionary<String, Zongsoft.Tests.Gender?@Zongsoft.Core.Tests>\", TypeAlias.GetAlias(typeof(IDictionary<string, Gender?>)), true);\n\tAssert.Equal(\"IDictionary<String, Zongsoft.Tests.Gender[]@Zongsoft.Core.Tests>\", TypeAlias.GetAlias(typeof(IDictionary<string, Gender[]>)), true);\n\tAssert.Equal(\"IDictionary<String, Zongsoft.Tests.Gender?[]@Zongsoft.Core.Tests>\", TypeAlias.GetAlias(typeof(IDictionary<string, Gender?[]>)), true);\n\n\tAssert.Equal(\"Dictionary<Range<DateTime>, Zongsoft.Tests.Gender@Zongsoft.Core.Tests>\", TypeAlias.GetAlias(typeof(Dictionary<Zongsoft.Data.Range<DateTime>, Gender>)), true);\n\tAssert.Equal(\"Dictionary<Range<DateTime>?, Zongsoft.Tests.Gender?@Zongsoft.Core.Tests>\", TypeAlias.GetAlias(typeof(Dictionary<Zongsoft.Data.Range<DateTime>?, Gender?>)), true);\n\tAssert.Equal(\"Dictionary<Range<DateTime>[], Zongsoft.Tests.Gender[]@Zongsoft.Core.Tests>\", TypeAlias.GetAlias(typeof(Dictionary<Zongsoft.Data.Range<DateTime>[], Gender[]>)), true);\n\tAssert.Equal(\"Dictionary<Range<DateTime>?[], Zongsoft.Tests.Gender?[]@Zongsoft.Core.Tests>\", TypeAlias.GetAlias(typeof(Dictionary<Zongsoft.Data.Range<DateTime>?[], Gender?[]>)), true);\n\n\tvar tupleType = typeof(Tuple<ValueTuple<Zongsoft.Data.Range<int>>, ValueTuple<Zongsoft.Data.Range<DateTime>?>, ValueTuple<Zongsoft.Data.Range<DateTime>[]>, ValueTuple<Zongsoft.Data.Range<DateTime>?[]>>);\n\tvar tupleAlias = \"Tuple<ValueTuple<Range<Int32>>, ValueTuple<Range<DateTime>?>, ValueTuple<Range<DateTime>[]>, ValueTuple<Range<DateTime>?[]>>\";\n\tAssert.Equal(tupleAlias, tupleType.GetAlias());\n\n\ttupleType = typeof(ValueTuple<string, DateOnly?, byte[], Guid?[], Zongsoft.Data.Range<DateTime>?[], Zongsoft.Data.ConditionOperator?[]>);\n\ttupleAlias = \"ValueTuple<String, Date?, Byte[], Guid?[], Range<DateTime>?[], Zongsoft.Data.ConditionOperator?[]@Zongsoft.Core>\";\n\tAssert.Equal(tupleAlias, tupleType.GetAlias());\n\n\ttupleType = typeof(Nullable<>).MakeGenericType(tupleType);\n\ttupleAlias += '?';\n\tAssert.Equal(tupleAlias, tupleType.GetAlias());\n\n\ttupleType = tupleType.MakeArrayType();\n\ttupleAlias += \"[]\";\n\tAssert.Equal(tupleAlias, tupleType.GetAlias());\n}"
+	},
+	{
+		"page": "framework/core/common/extensions.md",
+		"file": "framework/Zongsoft.Core/test/Common/StringExtensionTest.cs",
+		"start": 44,
+		"end": 62,
+		"code": "public void TestSlice()\n{\n\tvar parts = StringExtension.Slice(\"a - b --  c  \", '-').ToArray();\n\n\tAssert.NotEmpty(parts);\n\tAssert.Equal(3, parts.Length);\n\tAssert.Equal(\"a\", parts[0]);\n\tAssert.Equal(\"b\", parts[1]);\n\tAssert.Equal(\"c\", parts[2]);\n\n\tvar hasColon = false;\n\tparts = StringExtension.Slice(\"issue-100-park:10001-1\", chr => hasColon ? false : !(hasColon = chr == ':') && chr == '-').ToArray();\n\n\tAssert.NotEmpty(parts);\n\tAssert.Equal(3, parts.Length);\n\tAssert.Equal(\"issue\", parts[0]);\n\tAssert.Equal(\"100\", parts[1]);\n\tAssert.Equal(\"park:10001-1\", parts[2]);\n}"
+	},
+	{
+		"page": "framework/core/common/extensions.md",
+		"file": "framework/Zongsoft.Core/test/Common/TimeSpanTest.cs",
+		"start": 10,
+		"end": 29,
+		"code": "public void Clamp()\n{\n\tvar minimum = TimeSpan.FromHours(1);\n\tvar maximum = TimeSpan.FromHours(12);\n\n\tvar duration = TimeSpanUtility.Clamp(new TimeSpan(0, 2, 30, 59), minimum, maximum);\n\tAssert.Equal(new TimeSpan(0, 2, 30, 59), duration);\n\n\tduration = TimeSpanUtility.Clamp(TimeSpan.Zero, minimum, maximum);\n\tAssert.Equal(minimum, duration);\n\tduration = TimeSpanUtility.Clamp(TimeSpan.MinValue, minimum, maximum);\n\tAssert.Equal(minimum, duration);\n\tduration = TimeSpanUtility.Clamp(new TimeSpan(0, 0, 30, 40), minimum, maximum);\n\tAssert.Equal(minimum, duration);\n\n\tduration = TimeSpanUtility.Clamp(TimeSpan.MaxValue, minimum, maximum);\n\tAssert.Equal(maximum, duration);\n\tduration = TimeSpanUtility.Clamp(new TimeSpan(1, 0, 0, 1), minimum, maximum);\n\tAssert.Equal(maximum, duration);\n}"
+	},
+	{
+		"page": "framework/core/common/extensions.md",
+		"file": "src/api/Controllers/FileController.cs",
+		"start": 81,
+		"end": 81,
+		"code": "  args => args.FileName = $\"{Timestamp.Millennium.Epoch.GetElapsed().Days}-{Randomizer.GenerateString()}\", cancellation);"
+	},
+	{
+		"page": "framework/core/common/extensions.md",
+		"file": "framework/Zongsoft.Core/test/Common/TypeExtensionTest.cs",
+		"start": 14,
+		"end": 39,
+		"code": "public void TestIsAssignableFrom()\n{\n\tvar baseType = typeof(ICollection<Person>);\n\tvar instanceType = typeof(Collection<Person>);\n\n\tAssert.True(TypeExtension.IsAssignableFrom(baseType, instanceType));\n\tAssert.True(baseType.IsAssignableFrom(instanceType));\n\n\tbaseType = typeof(ICollection<>);\n\n\tAssert.True(TypeExtension.IsAssignableFrom(baseType, instanceType));\n\tAssert.False(baseType.IsAssignableFrom(instanceType));\n\n\tAssert.True(TypeExtension.IsAssignableFrom(typeof(IService<>), typeof(EmployeeService)));\n\tAssert.True(TypeExtension.IsAssignableFrom(typeof(PersonServiceBase<>), typeof(EmployeeService)));\n\n\tAssert.True(TypeExtension.IsAssignableFrom(typeof(IService<>), typeof(EmployeeService), out var genericTypes));\n\tAssert.NotEmpty(genericTypes);\n\tAssert.Single(genericTypes);\n\tAssert.Same(genericTypes[0], typeof(IService<Employee>));\n\n\tAssert.True(TypeExtension.IsAssignableFrom(typeof(PersonServiceBase<>), typeof(EmployeeService), out genericTypes));\n\tAssert.NotEmpty(genericTypes);\n\tAssert.Single(genericTypes);\n\tAssert.Same(genericTypes[0], typeof(PersonServiceBase<Employee>));\n}"
+	},
+	{
+		"page": "framework/core/communication/general.md",
+		"file": "framework/Zongsoft.Core/src/Communication/ListenerBase.cs",
+		"start": 61,
+		"end": 74,
+		"code": "protected virtual ValueTask OnReceiveAsync(in ReadOnlySequence<byte> data, CancellationToken cancellation)\n{\n\tvar message = data;\n\n\tif(this.OnDeserialize(ref message, out var value))\n\t{\n\t\tvar task = this.OnHandleAsync(value, cancellation);\n\n\t\tif(!task.IsCompletedSuccessfully)\n\t\t\treturn new ValueTask(task.AsTask());\n\t}\n\n\treturn ValueTask.CompletedTask;\n}"
+	},
+	{
+		"page": "framework/core/communication/general.md",
+		"file": "framework/Zongsoft.Core/src/Communication/IPacketizer.cs",
+		"start": 39,
+		"end": 51,
+		"code": "public interface IPacketizer<TPackage>\n{\n\t/// <summary>打包，将通讯包对象序列化到发送缓存。</summary>\n\t/// <param name=\"writer\">缓存写入器。</param>\n\t/// <param name=\"package\">待打包的通讯包。</param>\n\tvoid Pack(IBufferWriter<byte> writer, in TPackage package);\n\n\t/// <summary>拆包，将字节流反序列化成通讯包对象。</summary>\n\t/// <param name=\"data\">待拆包的字节流。</param>\n\t/// <param name=\"package\">拆包成功的通讯包。</param>\n\t/// <returns>如果拆包完成则返回真(<c>True</c>)，否则返回假(<c>False</c>)。</returns>\n\tbool Unpack(ref ReadOnlySequence<byte> data, out TPackage package);\n}"
+	},
+	{
+		"page": "framework/core/communication/general.md",
+		"file": "framework/Zongsoft.Net/samples/server/Program.cs",
+		"start": 18,
+		"end": 20,
+		"code": "var server = TcpServer.Headed;\nserver.Handler = new Handler(server);\nawait server.StartAsync(args.Length == 0 ? [\"127.0.0.1\", \"7969\"] : args);"
+	},
+	{
+		"page": "framework/core/communication/request-response.md",
+		"file": "framework/messaging/zero/test/ZeroRequesterTests.cs",
+		"start": 16,
+		"end": 49,
+		"code": "public async Task RequesterReceivesImmediateResponses()\n{\n\tif(!Global.IsTestingEnabled)\n\t\treturn;\n\n\tusing var server = await ZeroServerScope.StartAsync();\n\tusing var requesterQueue = ZeroTestUtility.CreateQueue(server.Port, \"requester\");\n\tusing var responderQueue = ZeroTestUtility.CreateQueue(server.Port, \"responder\");\n\n\tvar responder = new ZeroResponder { Queue = responderQueue };\n\tresponder.Handlers.Add(new EchoHandler());\n\tawait responder.StartAsync([]);\n\n\ttry\n\t{\n\t\tawait using var requester = new ZeroRequester { Queue = requesterQueue };\n\n\t\tfor(int i = 0; i < 20; i++)\n\t\t{\n\t\t\tusing var token = await requester.RequestAsync(\"rpc/echo\", Encoding.UTF8.GetBytes($\"message-{i}\"));\n\t\t\tAssert.NotNull(token);\n\n\t\t\tvar response = token.GetResponses(TimeSpan.FromSeconds(5)).FirstOrDefault();\n\t\t\tAssert.NotNull(response);\n\t\t\tAssert.Equal($\"message-{i}\", Encoding.UTF8.GetString(response.Data.Span));\n\t\t\tAssert.Equal(token.Request.Identifier, response.Request.Identifier);\n\t\t}\n\t}\n\tfinally\n\t{\n\t\tawait responder.StopAsync([]);\n\t\t((IDisposable)responder).Dispose();\n\t}\n}"
+	},
+	{
+		"page": "framework/core/communication/request-response.md",
+		"file": "framework/messaging/zero/test/ZeroTestUtility.cs",
+		"start": 357,
+		"end": 366,
+		"code": "[Handler(\"rpc/echo\")]\ninternal sealed class EchoHandler : HandlerBase<IRequest>\n{\n\tprotected override async ValueTask OnHandleAsync(IRequest request, Parameters parameters, CancellationToken cancellation)\n\t{\n\t\tvar responder = parameters.GetValue<IResponder>();\n\t\tAssert.NotNull(responder);\n\t\tawait responder.RespondAsync(request.Response(request.Data), cancellation);\n\t}\n}"
+	},
+	{
+		"page": "framework/core/communication/request-response.md",
+		"file": "framework/messaging/zero/src/ZeroRequester.cs",
+		"start": 97,
+		"end": 123,
+		"code": "public async ValueTask<IRequestToken> RequestAsync(string url, ReadOnlyMemory<byte> data, CancellationToken cancellation = default)\n{\n\tif(Volatile.Read(ref _disposed) != 0)\n\t\tthrow new ObjectDisposedException(nameof(ZeroRequester));\n\n\tvar queue = this.Queue;\n\tif(queue == null)\n\t\treturn null;\n\n\tvar request = new ZeroRequest(url, data);\n\tvar token = new Token(request, request => this.Remove(request.Identifier));\n\n\tif(!_tokens.TryAdd(request.Identifier, token))\n\t\treturn null;\n\n\ttry\n\t{\n\t\tawait this.SubscribeAsync(queue, url + \"/reply\", cancellation);\n\t\tawait queue.ProduceAsync(url, request.Pack(), null, cancellation);\n\t\treturn token;\n\t}\n\tcatch\n\t{\n\t\ttoken.Dispose();\n\t\tthrow;\n\t}\n}"
+	},
+	{
+		"page": "framework/core/communication/notifier.md",
+		"file": "framework/Zongsoft.Core/src/Communication/INotifier.cs",
+		"start": 38,
+		"end": 55,
+		"code": "public interface INotifier\n{\n\t/// <summary>激发一个通知给指定的接受者。</summary>\n\t/// <param name=\"name\">指定要激发的通知名。</param>\n\t/// <param name=\"content\">指定的通知内容。</param>\n\t/// <param name=\"destination\">指定通知的接受者，由具体实现者定义支持的接受者类型。</param>\n\t/// <param name=\"settings\">指定的通知设置。</param>\n\t/// <returns>返回通知结果对象，由具体实现者定义。</returns>\n\tobject Notify(string name, object content, object destination, object settings = null);\n\n\t/// <summary>异步激发一个通知给指定的接受者。</summary>\n\t/// <param name=\"name\">指定要激发的通知名。</param>\n\t/// <param name=\"content\">指定的通知内容。</param>\n\t/// <param name=\"destination\">指定通知的接受者，由具体实现者定义支持的接受者类型。</param>\n\t/// <param name=\"settings\">指定的通知设置。</param>\n\t/// <returns>返回通知结果对象，由具体实现者定义。</returns>\n\tValueTask<object> NotifyAsync(string name, object content, object destination, object settings = null);\n}"
+	},
+	{
+		"page": "framework/core/communication/notifier.md",
+		"file": "src/Services/MessageService.cs",
+		"start": 49,
+		"end": 71,
+		"code": "public int Send(Message message, IEnumerable<uint> users)\n{\n\tif(message == null)\n\t\tthrow new ArgumentNullException(nameof(message));\n\n\tif(users == null || !users.Any())\n\t\treturn 0;\n\n\tusing(var transaction = new Transaction())\n\t{\n\t\t//插入消息\n\t\tif(this.Insert(message) < 1)\n\t\t\treturn 0;\n\n\t\t//插入用户消息\n\t\tvar count = this.DataAccess.InsertMany(users.Select(uid => new UserMessage(uid, message.MessageId)));\n\n\t\t//提交事务\n\t\ttransaction.Commit();\n\n\t\treturn count;\n\t}\n}"
+	},
+	{
+		"page": "framework/core/communication/transmitter.md",
+		"file": "framework/externals/aliyun/src/Telecom/PhoneTransmitter.cs",
+		"start": 65,
+		"end": 94,
+		"code": "public TransmitterDescriptor Descriptor\n{\n\tget\n\t{\n\t\tif(_descriptor == null)\n\t\t{\n\t\t\t_descriptor = new TransmitterDescriptor(this.Name, AnnotationUtility.GetDisplayName(this.GetType()), AnnotationUtility.GetDescription(this.GetType()));\n\n\t\t\tvar channel = _descriptor.Channel(MESSAGE_CHANNEL, Properties.Resources.Text_Phone_Message);\n\t\t\tforeach(var option in this.Phone.Options.Message.Templates)\n\t\t\t{\n\t\t\t\tvar template = channel.Template(option.Name);\n\n\t\t\t\tforeach(var parameter in option.Parameters)\n\t\t\t\t\ttemplate.Parameter(parameter.Name, parameter.Title, parameter.Description);\n\t\t\t}\n\n\t\t\tchannel = _descriptor.Channel(VOICE_CHANNEL, Properties.Resources.Text_Phone_Voice);\n\t\t\tforeach(var option in this.Phone.Options.Voice.Templates)\n\t\t\t{\n\t\t\t\tvar template = channel.Template(option.Name);\n\n\t\t\t\tforeach(var parameter in option.Parameters)\n\t\t\t\t\ttemplate.Parameter(parameter.Name, parameter.Title, parameter.Description);\n\t\t\t}\n\t\t}\n\n\t\treturn _descriptor;\n\t}\n}"
+	},
+	{
+		"page": "framework/core/communication/transmitter.md",
+		"file": "framework/Zongsoft.Core/src/Security/Secretor.cs",
+		"start": 355,
+		"end": 359,
+		"code": "var token = GetKey(scheme, destination, template, scenario, channel);\nvar value = await _secretor.GenerateAsync(token, null, extra, cancellation);\n\n//发送验证码到目的地\nawait transmitter.TransmitAsync(destination, channel, template, new SecretTemplateData(value), cancellation);"
+	},
+	{
+		"page": "framework/core/communication/transmitter.md",
+		"file": "framework/Zongsoft.Core/src/Communication/TransmitterHandler.cs",
+		"start": 49,
+		"end": 75,
+		"code": "protected override ValueTask OnHandleAsync(Argument argument, Collections.Parameters parameters, CancellationToken cancellation)\n{\n\tif(argument == null)\n\t\treturn ValueTask.CompletedTask;\n\n\t//获取指定名称的发送器\n\tvar transmitter = _serviceProvider.FindRequired<ITransmitter>(argument.Name);\n\n\t//获取指定的发送通道\n\tif(!transmitter.Descriptor.Channels.TryGetValue(argument.Channel ?? string.Empty, out var channel))\n\t\tchannel = transmitter.Descriptor.Channels.Count > 0 ? transmitter.Descriptor.Channels[0] : null;\n\n\t//如果没有指定参数对象则尝试通过参数转换器将参数集转换成发送模板的参数对象\n\tif(argument.Parameter == null)\n\t{\n\t\t//获取指定的发送器参数转换器\n\t\tvar argumenter = _serviceProvider.Find<ITransmitterArgumenter>(argument);\n\n\t\tif(argumenter != null)\n\t\t\targument.Parameter = argumenter.GetArgument(transmitter, channel?.Name ?? argument.Channel, argument.Template, argument.Parameter, parameters);\n\t\telse\n\t\t\targument.Parameter = parameters;\n\t}\n\n\t//执行发送任务\n\treturn transmitter.TransmitAsync(argument.Destination, argument.Channel, argument.Template, argument.Parameter, cancellation);\n}"
+	},
+	{
+		"page": "framework/core/communication/transmitter.md",
+		"file": "framework/externals/aliyun/src/Telecom/PhoneTransmitter.cs",
+		"start": 98,
+		"end": 109,
+		"code": "public async ValueTask TransmitAsync(string destination, string channel, string template, object data, CancellationToken cancellation)\n{\n\tif(data == null)\n\t\tthrow new ArgumentNullException(nameof(data));\n\n\tif(string.IsNullOrEmpty(channel) || string.Equals(channel, MESSAGE_CHANNEL, StringComparison.OrdinalIgnoreCase))\n\t\tawait this.Phone.SendAsync(template, new[] { destination }, data, cancellation:cancellation);\n\telse if(string.Equals(channel, VOICE_CHANNEL, StringComparison.OrdinalIgnoreCase))\n\t\tawait this.Phone.CallAsync(template, destination, data, cancellation:cancellation);\n\telse\n\t\tthrow new ArgumentException($\"Unsupported ‘{channel}’ channel.\", nameof(channel));\n}"
+	},
+	{
+		"page": "framework/core/components/identifier.md",
+		"file": "src/Security/UserIdentity.cs",
+		"start": 102,
+		"end": 107,
+		"code": "Identifier IIdentifiable.Identifier\n{\n\tget => new(typeof(IUser), this.UserId);\n\tset => this.UserId = value.Validate<uint>(out var id) ? id : this.UserId;\n}\n#endregion"
+	},
+	{
+		"page": "framework/core/components/alias-attribute.md",
+		"file": "framework/Zongsoft.Core/test/Models.cs",
+		"start": 247,
+		"end": 256,
+		"code": "[DefaultValue(Female)]\npublic enum Gender : byte\n{\n\t[Zongsoft.Components.Alias(\"F\")]\n\tFemale,\n\n\t[Zongsoft.Components.Alias(\"M\")]\n\t[Description(\"Gender.Male\")]\n\tMale,\n}"
+	},
+	{
+		"page": "framework/core/components/commands.md",
+		"file": "src/Services/Commands/MessageSendCommand.cs",
+		"start": 37,
+		"end": 42,
+		"code": "[CommandOption(SUBJECT_OPTION, typeof(string), Required = true)]\n[CommandOption(CONTENT_OPTION, typeof(string), Required = true)]\n[CommandOption(CONTENTTYPE_OPTION, typeof(string))]\n[CommandOption(MESSAGETYPE_OPTION, typeof(string))]\n[CommandOption(SOURCE_OPTION, typeof(string))]\npublic class MessageSendCommand : CommandBase<CommandContext>"
+	},
+	{
+		"page": "framework/core/components/commands.md",
+		"file": "src/Services/Commands/MessageSendCommand.cs",
+		"start": 58,
+		"end": 59,
+		"code": "[ServiceDependency(Provider = Module.NAME)]\npublic MessageService Service { get; set; }"
+	},
+	{
+		"page": "framework/core/components/commands.md",
+		"file": "src/Services/Commands/MessageSendCommand.cs",
+		"start": 63,
+		"end": 87,
+		"code": "protected override ValueTask<object> OnExecuteAsync(CommandContext context, CancellationToken cancellation)\n{\n\tif(context.Arguments == null || context.Arguments.IsEmpty)\n\t\tthrow new CommandException(\"Missing arguments of the command.\");\n\n\tvar content = context.Options.GetValue<string>(CONTENT_OPTION);\n\tvar contentType = context.Options.GetValue<string>(CONTENTTYPE_OPTION);\n\n\t//根据内容类型解析得到真实内容\n\tcontent = GetContent(content, ref contentType);\n\n\tvar message = Zongsoft.Data.Model.Build<Models.Message>(entity =>\n\t{\n\t\tentity.Content = content;\n\t\tentity.ContentType = contentType;\n\t\tentity.Referer = context.Options.GetValue<string>(SOURCE_OPTION);\n\t\tentity.Subject = context.Options.GetValue<string>(SUBJECT_OPTION);\n\t\tentity.MessageType = context.Options.GetValue<string>(MESSAGETYPE_OPTION);\n\t});\n\n\tif(this.Service.Send(message, GetUsers(context.Arguments)) > 0)\n\t\treturn ValueTask.FromResult<object>(message);\n\n\treturn ValueTask.FromResult<object>(null);\n}"
+	},
+	{
+		"page": "framework/core/components/commands.md",
+		"file": "src/Services/Commands/MessageSendCommand.cs",
+		"start": 91,
+		"end": 113,
+		"code": "private static string GetContent(string content, ref string contentType)\n{\n\tif(string.IsNullOrWhiteSpace(content) || string.IsNullOrWhiteSpace(contentType))\n\t\treturn content;\n\n\tif(contentType.Length > 5 && contentType.EndsWith(\"+file\", StringComparison.OrdinalIgnoreCase))\n\t{\n\t\tcontentType = contentType.Substring(0, contentType.Length - 5);\n\n\t\tif(Zongsoft.IO.FileSystem.File.Exists(content))\n\t\t{\n\t\t\tusing(var stream = Zongsoft.IO.FileSystem.File.Open(content, System.IO.FileMode.Open))\n\t\t\t{\n\t\t\t\tusing(var reader = new System.IO.StreamReader(stream))\n\t\t\t\t{\n\t\t\t\t\tcontent = reader.ReadToEnd();\n\t\t\t\t}\n\t\t\t}\n\t\t}\n\t}\n\n\treturn content;\n}"
+	},
+	{
+		"page": "framework/core/components/events.md",
+		"file": "src/Module.cs",
+		"start": 56,
+		"end": 62,
+		"code": "public sealed class EventRegistry : EventRegistryBase\n{\n\t#region 构造函数\n\tpublic EventRegistry() : base(NAME)\n\t{\n\t}\n\t#endregion"
+	},
+	{
+		"page": "framework/core/components/events.md",
+		"file": "src/Zongsoft.Discussions.plugin",
+		"start": 26,
+		"end": 27,
+		"code": "<expose name=\"Events\" value=\"{path:../@Events}\" />\n<expose name=\"Properties\" value=\"{path:../@Properties}\" />"
+	},
+	{
+		"page": "framework/core/components/worker.md",
+		"file": "framework/externals/hangfire/src/Zongsoft.Externals.Hangfire-daemon.plugin",
+		"start": 19,
+		"end": 31,
+		"code": "\t<extension path=\"/Workspace/Externals/Hangfire\">\n\t\t<object name=\"Server\" type=\"Zongsoft.Externals.Hangfire.Server, Zongsoft.Externals.Hangfire\">\n\t\t\t<expose name=\"Handlers\" value=\"{path:../@Handlers}\" />\n\t\t</object>\n\t</extension>\n\n\t<extension path=\"/Workbench/Scheduler\">\n\t\t<object name=\"Handlers\" value=\"{path:/Workspace/Externals/Hangfire/Server/Handlers}\" />\n\t</extension>\n\n\t<extension path=\"/Workbench/Startup\">\n\t\t<object name=\"Hangfire\" value=\"{path:/Workspace/Externals/Hangfire/Server}\" />\n\t</extension>"
+	},
+	{
+		"page": "framework/core/components/handler.md",
+		"file": "framework/Zongsoft.Diagnostics/protocols/server/samples/MetricHandler.cs",
+		"start": 12,
+		"end": 21,
+		"code": "public class MetricHandler : HandlerBase<IEnumerable<Zongsoft.Diagnostics.Telemetry.Metrics.Meter>>\n{\n\tprotected override ValueTask OnHandleAsync(IEnumerable<Telemetry.Metrics.Meter> meters, Parameters parameters, CancellationToken cancellation)\n\t{\n\t\tforeach(var meter in meters)\n\t\t\tTerminal.WriteLine(CommandOutletDumper.Dump(meter));\n\n\t\treturn ValueTask.CompletedTask;\n\t}\n}"
+	},
+	{
+		"page": "framework/core/components/handler.md",
+		"file": "framework/Zongsoft.Diagnostics/protocols/server/samples/Zongsoft.Diagnostics.Protocols.Server.Samples.plugin",
+		"start": 19,
+		"end": 21,
+		"code": "<extension path=\"/Workbench/Diagnostics/Telemetry/Listener/Metrics\">\n\t<object name=\"MetricHandler\" type=\"Zongsoft.Diagnostics.Protocols.Server.Samples.MetricHandler, Zongsoft.Diagnostics.Protocols.Server.Samples\" />\n</extension>"
+	},
+	{
+		"page": "framework/core/components/filter.md",
+		"file": "src/Data/PostFilter.cs",
+		"start": 43,
+		"end": 52,
+		"code": "public void OnFiltering(DataSelectContextBase context) { }\npublic void OnFiltered(DataSelectContextBase context)\n{\n\tif(context.Result == null)\n\t\treturn;\n\n\tvar identity = context.Principal?.Identity;\n\tcontext.Result = FilteredResult.Create(context, item => Filter(item, identity));\n}\n#endregion"
+	},
+	{
+		"page": "framework/core/components/filter.md",
+		"file": "src/Data/PostFilter.cs",
+		"start": 55,
+		"end": 75,
+		"code": "private static bool Filter(object item, System.Security.Principal.IIdentity identity)\n{\n\tvar dictionary = DataDictionary.GetDictionary<Models.Post>(item);\n\tif(!dictionary.TryGetValue(p => p.Content, out var content))\n\t\treturn true;\n\n\tif(!(dictionary.TryGetValue(p => p.Approved, out var approved) && approved) &&\n\t   !(identity?.IsAuthenticated == true && dictionary.TryGetValue(p => p.CreatorId, out var creatorId) && identity.GetIdentifier<uint>() == creatorId))\n\t{\n\t\tdictionary.TrySetValue(p => p.Content, string.Empty);\n\t\tif(dictionary.TryGetValue(p => p.ContentType, out var hiddenType))\n\t\t\tdictionary.TrySetValue(p => p.ContentType, Utility.GetContentType(hiddenType, true));\n\t}\n\telse if(dictionary.TryGetValue(p => p.ContentType, out var contentType) && !Utility.IsContentEmbedded(contentType))\n\t{\n\t\tdictionary.SetValue(p => p.Content, string.IsNullOrEmpty(content) ? string.Empty : Utility.ReadTextFile(content));\n\t\tdictionary.SetValue(p => p.ContentType, Utility.GetContentType(contentType, true));\n\t}\n\n\treturn true;\n}"
+	},
+	{
+		"page": "framework/core/components/superviser.md",
+		"file": "framework/Zongsoft.Core/test/Components/SuperviserTest.cs",
+		"start": 17,
+		"end": 25,
+		"code": "private void Initialize(int count = 2)\n{\n\tfor(int i = 0; i < count; i++)\n\t{\n\t\tvar name = $\"S{i + 1}\";\n\t\t_superviser.Supervise(name, new MySupervisable(name));\n\t\t_superviser.Supervise(name, new MySupervisable(name));\n\t}\n}"
+	},
+	{
+		"page": "framework/core/components/superviser.md",
+		"file": "framework/Zongsoft.Core/test/Components/SuperviserTest.cs",
+		"start": 43,
+		"end": 62,
+		"code": "public void TestUnsupervise()\n{\n\tthis.Initialize(2);\n\n\tAssert.True(_superviser.Unsupervise(\"S1\", out var observable));\n\tAssert.NotNull(observable);\n\tAssert.IsType<MySupervisable>(observable);\n\tAssert.Equal(\"S1\", ((MySupervisable)observable).Name);\n\tAssert.True(((MySupervisable)observable).IsUnsupervised(TimeSpan.FromSeconds(10)));\n\tAssert.False(_superviser.Contains(\"S1\"));\n\n\tAssert.True(_superviser.Unsupervise(\"S2\", out observable));\n\tAssert.NotNull(observable);\n\tAssert.IsType<MySupervisable>(observable);\n\tAssert.Equal(\"S2\", ((MySupervisable)observable).Name);\n\tAssert.True(((MySupervisable)observable).IsUnsupervised(TimeSpan.FromSeconds(10)));\n\tAssert.False(_superviser.Contains(\"S2\"));\n\n\tAssert.Equal(0, _superviser.Count);\n}"
+	},
+	{
+		"page": "framework/core/components/weighter.md",
+		"file": "framework/Zongsoft.Core/test/Components/WeighterTest.cs",
+		"start": 13,
+		"end": 26,
+		"code": "var servers = new []\n{\n\tnew Server(\"A\", 4),\n\tnew Server(\"B\", 2),\n\tnew Server(\"C\", 1),\n};\n\nvar weighter = new Weighter<Server>(servers, server => server.Weight);\n\n//Round 1\nvar server = weighter.Get();\nAssert.NotNull(server);\nAssert.Equal(\"A\", server.Name);\nAssert.Equal(4, server.Weight);"
+	},
+	{
+		"page": "framework/core/components/discriminator.md",
+		"file": "framework/Zongsoft.Core/src/Security/Privileges/PrivilegeCategory.cs",
+		"start": 128,
+		"end": 147,
+		"code": "object IDiscriminator.Discriminate(object argument)\n{\n\tswitch(argument)\n\t{\n\t\tcase string type:\n\t\t\tif(string.IsNullOrEmpty(type) || string.Equals(type, nameof(Category), StringComparison.OrdinalIgnoreCase))\n\t\t\t\treturn this.Categories;\n\n\t\t\tif(string.Equals(type, nameof(Privilege), StringComparison.OrdinalIgnoreCase))\n\t\t\t\treturn this.Privileges;\n\n\t\t\tbreak;\n\t\tcase Privilege:\n\t\t\treturn this.Privileges;\n\t\tcase PrivilegeCategory:\n\t\t\treturn this.Categories;\n\t}\n\n\treturn null;\n}"
+	},
+	{
+		"page": "framework/core/components/attempter.md",
+		"file": "framework/Zongsoft.Core/src/Security/Privileges/Authenticators.Identity.cs",
+		"start": 86,
+		"end": 128,
+		"code": "public async ValueTask<Ticket> VerifyAsync(string key, Requirement requirement, string scenario, Parameters parameters, CancellationToken cancellation = default)\n{\n\tif(string.IsNullOrWhiteSpace(requirement.Identity))\n\t{\n\t\tif(string.IsNullOrEmpty(key))\n\t\t\tthrow new AuthenticationException(SecurityReasons.InvalidIdentity, \"Missing identity.\");\n\n\t\trequirement.Identity = key;\n\t}\n\n\t//获取验证失败的解决器\n\tvar attempter = this.Attempter;\n\tvar attempterKey = $\"{this.GetType().Name}:{requirement.Identity}@{requirement.Namespace}\";\n\n\t//确认验证失败是否超出限制数，如果超出则返回账号被禁用\n\tif(attempter != null && !await attempter.CheckAsync(attempterKey, cancellation))\n\t\tthrow new AuthenticationException(SecurityReasons.AccountSuspended);\n\n\t//获取当前用户的密钥信息\n\tvar cipher = await Authentication.Servicer.Users.Passworder.GetAsync(requirement.Identity, requirement.Namespace, cancellation);\n\n\t//如果帐户不存在则验证失败\n\tif(cipher == null)\n\t\tthrow new AuthenticationException(SecurityReasons.InvalidIdentity);\n\n\t//执行密码验证，如果成功则返回验证成功的票证\n\tif(await Authentication.Servicer.Users.Passworder.VerifyAsync(requirement.Password, cipher, cancellation))\n\t{\n\t\t//通知验证尝试成功，即清空验证失败记录\n\t\tif(attempter != null)\n\t\t\tawait attempter.DoneAsync(attempterKey, cancellation);\n\n\t\t//返回验证成功的票证\n\t\treturn this.CreateTicket(cipher.Identifier, requirement);\n\t}\n\n\t//通知验证尝试失败\n\tif(attempter != null)\n\t\tawait attempter.FailAsync(attempterKey, cancellation);\n\n\t//抛出验证失败异常\n\tthrow new AuthenticationException(SecurityReasons.InvalidPassword);\n}"
+	},
+	{
+		"page": "framework/core/components/converters.md",
+		"file": "framework/Zongsoft.Core/src/Terminals/Commands/ShellCommand.cs",
+		"start": 42,
+		"end": 46,
+		"code": "[CommandOption(TIMEOUT_OPTION, 't', typeof(TimeSpan), \"1s\")]\npublic class ShellCommand : CommandBase<CommandContext>\n{\n\t#region 常量定义\n\tprivate const string TIMEOUT_OPTION = \"timeout\";"
+	},
+	{
+		"page": "framework/core/components/converters.md",
+		"file": "framework/Zongsoft.Core/test/Configuration/ConnectionSettingsTest.cs",
+		"start": 462,
+		"end": 467,
+		"code": "[TypeConverter(typeof(Components.Converters.CollectionConverter<MappingEntryConverter>))]\npublic MappingEntry[] Mapping\n{\n\tget => this.GetValue<MappingEntry[]>();\n\tset => this.SetValue(value);\n}"
+	},
+	{
+		"page": "framework/core/components/converters.md",
+		"file": "framework/Zongsoft.Core/test/Configuration/ConnectionSettingsTest.cs",
+		"start": 485,
+		"end": 500,
+		"code": "public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, object value)\n{\n\tif(value is string text)\n\t{\n\t\tif(string.IsNullOrEmpty(text))\n\t\t\treturn default(MappingEntry);\n\n\t\tvar index = text.IndexOfAny([':', '=']);\n\n\t\treturn index < 0 ?\n\t\t\tnew MappingEntry(text.Trim()) :\n\t\t\tnew MappingEntry(text[..index].Trim(), text[(index + 1)..].Trim());\n\t}\n\n\treturn base.ConvertFrom(context, culture, value);\n}"
+	},
+	{
+		"page": "framework/core/components/converters.md",
+		"file": "framework/Zongsoft.Core/test/Configuration/ConnectionSettingsTest.cs",
+		"start": 130,
+		"end": 138,
+		"code": "Assert.NotNull(settings.Mapping);\nAssert.NotEmpty(settings.Mapping);\nAssert.Equal(3, settings.Mapping.Length);\nAssert.Equal(\"s1\", settings.Mapping[0].Source, true);\nAssert.Equal(\"t1\", settings.Mapping[0].Target, true);\nAssert.Equal(\"s2\", settings.Mapping[1].Source, true);\nAssert.Equal(\"t2\", settings.Mapping[1].Target, true);\nAssert.Equal(\"same\", settings.Mapping[2].Source, true);\nAssert.Equal(\"same\", settings.Mapping[2].Target, true);"
+	},
+	{
+		"page": "framework/core/components/states.md",
+		"file": "src/Services/ThreadService.cs",
+		"start": 103,
+		"end": 109,
+		"code": "public bool SetLocked(ulong threadId, bool value)\n{\n\treturn this.DataAccess.Update<Models.Thread>(new\n\t{\n\t\tIsLocked = value,\n\t}, Condition.Equal(nameof(Models.Thread.ThreadId), threadId) & GetIsModeratorCriteria()) > 0;\n}"
+	},
+	{
+		"page": "framework/core/components/states.md",
+		"file": "framework/Zongsoft.Core/src/Components/States/StateMachine.cs",
+		"start": 87,
+		"end": 111,
+		"code": "public void Run<TKey, TValue>(State<TKey, TValue> state, string description, IEnumerable<KeyValuePair<object, object>> parameters = null) where TKey : struct, IEquatable<TKey> where TValue : struct\n{\n\tArgumentNullException.ThrowIfNull(state);\n\tvar context = this.GetContext(state, description);\n\n\tif(context == null)\n\t\treturn;\n\n\tif(parameters != null)\n\t{\n\t\tforeach(var parameter in parameters)\n\t\t\tcontext.Parameters.TryAdd(parameter.Key, parameter.Value);\n\t}\n\n\tvar count = 0;\n\tvar handlers = this.GetHandlers<TKey, TValue>();\n\n\tforeach(var handler in handlers)\n\t{\n\t\tif(count++ == 0)\n\t\t\t_stack.Push(context);\n\n\t\tstate.Diagram.Transfer(context, handler);\n\t}\n}"
+	},
+	{
+		"page": "framework/core/components/states.md",
+		"file": "framework/Zongsoft.Core/src/Components/States/StateMachine.cs",
+		"start": 115,
+		"end": 132,
+		"code": "private void Stop()\n{\n\tif(_stack.Count == 0)\n\t\treturn;\n\n\tvar frames = _stack.Reverse().ToArray();\n\n\tusing(var transaction = new Data.Transaction())\n\t{\n\t\tfor(int i = 0; i < frames.Length; i++)\n\t\t{\n\t\t\tthis.OnStop(frames[i]);\n\t\t}\n\n\t\t//提交事务\n\t\ttransaction.Commit();\n\t}\n}"
+	},
+	{
+		"page": "framework/core/components/executor.md",
+		"file": "framework/externals/polly/samples/Program.cs",
+		"start": 207,
+		"end": 207,
+		"code": "var executor = _features.Build<int>(OnExecuteAsync);"
+	},
+	{
+		"page": "framework/core/configuration.md",
+		"file": "src/Zongsoft.Discussions.option",
+		"start": 3,
+		"end": 7,
+		"code": "<options>\n\t<option path=\"/Discussions\">\n\t\t<general siteId=\"1\" basePath=\"zfs.s3:/zongsoft-discussions/\" />\n\t</option>\n</options>"
+	},
+	{
+		"page": "framework/core/configuration.md",
+		"file": "src/Utility.cs",
+		"start": 283,
+		"end": 286,
+		"code": "var basePath = ApplicationContext.Current.Configuration.GetOptionValue<string>(\"/Discussions/General.BasePath\");\n\nif(string.IsNullOrWhiteSpace(basePath))\n\treturn string.Empty;"
+	},
+	{
+		"page": "framework/core/configuration.md",
+		"file": "src/Configuration/IConfiguration.cs",
+		"start": 35,
+		"end": 42,
+		"code": "public interface IConfiguration\n{\n\t/// <summary>获取或设置默认的站点编号。</summary>\n\tuint SiteId { get; set; }\n\n\t/// <summary>获取或设置文件存储的基路径。</summary>\n\tstring BasePath { get; set; }\n}"
+	},
+	{
+		"page": "framework/core/configuration.md",
+		"file": "framework/Zongsoft.Core/test/Configuration/Xml/OptionConfigurationTest.cs",
+		"start": 186,
+		"end": 216,
+		"code": "[Configuration(nameof(Properties))]\npublic class QueueOptions\n{\n\tpublic string Name { get; set; }\n\tpublic SubscriptionOptions Subscription { get; set; }\n\tpublic IDictionary<string, string> Properties { get; set; }\n\n\tpublic class SubscriptionOptions\n\t{\n\t\tpublic Messaging.MessageReliability Reliability { get; set; }\n\n\t\t[ConfigurationProperty]\n\t\tpublic TopicOptionsCollection Topics { get; set; }\n\t}\n\n\tpublic class TopicOptions\n\t{\n\t\tpublic string Name { get; set; }\n\n\t\t[ConfigurationProperty(\"tag\")]\n\t\tpublic IList<string> Tags { get; set; }\n\n\t\tpublic override string ToString() => this.Name;\n\t}\n\n\tpublic class TopicOptionsCollection() : KeyedCollection<string, TopicOptions>(StringComparer.OrdinalIgnoreCase)\n\t{\n\t\tprotected override string GetKeyForItem(TopicOptions topic) => topic.Name;\n\t}\n}\n"
+	},
+	{
+		"page": "framework/core/configuration.md",
+		"file": "framework/Zongsoft.Core/test/Configuration/Xml/OptionConfigurationTest-1.option",
+		"start": 30,
+		"end": 34,
+		"code": "<option path=\"/Data\">\n\t<connectionSettings default=\"db1\">\n\t\t<connectionSetting connectionSetting.name=\"db1\" driver=\"mysql\" mode=\"all\" value=\"server=localhost\" />\n\t</connectionSettings>\n</option>"
+	},
+	{
+		"page": "framework/core/configuration.md",
+		"file": "framework/Zongsoft.Core/test/Configuration/ConnectionSettingsTest.cs",
+		"start": 178,
+		"end": 188,
+		"code": "public void TestConnectionSettingsCompositeProperty()\n{\n\tvar settings = MyDriver.Instance.GetSettings(\"a.b.c=none;cluster.address=192.168.0.100;nothing.property=none;cluster.heartbeat=30s\");\n\tAssert.NotNull(settings);\n\n\tAssert.False(settings.Cluster.IsEmpty);\n\tAssert.Equal(\"192.168.0.100\", settings.Cluster.Address);\n\tAssert.Equal(TimeSpan.FromSeconds(30), settings.Cluster.Heartbeat);\n\tAssert.Equal(\"none\", settings.Properties[\"a.b.c\"]);\n\tAssert.Equal(\"none\", settings.Properties[\"nothing.property\"]);\n}"
+	},
+	{
+		"page": "framework/core/configuration.md",
+		"file": "framework/Zongsoft.Core/test/Configuration/Xml/OptionConfigurationTest.cs",
+		"start": 14,
+		"end": 19,
+		"code": "public static IConfigurationRoot GetConfiguration1()\n{\n\treturn new ConfigurationBuilder()\n\t\t.AddOptionFile(\"Configuration/Xml/OptionConfigurationTest-1.option\")\n\t\t.Build();\n}"
+	},
+	{
+		"page": "framework/core/configuration.md",
+		"file": "framework/Zongsoft.Core/test/Configuration/Profiles/Profile-1.ini",
+		"start": 1,
+		"end": 2,
+		"code": "﻿[plugins zongsoft data]\nnuget:Zongsoft.Data"
+	},
+	{
+		"page": "framework/core/configuration.md",
+		"file": "src/Zongsoft.Discussions.deploy",
+		"start": 1,
+		"end": 4,
+		"code": "artifacts/Zongsoft.Discussions.plugin\nartifacts/Zongsoft.Discussions.option\nartifacts/Zongsoft.Discussions.mapping\nlib/$(Framework)/Zongsoft.Discussions.*"
+	},
+	{
+		"page": "framework/core/configuration.md",
+		"file": "framework/Zongsoft.Core/test/Configuration/Models/ModelConfigurationTest.cs",
+		"start": 163,
+		"end": 181,
+		"code": "public abstract class ConfigurationEntity\n{\n\tpublic abstract int TenantId { get; set; }\n\tpublic abstract int BranchId { get; set; }\n\tpublic abstract string Module { get; set; }\n\tpublic abstract string Key { get; set; }\n\tpublic abstract string Value { get; set; }\n}\n\npublic static class ConfigurationEntityExtension\n{\n\tpublic static string GetInfo(this ConfigurationEntity entity)\n\t{\n\t\tif(entity == null)\n\t\t\treturn string.Empty;\n\n\t\treturn $\"[{entity.TenantId}-{entity.BranchId}:{entity.Module}]\" + Environment.NewLine + $\"{entity.Key}={entity.Value}\";\n\t}\n}"
+	},
+	{
+		"page": "framework/core/configuration.md",
+		"file": "framework/Zongsoft.Core/test/Configuration/Models/ModelConfigurationTest.cs",
+		"start": 71,
+		"end": 81,
+		"code": "var models = GetModels(dictionary);\n\nreturn new ConfigurationBuilder()\n\t.AddModels(models, source =>\n\t{\n\t\tsource.OnChange(model => System.Diagnostics.Debug.WriteLine(model.GetInfo()));\n\n\t\tif(persistent != null)\n\t\t\tsource.OnChange(persistent);\n\t})\n\t.Build();"
+	},
+	{
+		"page": "framework/core/configuration.md",
+		"file": "framework/Zongsoft.Security/src/CredentialProvider.cs",
+		"start": 65,
+		"end": 66,
+		"code": "[Options(\"Security/Authority\")]\npublic Configuration.AuthenticationOptions Options { get; set; }"
+	},
+	{
+		"page": "framework/core/data/transactions.md",
+		"file": "src/Services/ThreadService.cs",
+		"start": 336,
+		"end": 371,
+		"code": "protected override async ValueTask<int> OnInsertAsync(IDataDictionary<Models.Thread> data, ISchema schema, DataInsertOptions options, CancellationToken cancellation)\n{\n\tcancellation.ThrowIfCancellationRequested();\n\tif(!data.TryGetValue(p => p.Post, out var post) || post == null || string.IsNullOrEmpty(post.Content))\n\t\tthrow new InvalidOperationException(\"Missing content of the thread.\");\n\n\t//确保数据模式含有“主题内容贴”复合属性\n\tschema.Include(\"Post{*}\");\n\n\t//更新主题内容贴的相关属性\n\tpost.Visible = false;\n\tpost.Approved = await this.ServiceProvider.ResolveRequired<ForumService>().CanPublishAsync(data, cancellation);\n\tdata.SetValue(p => p.Approved, post.Approved);\n\tschema.Include(nameof(Models.Thread.Approved));\n\n\tvar content = DataDictionary.GetDictionary<Post>(post);\n\treturn await Utility.MutateContentAsync(content, () => this.Posting.GetContentFilePath(content), async () =>\n\t{\n\t\tawait using(var transaction = new Transaction())\n\t\t{\n\t\t\t//调用基类同名方法，插入主题数据\n\t\t\tvar count = await base.OnInsertAsync(data, schema, options, cancellation);\n\n\t\t\tif(count < 1)\n\t\t\t\treturn count;\n\n\t\t\t//更新发帖人关联的主题统计信息\n\t\t\tawait this.SetMostRecentThreadAsync(data, cancellation: cancellation);\n\n\t\t\t//提交事务\n\t\t\tawait transaction.CommitAsync(cancellation);\n\n\t\t\treturn count;\n\t\t}\n\t}, cancellation);\n}"
+	},
+	{
+		"page": "framework/core/diagnostics.md",
+		"file": "framework/externals/hangfire/samples/MyHandler.cs",
+		"start": 11,
+		"end": 25,
+		"code": "public class MyHandler : HandlerBase<object>\n{\n\tprivate long _count = 0;\n\n\tprotected override ValueTask OnHandleAsync(object argument, Parameters parameters, CancellationToken cancellation) =>\n\t\tLogging.GetLogging(this).DebugAsync(\n\t\t\t\"MyHandler handles the scheduling of the Hangfire.\",\n\t\t\tnew\n\t\t\t{\n\t\t\t\tCount = Interlocked.Increment(ref _count),\n\t\t\t\tArgument = argument,\n\t\t\t\tParameters = parameters,\n\t\t\t},\n\t\t\tcancellation);\n}"
+	},
+	{
+		"page": "framework/core/diagnostics.md",
+		"file": "framework/Zongsoft.Core/test/Diagnostics/TextFileLoggerTest.cs",
+		"start": 13,
+		"end": 29,
+		"code": "public async Task TestInfoAsync()\n{\n\tconst int COUNT = 512;\n\n\tusing var context = new LoggerContext();\n\tusing var logger = context.CreateLogger(16);\n\n\tawait Parallel.ForAsync(0, COUNT, TestContext.Current.CancellationToken, async (index, cancellation) =>\n\t{\n\t\tawait logger.LogAsync(new LogEntry(LogLevel.Info, \"ConcurrentInfo\", GetMessage(index)), cancellation);\n\t});\n\n\tawait logger.FlushAsync(TestContext.Current.CancellationToken);\n\n\tvar content = context.ReadAllText();\n\tAssertMessages(content, COUNT);\n}"
+	},
+	{
+		"page": "framework/core/diagnostics/telemetry.md",
+		"file": "framework/Zongsoft.Security/src/Module.Meter.cs",
+		"start": 61,
+		"end": 70,
+		"code": "internal Diagnostor()\n{\n\t#if NET8_0_OR_GREATER\n\t_meter = Current.Services.ResolveRequired<IMeterFactory>().Create(NAME);\n\t#else\n\t_meter = new Meter(NAME, Current.Version.ToString());\n\t#endif\n\n\tthis.Authentication = new(_meter);\n}"
+	},
+	{
+		"page": "framework/core/diagnostics/telemetry.md",
+		"file": "framework/Zongsoft.Security/src/Module.Meter.cs",
+		"start": 74,
+		"end": 85,
+		"code": "\tpublic sealed class AuthenticationMeter(Meter meter)\n\t{\n\t\t#region 常量定义\n\t\tprivate const string METER = nameof(Diagnostor.Authentication);\n\t\t#endregion\n\n\t\t#region 公共字段\n\t\tpublic readonly Counter<long> Authenticated = meter.CreateCounter<long>($\"{METER}.{nameof(Authenticated)}\");\n\t\tpublic readonly Counter<long> Authenticating = meter.CreateCounter<long>($\"{METER}.{nameof(Authenticating)}\");\n\t\t#endregion\n\t}\n}"
+	},
+	{
+		"page": "framework/core/diagnostics/telemetry.md",
+		"file": "framework/Zongsoft.Security/src/Module.Events.cs",
+		"start": 114,
+		"end": 121,
+		"code": "private static bool OnAuthenticating(Privileges.AuthenticatingEventArgs args)\n{\n\tCurrent.Meter.Authentication.Authenticating.Add(1,\n\t\tnew KeyValuePair<string, object>(nameof(args.Scheme), args.Scheme),\n\t\tnew KeyValuePair<string, object>(nameof(args.Scenario), args.Scenario));\n\n\treturn true;\n}"
+	},
+	{
+		"page": "framework/core/expressions.md",
+		"file": "framework/Zongsoft.Core/test/Expressions/LexerTest.cs",
+		"start": 15,
+		"end": 34,
+		"code": "const string EXPRESSION = @\"1+2f\t_abc123'text\\'suffix'\t-30L*4.5 / 5.5m (true || FALSE?yes:no)null??nothing\";\n\nvar scanner = Lexer.Instance.GetScanner(EXPRESSION);\nAssert.NotNull(scanner);\n\nvar token = scanner.Scan();\nAssert.NotNull(token);\nAssert.Equal(TokenType.Constant, token.Type);\nAssert.IsType<int>(token.Value);\nAssert.Equal(1, (int)token.Value);\n\ntoken = scanner.Scan();\nAssert.NotNull(token);\nAssert.Equal(SymbolToken.Plus, token);\n\ntoken = scanner.Scan();\nAssert.NotNull(token);\nAssert.Equal(TokenType.Constant, token.Type);\nAssert.IsType<float>(token.Value);\nAssert.Equal(2.0f, (float)token.Value);"
+	},
+	{
+		"page": "framework/core/expressions.md",
+		"file": "framework/Zongsoft.Core/test/Expressions/LexerTest.cs",
+		"start": 139,
+		"end": 150,
+		"code": "const string EXPRESSION = @\"Field1 == 100 && Field2<1.23f && Field3 >=10.5m && (PI between \"\"3.1415926~3.1415927\"\" || Number IN [10,20,30] )\";\n\nvar lexer = new Lexer();\nlexer.Tokenizers.Insert(0, new KeywordTokenizer(true, \"in\", \"Between\"));\n\nvar scanner = lexer.GetScanner(EXPRESSION);\nAssert.NotNull(scanner);\n\nvar token = scanner.Scan();\nAssert.NotNull(token);\nAssert.Equal(TokenType.Identifier, token.Type);\nAssert.Equal(\"Field1\", token.Value);"
+	},
+	{
+		"page": "framework/core/expressions.md",
+		"file": "framework/externals/python/test/PythonExpressionEvaluatorTest.cs",
+		"start": 14,
+		"end": 32,
+		"code": "public void TestEvaluate1()\n{\n\tvar evaluator = new PythonExpressionEvaluator();\n\tvar variables = new Dictionary<string, object>();\n\n\tvar result = evaluator.Evaluate(\"1+2\", null);\n\tAssert.NotNull(result);\n\tAssert.Equal(3, Zongsoft.Common.Convert.ConvertValue<int>(result));\n\n\tvariables[\"subtract\"] = (Delegate)Subtract;\n\tresult = evaluator.Evaluate(\"subtract(100, 20)\", variables);\n\tAssert.NotNull(result);\n\tAssert.Equal(80, Zongsoft.Common.Convert.ConvertValue<int>(result));\n\n\tevaluator.Evaluate(\"a=1;b=2;result=a+b;\", variables);\n\tAssert.NotEmpty(variables);\n\tAssert.True(variables.TryGetValue(\"result\", out result));\n\tAssert.Equal(3, Zongsoft.Common.Convert.ConvertValue<int>(result));\n}"
+	},
+	{
+		"page": "framework/core/expressions.md",
+		"file": "framework/externals/python/test/PythonExpressionEvaluatorTest.cs",
+		"start": 98,
+		"end": 116,
+		"code": "public void TestEvaluateOutputDoesNotLeakAcrossCallsOrEvaluators()\n{\n\tconst string PRINT_MESSAGE = \"First evaluator output\";\n\tusing var evaluator = new PythonExpressionEvaluator();\n\n\tusing(var output = new StringWriter())\n\t{\n\t\tevaluator.Evaluate($\"print('{PRINT_MESSAGE}')\", ExpressionEvaluatorOptions.Out(output));\n\t\tAssert.Equal(PRINT_MESSAGE, output.ToString());\n\t}\n\n\tvar result = evaluator.Evaluate(\"print('Subsequent call output'); result=41\");\n\tAssert.Equal(41, Zongsoft.Common.Convert.ConvertValue<int>(result));\n\n\tusing var subsequentEvaluator = new PythonExpressionEvaluator();\n\tresult = subsequentEvaluator.Evaluate(\"print('Second evaluator output'); result=42\");\n\n\tAssert.Equal(42, Zongsoft.Common.Convert.ConvertValue<int>(result));\n}"
+	},
+	{
+		"page": "framework/core/io.md",
+		"file": "src/Zongsoft.Discussions.option",
+		"start": 1,
+		"end": 7,
+		"code": "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n\n<options>\n\t<option path=\"/Discussions\">\n\t\t<general siteId=\"1\" basePath=\"zfs.s3:/zongsoft-discussions/\" />\n\t</option>\n</options>"
+	},
+	{
+		"page": "framework/core/io.md",
+		"file": "src/Utility.cs",
+		"start": 241,
+		"end": 258,
+		"code": "public static bool WriteTextFile(string path, string content)\n{\n\tif(string.IsNullOrWhiteSpace(path))\n\t\tthrow new ArgumentNullException(nameof(path));\n\n\tif(string.IsNullOrWhiteSpace(content))\n\t\treturn false;\n\n\tusing(var stream = FileSystem.File.Open(path, FileMode.Create, FileAccess.Write))\n\t{\n\t\tusing(var writer = new StreamWriter(stream, System.Text.Encoding.UTF8))\n\t\t{\n\t\t\twriter.Write(content);\n\t\t}\n\t}\n\n\treturn true;\n}"
+	},
+	{
+		"page": "framework/core/io.md",
+		"file": "src/Utility.cs",
+		"start": 48,
+		"end": 54,
+		"code": "public static bool IsContentEmbedded(string contentType)\n{\n\tif(string.IsNullOrEmpty(contentType))\n\t\treturn true;\n\n\treturn contentType.TrimEnd().EndsWith(CONTENT_TYPE_EMBEDDED_SUFFIX, StringComparison.OrdinalIgnoreCase);\n}"
+	},
+	{
+		"page": "framework/core/io.md",
+		"file": "src/api/Controllers/FileController.cs",
+		"start": 79,
+		"end": 81,
+		"code": "var infos = this.Accessor.Write(this.Request,\n\t\t\t\t\t\t\t  this.DataService.GetDirectory(id),\n\t\t\t\t\t\t\t  args => args.FileName = $\"{Timestamp.Millennium.Epoch.GetElapsed().Days}-{Randomizer.GenerateString()}\", cancellation);"
+	},
+	{
+		"page": "framework/core/messaging.md",
+		"file": "framework/Zongsoft.Core/test/Messaging/MessageQueueBaseTest.cs",
+		"start": 59,
+		"end": 69,
+		"code": "public async Task UnsupportedDelayFailsBeforeDriverOperation()\n{\n\tusing var queue = new TestQueue();\n\tvar options = new MessageEnqueueOptions(TimeSpan.FromSeconds(1));\n\n\tvar exception = await Assert.ThrowsAsync<OperationException>(() => queue.ProduceAsync(\"tests/delay\", ReadOnlyMemory<byte>.Empty, options).AsTask());\n\n\tAssert.Equal(nameof(OperationException.Unsupported), exception.Reason);\n\tAssert.Contains(MessageQueueFeature.Delay.Name, exception.Message);\n\tAssert.Equal(0, queue.ProduceCount);\n}"
+	},
+	{
+		"page": "framework/core/messaging.md",
+		"file": "framework/Zongsoft.Core/test/Messaging/MessageQueueBaseTest.cs",
+		"start": 283,
+		"end": 296,
+		"code": "public async Task ConflictingSubscriptionDoesNotReplaceExistingConsumer()\n{\n\tusing var queue = new TestQueue();\n\tvar handler = new TestHandler();\n\tvar first = await queue.SubscribeAsync(\"tests/conflict\", \"alpha,beta\", handler, new MessageSubscribeOptions(MessageReliability.MostOnce));\n\n\tawait Assert.ThrowsAsync<InvalidOperationException>(() => queue.SubscribeAsync(\"tests/conflict\", \"alpha,beta\", new TestHandler(), new MessageSubscribeOptions(MessageReliability.MostOnce)).AsTask());\n\tawait Assert.ThrowsAsync<InvalidOperationException>(() => queue.SubscribeAsync(\"tests/conflict\", \"alpha\", handler, new MessageSubscribeOptions(MessageReliability.MostOnce)).AsTask());\n\tawait Assert.ThrowsAsync<InvalidOperationException>(() => queue.SubscribeAsync(\"tests/conflict\", \"alpha,beta\", handler, new MessageSubscribeOptions(MessageReliability.LeastOnce)).AsTask());\n\n\tAssert.Same(first, queue.Subscribers[\"tests/conflict\"]);\n\tAssert.Equal(1, queue.CreateCount);\n\tAssert.Equal(1, queue.SubscribeCount);\n}"
+	},
+	{
+		"page": "framework/core/messaging.md",
+		"file": "framework/Zongsoft.Core/test/Messaging/MessageQueueBaseTest.cs",
+		"start": 260,
+		"end": 280,
+		"code": "public async Task ActiveConsumerCloseRemovesEntryAndAllowsResubscribe()\n{\n\tusing var queue = new TestQueue();\n\tvar first = await queue.SubscribeAsync(\"tests/resubscribe\", new TestHandler());\n\n\tAssert.NotNull(first);\n\tAssert.Single(queue.Subscribers);\n\n\tawait first.DisposeAsync();\n\n\tAssert.Empty(queue.Subscribers);\n\tAssert.Equal(1, queue.UnsubscribedCount);\n\n\tvar second = await queue.SubscribeAsync(\"tests/resubscribe\", new TestHandler());\n\n\tAssert.NotNull(second);\n\tAssert.NotSame(first, second);\n\tAssert.Single(queue.Subscribers);\n\tAssert.Equal(2, queue.CreateCount);\n\tAssert.Equal(2, queue.SubscribeCount);\n}"
+	},
+	{
+		"page": "framework/core/messaging.md",
+		"file": "framework/messaging/kafka/src/Zongsoft.Messaging.Kafka.option",
+		"start": 3,
+		"end": 10,
+		"code": "<options>\n\t<option path=\"/Messaging\">\n\t\t<connectionSettings>\n\t\t\t<connectionSetting connectionSetting.name=\"kafka\" driver=\"kafka\"\n\t\t\t                   value=\"server=127.0.0.1;username=program;password=xxxxxx;client=client1;group=group1\" />\n\t\t</connectionSettings>\n\t</option>\n</options>"
+	},
+	{
+		"page": "framework/core/messaging.md",
+		"file": "framework/Zongsoft.Core/src/Messaging/MessageQueueUtility.cs",
+		"start": 40,
+		"end": 52,
+		"code": "public static IMessageQueue Queue(IServiceProvider services, string name, IEnumerable<KeyValuePair<string, string>> settings = null)\n{\n\tname ??= string.Empty;\n\tservices ??= ApplicationContext.Current?.Services ?? throw new ArgumentNullException(nameof(services));\n\n\tforeach(var provider in services.ResolveAll<IMessageQueueProvider>())\n\t{\n\t\tif(provider.Exists(name))\n\t\t\treturn provider.Queue(name, settings);\n\t}\n\n\treturn null;\n}"
+	},
+	{
+		"page": "framework/core/reflection.md",
+		"file": "framework/Zongsoft.Core/test/Reflection/ReflectorTest.cs",
+		"start": 14,
+		"end": 37,
+		"code": "var target = new MyValue(5);\n\nAssert.Equal(100, (int)Reflector.GetValue(ref target, nameof(MyValue.IntegerField)));\nAssert.Equal(123.05m, (decimal)Reflector.GetValue(ref target, nameof(MyValue.DecimalProperty)));\nAssert.Equal(\"StringField\", (string)Reflector.GetValue(ref target, nameof(MyValue.StringField)));\nAssert.Equal(\"StringProperty\", (string)Reflector.GetValue(ref target, nameof(MyValue.StringProperty)));\nAssert.Null(Reflector.GetValue(ref target, nameof(MyValue.NullableField)));\nAssert.Null(Reflector.GetValue(ref target, nameof(MyValue.NullableProperty)));\n\nAssert.Equal(\"#0\", Reflector.GetValue(ref target, \"Item\", 0));\nAssert.Equal(\"#1\", Reflector.GetValue(ref target, \"Item\", 1));\nAssert.Equal(\"#2\", Reflector.GetValue(ref target, \"Item\", 2));\nAssert.Equal(\"#3\", Reflector.GetValue(ref target, \"Item\", 3));\nAssert.Equal(\"#4\", Reflector.GetValue(ref target, \"Item\", 4));\n\nReflector.SetValue(ref target, nameof(MyValue.IntegerField), 200);\nReflector.SetValue(ref target, nameof(MyValue.DecimalProperty), 456.78);\nReflector.SetValue(ref target, nameof(MyValue.StringField), \"NewStringField\");\nReflector.SetValue(ref target, nameof(MyValue.StringProperty), \"NewStringProperty\");\n\nAssert.Equal(200, (int)Reflector.GetValue(ref target, nameof(MyValue.IntegerField)));\nAssert.Equal(456.78m, (decimal)Reflector.GetValue(ref target, nameof(MyValue.DecimalProperty)));\nAssert.Equal(\"NewStringField\", (string)Reflector.GetValue(ref target, nameof(MyValue.StringField)));\nAssert.Equal(\"NewStringProperty\", (string)Reflector.GetValue(ref target, nameof(MyValue.StringProperty)));"
+	},
+	{
+		"page": "framework/core/reflection.md",
+		"file": "framework/Zongsoft.Core/test/Reflection/PropertyInfoTest.cs",
+		"start": 13,
+		"end": 35,
+		"code": "var entity = new ClassEntity()\n{\n\tId = 100,\n\tName = \"Popeye\",\n};\n\n//init the target variable\nvar target = (object)entity;\n\n//test the instance property(get and set)\nvar property = typeof(ClassEntity).GetProperty(nameof(ClassEntity.Id));\nvar getter = property.GenerateGetter();\nvar setter = property.GenerateSetter();\n\nAssert.NotNull(getter);\nAssert.NotNull(setter);\n\nvar value = getter(ref target);\nAssert.Equal(100, value);\n\nsetter(ref target, 200);\nvalue = getter(ref target);\nAssert.Equal(200, value);"
+	},
+	{
+		"page": "framework/core/reflection.md",
+		"file": "framework/Zongsoft.Plugins/src/Configuration/OptionParser.cs",
+		"start": 40,
+		"end": 58,
+		"code": "public override object Parse(ParserContext context)\n{\n\tif(string.IsNullOrWhiteSpace(context.Text))\n\t\treturn null;\n\n\tvar expression = Collections.HierarchicalExpression.Parse(context.Text);\n\n\tif(expression != null)\n\t{\n\t\tobject target = ApplicationContext.Current.Configuration.GetOption(context.MemberType, expression.Path);\n\n\t\tif(target != null && expression.Accessor != null)\n\t\t\treturn Reflection.Expressions.MemberExpressionEvaluator.Default.GetValue(expression.Accessor, target);\n\t\telse\n\t\t\treturn target;\n\t}\n\n\treturn null;\n}"
+	},
+	{
+		"page": "framework/core/resources.md",
+		"file": "framework/Zongsoft.Core/test/Resources/ResourceTest.cs",
+		"start": 14,
+		"end": 34,
+		"code": "public void Test()\n{\n\tvar resource = Resource.GetResource<Gender>();\n\tAssert.NotNull(resource);\n\n\tvar text = resource.GetString(\"Gender.Male\");\n\tAssert.NotNull(text);\n\tAssert.Equal(\"男士\", text);\n\n\ttext = resource.GetString(\"Gender.Female\");\n\tAssert.NotNull(text);\n\tAssert.Equal(\"女士\", text);\n\n\ttext = EnumUtility.GetEnumDescription(Gender.Male);\n\tAssert.NotNull(text);\n\tAssert.Equal(\"男士\", text);\n\n\ttext = EnumUtility.GetEnumDescription(Gender.Female);\n\tAssert.NotNull(text);\n\tAssert.Equal(\"女士\", text);\n}"
+	},
+	{
+		"page": "framework/core/resources.md",
+		"file": "framework/Zongsoft.Core/src/Resources/ResourceLocator.cs",
+		"start": 44,
+		"end": 62,
+		"code": "public IEnumerable<string> Locate(string origin)\n{\n\t//如果资源管理器中没有资源集，则无需定位\n\tif(_resource.Count == 0)\n\t\tyield break;\n\n\t//如果资源管理器中只有一个资源集，则只能定位它\n\tif(_resource.Count == 1)\n\t\tyield return _resource.Resources.First().BaseName;\n\n\tif(!string.IsNullOrEmpty(origin))\n\t{\n\t\tforeach(var location in GetLocations(origin))\n\t\t\tyield return location;\n\t}\n\n\tforeach(var location in GetLocations($\"{_resource.Assembly.GetName().Name}\"))\n\t\tyield return location;\n}"
+	},
+	{
+		"page": "framework/core/resources.md",
+		"file": "framework/Zongsoft.Core/src/Collections/CategoryBase.cs",
+		"start": 130,
+		"end": 140,
+		"code": "protected virtual string GetTitle() => Resources.ResourceUtility.GetString(_resource,\n[\n\t$\"{this.FullPath.Trim(PathSeparator).Replace(PathSeparator, '.')}.{nameof(Category)}.{nameof(this.Title)}\",\n\t$\"{this.FullPath.Trim(PathSeparator).Replace(PathSeparator, '.')}.{nameof(Category)}\",\n\t$\"{this.FullPath.Trim(PathSeparator).Replace(PathSeparator, '.')}.{nameof(this.Title)}\",\n\tthis.FullPath.Trim(PathSeparator).Replace(PathSeparator, '.'),\n\t$\"{this.Name}.{nameof(Category)}.{nameof(this.Title)}\",\n\t$\"{this.Name}.{nameof(Category)}\",\n\t$\"{this.Name}.{nameof(this.Title)}\",\n\tthis.Name,\n]);"
+	},
+	{
+		"page": "framework/core/scheduling.md",
+		"file": "framework/externals/hangfire/samples/MyHandler.cs",
+		"start": 11,
+		"end": 25,
+		"code": "public class MyHandler : HandlerBase<object>\n{\n\tprivate long _count = 0;\n\n\tprotected override ValueTask OnHandleAsync(object argument, Parameters parameters, CancellationToken cancellation) =>\n\t\tLogging.GetLogging(this).DebugAsync(\n\t\t\t\"MyHandler handles the scheduling of the Hangfire.\",\n\t\t\tnew\n\t\t\t{\n\t\t\t\tCount = Interlocked.Increment(ref _count),\n\t\t\t\tArgument = argument,\n\t\t\t\tParameters = parameters,\n\t\t\t},\n\t\t\tcancellation);\n}"
+	},
+	{
+		"page": "framework/core/scheduling.md",
+		"file": "framework/externals/hangfire/samples/Zongsoft.Externals.Hangfire.Samples.plugin",
+		"start": 19,
+		"end": 21,
+		"code": "<extension path=\"/Workbench/Scheduler/Handlers\">\n\t<object name=\"MyHandler\" type=\"Zongsoft.Externals.Hangfire.Samples.MyHandler, Zongsoft.Externals.Hangfire.Samples\" />\n</extension>"
+	},
+	{
+		"page": "framework/core/security.md",
+		"file": "src/Security/UserChallenger.cs",
+		"start": 126,
+		"end": 142,
+		"code": "private ClaimsIdentity Identity(UserProfile user)\n{\n\tvar identity = user.Identity(UserIdentity.Scheme, \"Zongsoft\");\n\n\tidentity.SetClaim(nameof(UserProfile.SiteId), user.SiteId);\n\tidentity.SetClaim(nameof(UserProfile.Gender), user.Gender);\n\tidentity.SetClaim(nameof(UserProfile.Avatar), user.Avatar);\n\tidentity.SetClaim(nameof(UserProfile.Grade), user.Grade);\n\tidentity.SetClaim(nameof(UserProfile.TotalPosts), user.TotalPosts);\n\tidentity.SetClaim(nameof(UserProfile.TotalThreads), user.TotalThreads);\n\n\t//进行其他声明定义\n\tthis.OnClaims(identity, user);\n\n\t//返回新构建的身份\n\treturn identity;\n}"
+	},
+	{
+		"page": "framework/core/security.md",
+		"file": "src/Security/UserIdentity.cs",
+		"start": 110,
+		"end": 110,
+		"code": "public static UserIdentity Current => ClaimsIdentityModeling.GetModel<UserIdentity>(Scheme);"
+	},
+	{
+		"page": "framework/core/security.md",
+		"file": "src/Security/UserIdentity.cs",
+		"start": 130,
+		"end": 155,
+		"code": "private bool OnTransform(UserIdentity user, Claim claim)\n{\n\tswitch(claim.Type)\n\t{\n\t\tcase nameof(UserIdentity.SiteId):\n\t\t\tuser.SiteId = (claim.Value != null && uint.TryParse(claim.Value, out var siteId)) ? siteId : 0;\n\t\t\treturn true;\n\t\tcase nameof(UserIdentity.Gender):\n\t\t\tuser.Gender = (claim.Value != null && Enum.TryParse<Models.Gender>(claim.Value, out var gender)) ? gender : Models.Gender.None;\n\t\t\treturn true;\n\t\tcase nameof(UserIdentity.Avatar):\n\t\t\tuser.Avatar = claim.Value;\n\t\t\treturn true;\n\t\tcase nameof(UserIdentity.Grade):\n\t\t\tuser.Grade = (claim.Value != null && byte.TryParse(claim.Value, out var grade)) ? grade : (byte)0;\n\t\t\treturn true;\n\t\tcase nameof(UserIdentity.TotalPosts):\n\t\t\tuser.TotalPosts = (claim.Value != null && uint.TryParse(claim.Value, out var totalPosts)) ? totalPosts : 0;\n\t\t\treturn true;\n\t\tcase nameof(UserIdentity.TotalThreads):\n\t\t\tuser.TotalThreads = (claim.Value != null && uint.TryParse(claim.Value, out var totalThreads)) ? totalThreads : 0;\n\t\t\treturn true;\n\t\tdefault:\n\t\t\treturn false;\n\t}\n}"
+	},
+	{
+		"page": "framework/core/security/privileges.md",
+		"file": "framework/Zongsoft.Security/src/Zongsoft.Security.plugin",
+		"start": 55,
+		"end": 59,
+		"code": "<!-- 挂载身份验证器 -->\n<extension path=\"/Workbench/Security/Authentication\">\n\t<object name=\"Identity\" value=\"{static:Zongsoft.Security.Privileges.Authenticators.Identity, Zongsoft.Security}\" />\n\t<object name=\"Secretor\" value=\"{static:Zongsoft.Security.Privileges.Authenticators.Secretor, Zongsoft.Security}\" />\n</extension>"
+	},
+	{
+		"page": "framework/core/security/privileges.md",
+		"file": "src/Zongsoft.Discussions.plugin",
+		"start": 40,
+		"end": 48,
+		"code": "\t<!-- 挂载身份质询器 -->\n\t<extension path=\"/Workbench/Security/Authentication/Challengers\">\n\t\t<object value=\"{static:Zongsoft.Discussions.Security.UserChallenger.Instance, Zongsoft.Discussions}\" />\n\t</extension>\n\n\t<!-- 挂载身份转换器 -->\n\t<extension path=\"/Workbench/Security/Authentication/Transformers\">\n\t\t<object value=\"{static:Zongsoft.Discussions.Security.UserIdentity+Transformer.Instance, Zongsoft.Discussions}\" />\n\t</extension>"
+	},
+	{
+		"page": "framework/core/security/privileges.md",
+		"file": "framework/Zongsoft.Core/src/Security/Privileges/AuthorizerBase.cs",
+		"start": 67,
+		"end": 90,
+		"code": "public virtual async ValueTask<bool> AuthorizeAsync(ClaimsIdentity user, string privilege, Parameters parameters, CancellationToken cancellation = default)\n{\n\tif(user == null)\n\t\treturn false;\n\n\tif(privilege == null)\n\t\treturn false;\n\n\tvar privileges = await _cache.GetOrCreateAsync(user.Identify(),\n\t\tkey => (GetPrivilegesAsync((Identifier)key, cancellation), TimeSpan.FromMinutes(60)));\n\n\treturn privileges.Contains(privilege);\n\n\tasync Task<HashSet<string>> GetPrivilegesAsync(Identifier identifier, CancellationToken cancellation)\n\t{\n\t\tvar privileges = new HashSet<string>(StringComparer.OrdinalIgnoreCase);\n\n\t\tvar results = this.Evaluator.EvaluateAsync(identifier, parameters, cancellation);\n\t\tawait foreach(var result in results)\n\t\t\tprivileges.Add(result.Privilege);\n\n\t\treturn privileges;\n\t}\n}"
+	},
+	{
+		"page": "framework/core/serialization.md",
+		"file": "src/Features/Archiving/UserDataTemplateModelProvider.cs",
+		"start": 54,
+		"end": 69,
+		"code": "public override IDataTemplateModel GetModel(IDataTemplate template, object argument)\n{\n\tvar schema = $\"*, {nameof(UserProfile.Site)}\" + \"{*}\";\n\n\tif(argument is Stream stream)\n\t\targument = Serializer.Json.Deserialize<UserProfileCriteria>(stream);\n\n\tvar data = argument switch\n\t{\n\t\tstring key => this.Services.ResolveRequired<UserService>().Get(key, schema),\n\t\tIModel model => this.Services.ResolveRequired<UserService>().Select(Criteria.Transform(model), schema),\n\t\t_ => this.Services.ResolveRequired<UserService>().Select(null, schema),\n\t};\n\n\treturn new DataTemplateModel(new { Users = data });\n}"
+	},
+	{
+		"page": "framework/core/serialization.md",
+		"file": "src/Models/Post.cs",
+		"start": 110,
+		"end": 116,
+		"code": "[Serialization.SerializationMember(Ignored = true)]\npublic IEnumerable<PostVoting> Upvotes => this.Votes == null ? Array.Empty<PostVoting>() : this.Votes.Where(vote => vote.Value > 0);\n\n/// <summary>获取帖子的被踩记录集。</summary>\n[Serialization.SerializationMember(Ignored = true)]\npublic IEnumerable<PostVoting> Downvotes => this.Votes == null ? Array.Empty<PostVoting>() : this.Votes.Where(vote => vote.Value < 0);\n#endregion"
+	},
+	{
+		"page": "framework/core/services.md",
+		"file": "framework/Zongsoft.Web/grpc/GrpcInitializer.cs",
+		"start": 86,
+		"end": 90,
+		"code": "public void Register(IServiceCollection services, IConfiguration configuration)\n{\n\tservices.AddGrpc();\n\tservices.AddGrpcReflection();\n}"
+	},
+	{
+		"page": "framework/core/services.md",
+		"file": "src/Services/ForumService.cs",
+		"start": 41,
+		"end": 46,
+		"code": "[Service(nameof(ForumService))]\n[DataService(typeof(ForumCriteria))]\npublic class ForumService : DataServiceBase<Forum>\n{\n\t#region 构造函数\n\tpublic ForumService(IServiceProvider serviceProvider) : base(serviceProvider) { }"
+	},
+	{
+		"page": "framework/core/services.md",
+		"file": "framework/Zongsoft.Diagnostics/protocols/server/src/Listener.Metrics.cs",
+		"start": 51,
+		"end": 55,
+		"code": "[Service(Tags = \"gRPC\", Members = nameof(Metrics))]\npartial class Listener\n{\n\t#region 单例字段\n\tpublic static readonly MetricsProcessor Metrics = new();"
+	},
+	{
+		"page": "framework/core/services.md",
+		"file": "framework/Zongsoft.Core/src/Services/ApplicationContext.cs",
+		"start": 150,
+		"end": 175,
+		"code": "public void Exit(int exitCode, TimeSpan timeout = default)\n{\n\tif(_disposed != 0)\n\t\treturn;\n\n\tvar host = _services.Resolve<IHost>();\n\tvar lifetime = _services.GetService<IHostApplicationLifetime>();\n\n\tif(host != null && lifetime != null)\n\t{\n\t\t//如果应用程序正在停止或已经停止，则不再执行停止操作，否则会导致死锁\n\t\tvar exiting = lifetime.ApplicationStopping.IsCancellationRequested || lifetime.ApplicationStopped.IsCancellationRequested;\n\n\t\tif(!exiting)\n\t\t{\n\t\t\tif(timeout > TimeSpan.Zero)\n\t\t\t\thost.StopAsync(timeout).GetAwaiter().GetResult();\n\t\t\telse\n\t\t\t\thost.StopAsync().GetAwaiter().GetResult();\n\n\t\t\thost.WaitForShutdown();\n\t\t}\n\t}\n\n\tSystem.Environment.Exit(exitCode);\n}"
+	},
+	{
+		"page": "framework/core/services.md",
+		"file": "framework/Zongsoft.Core/src/Services/ApplicationContext.cs",
+		"start": 188,
+		"end": 205,
+		"code": "public virtual bool Initialize()\n{\n\tObjectDisposedException.ThrowIf(_disposed != 0 || _initializers == null, this);\n\n\tvar initialized = Interlocked.Exchange(ref _initialized, 1);\n\tif(initialized != 0)\n\t\treturn false;\n\n\tvar services = this.Services;\n\n\tif(services != null)\n\t\t_initializers.AddRange(services.ResolveAll<IApplicationInitializer>());\n\n\tforeach(var initializer in _initializers)\n\t\tinitializer?.Initialize(this);\n\n\treturn true;\n}"
+	},
+	{
+		"page": "framework/core/services.md",
+		"file": "framework/Zongsoft.Core/src/Messaging/MessageQueueConverter.cs",
+		"start": 47,
+		"end": 71,
+		"code": "public static IMessageQueue Resolve(IServiceProvider services, string text)\n{\n\tif(services == null || string.IsNullOrEmpty(text))\n\t\treturn null;\n\n\tvar index = text.IndexOf('@');\n\n\tif(index > 0 && index < text.Length - 1)\n\t{\n\t\tvar provider = services.Find<IMessageQueueProvider>(text[(index + 1)..]);\n\t\tif(provider == null)\n\t\t\treturn null;\n\n\t\tvar name = text[..index];\n\t\treturn provider.Exists(name) ? provider.Queue(name) : null;\n\t}\n\n\tforeach(var provider in services.ResolveAll<IMessageQueueProvider>())\n\t{\n\t\tif(provider.Exists(text))\n\t\t\treturn provider.Queue(text);\n\t}\n\n\treturn services.Resolve(text) as IMessageQueue;\n}"
+	},
+	{
+		"page": "framework/core/services.md",
+		"file": "framework/Zongsoft.Core/src/Expressions/ExpressionEvaluatorBase.cs",
+		"start": 71,
+		"end": 72,
+		"code": "bool Services.IMatchable.Match(object argument) => argument is string name && string.Equals(name, this.Name, StringComparison.OrdinalIgnoreCase);\nbool Services.IMatchable<string>.Match(string name) => string.Equals(name, this.Name, StringComparison.OrdinalIgnoreCase);"
+	},
+	{
+		"page": "framework/core/services.md",
+		"file": "framework/Zongsoft.Core/src/Text/TextRegular.cs",
+		"start": 108,
+		"end": 108,
+		"code": "bool Services.IMatchable.Match(object parameter) => parameter != null && this.Match(parameter.ToString());"
+	},
+	{
+		"page": "framework/core/services.md",
+		"file": "framework/Zongsoft.Core/src/Messaging/MessageQueueFactoryBase.cs",
+		"start": 48,
+		"end": 50,
+		"code": "protected virtual bool OnMatch(string name) => string.Equals(this.Name, name, StringComparison.OrdinalIgnoreCase);\nbool IMatchable.Match(object argument) => this.OnMatch(argument as string);\nbool IMatchable<string>.Match(string argument) => this.OnMatch(argument);"
+	},
+	{
+		"page": "framework/core/services.md",
+		"file": "framework/Zongsoft.Web/grpc/GrpcInitializer.cs",
+		"start": 57,
+		"end": 68,
+		"code": "public void Initialize(IApplicationBuilder builder)\n{\n\tif(builder is IEndpointRouteBuilder app)\n\t{\n\t\tforeach(var service in app.ServiceProvider.GetTags(\"gRPC\"))\n\t\t{\n\t\t\tMapGrpcService(app, service);\n\t\t}\n\n\t\tapp.MapGrpcReflectionService();\n\t}\n}"
+	},
+	{
+		"page": "framework/core/services.md",
+		"file": "framework/Zongsoft.Core/test/Services/TaggedServiceTest.cs",
+		"start": 15,
+		"end": 23,
+		"code": "public void Register_SameServiceAndTagAcrossAttributes_MergesAllContracts()\n{\n\tusing var provider = CreateProvider();\n\n\tvar first = Assert.Single(provider.Provider.Resolves<ITaggedContractA>(TaggedService.Tag.ToLowerInvariant()));\n\tvar second = Assert.Single(provider.Provider.Resolves<ITaggedContractB>(TaggedService.Tag.ToUpperInvariant()));\n\n\tAssert.Same(first, second);\n}"
+	},
+	{
+		"page": "framework/core/services.md",
+		"file": "framework/Zongsoft.Core/test/Services/TaggedServiceTest.cs",
+		"start": 57,
+		"end": 62,
+		"code": "private static ProviderScope CreateProvider()\n{\n\tvar services = new ServiceCollection();\n\tservices.Register(typeof(TaggedServiceTest).Assembly, null);\n\treturn new ProviderScope(new ServiceProviderFactory().CreateServiceProvider(services));\n}"
+	},
+	{
+		"page": "framework/core/services.md",
+		"file": "src/Module.cs",
+		"start": 31,
+		"end": 31,
+		"code": "[assembly: ApplicationModule(Zongsoft.Discussions.Module.NAME)]"
+	},
+	{
+		"page": "framework/core/services.md",
+		"file": "src/Services/Commands/MessageSendCommand.cs",
+		"start": 58,
+		"end": 59,
+		"code": "[ServiceDependency(Provider = Module.NAME)]\npublic MessageService Service { get; set; }"
+	},
+	{
+		"page": "framework/core/services/locating.md",
+		"file": "src/Services/ThreadService.cs",
+		"start": 54,
+		"end": 64,
+		"code": "public PostService Posting\n{\n\tget\n\t{\n\t\tif(_posting == null)\n\t\t\t_posting = this.ServiceProvider.ResolveRequired<PostService>();\n\n\t\treturn _posting;\n\t}\n}\n#endregion"
+	},
+	{
+		"page": "framework/core/services/locating.md",
+		"file": "src/Features/Archiving/UserDataTemplateModelProvider.cs",
+		"start": 61,
+		"end": 66,
+		"code": "var data = argument switch\n{\n\tstring key => this.Services.ResolveRequired<UserService>().Get(key, schema),\n\tIModel model => this.Services.ResolveRequired<UserService>().Select(Criteria.Transform(model), schema),\n\t_ => this.Services.ResolveRequired<UserService>().Select(null, schema),\n};"
+	},
+	{
+		"page": "framework/core/services/distributed-lock.md",
+		"file": "framework/externals/redis/samples/distributedlock/slaver/RunCommand.cs",
+		"start": 24,
+		"end": 27,
+		"code": "await using var locker = settings.RenewalInterval.HasValue ?\n\tawait redis.AcquireAsync(Utility.Keys.Lock, new DistributedLockOptions(settings.Expiry) { RenewalInterval = settings.RenewalInterval }, linked.Token) :\n\tawait redis.AcquireAsync(Utility.Keys.Lock, settings.Expiry, linked.Token);\nawait locker.EnterAsync(linked.Token);"
+	},
+	{
+		"page": "framework/core/services/distributed-lock.md",
+		"file": "framework/externals/redis/test/RedisDistributedLockTests.cs",
+		"start": 40,
+		"end": 46,
+		"code": "await using var first = await cache.AcquireAsync(key, TimeSpan.FromSeconds(2));\nAssert.True(first.IsLocked);\nAssert.True(first.FencingToken > 0);\n\nawait using var rejected = await cache.AcquireAsync(key, TimeSpan.FromSeconds(2));\nAssert.True(rejected.IsUnheld);\nAssert.Equal(0, rejected.FencingToken);"
+	},
+	{
+		"page": "framework/core/services/distributed-lock.md",
+		"file": "framework/externals/redis/test/RedisDistributedLockTests.cs",
+		"start": 111,
+		"end": 115,
+		"code": "var options = new DistributedLockOptions(TimeSpan.FromMilliseconds(300))\n{\n\tRenewalInterval = TimeSpan.FromMilliseconds(75),\n};\nawait using var renewed = await cache.AcquireAsync(\"automatic\", options);"
+	},
+	{
+		"page": "framework/core/services/distributed-lock.md",
+		"file": "framework/externals/wechat/src/CredentialManager.cs",
+		"start": 76,
+		"end": 80,
+		"code": "public static Services.Distributing.IDistributedLockManager Locker\n{\n\tget => _locker ??= ApplicationContext.Current.Services.Resolve<IServiceProvider<Services.Distributing.IDistributedLockManager>>()?.GetService(GetCacheName());\n\tset => _locker = value;\n}"
+	},
+	{
+		"page": "framework/core/terminals.md",
+		"file": "src/Services/Commands/MessageSendCommand.cs",
+		"start": 63,
+		"end": 87,
+		"code": "protected override ValueTask<object> OnExecuteAsync(CommandContext context, CancellationToken cancellation)\n{\n\tif(context.Arguments == null || context.Arguments.IsEmpty)\n\t\tthrow new CommandException(\"Missing arguments of the command.\");\n\n\tvar content = context.Options.GetValue<string>(CONTENT_OPTION);\n\tvar contentType = context.Options.GetValue<string>(CONTENTTYPE_OPTION);\n\n\t//根据内容类型解析得到真实内容\n\tcontent = GetContent(content, ref contentType);\n\n\tvar message = Zongsoft.Data.Model.Build<Models.Message>(entity =>\n\t{\n\t\tentity.Content = content;\n\t\tentity.ContentType = contentType;\n\t\tentity.Referer = context.Options.GetValue<string>(SOURCE_OPTION);\n\t\tentity.Subject = context.Options.GetValue<string>(SUBJECT_OPTION);\n\t\tentity.MessageType = context.Options.GetValue<string>(MESSAGETYPE_OPTION);\n\t});\n\n\tif(this.Service.Send(message, GetUsers(context.Arguments)) > 0)\n\t\treturn ValueTask.FromResult<object>(message);\n\n\treturn ValueTask.FromResult<object>(null);\n}"
+	},
+	{
+		"page": "framework/core/terminals.md",
+		"file": "framework/Zongsoft.Plugins/plugins/Terminal.plugin",
+		"start": 15,
+		"end": 20,
+		"code": "<extension path=\"/Workbench\">\n\t<!-- 将默认的命令执行器替换成控制台终端命令执行器 -->\n\t<object name=\"Executor\" value=\"{static:Zongsoft.Terminals.Terminal.Console.Executor, Zongsoft.Core}\">\n\t\t<object.property name=\"Default\" target=\"{type:Zongsoft.Components.CommandExecutor, Zongsoft.Core}\" value=\"{path:.}\" />\n\t</object>\n</extension>"
+	},
+	{
+		"page": "framework/core/terminals/terminal.md",
+		"file": "framework/Zongsoft.Net/samples/server/Program.cs",
+		"start": 46,
+		"end": 51,
+		"code": "var splash = CommandOutletContent.Create()\n\t.AppendLine(CommandOutletColor.Yellow, new string('·', 50))\n\t.AppendLine(CommandOutletColor.Blue, \"Welcome to the TCP Server.\".Justify(50))\n\t.AppendLine(CommandOutletColor.Yellow, new string('·', 50));\n\nawait executor.RunAsync(splash);"
+	},
+	{
+		"page": "framework/core/terminals/terminal.md",
+		"file": "framework/Zongsoft.Commands/src/Messaging/QueueSubscribeCommand.cs",
+		"start": 52,
+		"end": 53,
+		"code": "protected override ValueTask<object> OnExecuteAsync(CommandContext context, CancellationToken cancellation) =>\n\tcontext.ReactiveAsync(this.OnEnterAsync, this.OnExitAsync, cancellation);"
+	},
+	{
+		"page": "framework/core/terminals/terminal.md",
+		"file": "framework/Zongsoft.Core/samples/memorycache/Program.cs",
+		"start": 78,
+		"end": 94,
+		"code": "private static void Cache_Evicted(object sender, CacheEvictedEventArgs e)\n{\n\tvar content = CommandOutletContent.Create(CommandOutletColor.Magenta, \"** Evicted **\\t\")\n\t\t.Append(CommandOutletColor.DarkGreen, Now + ' ')\n\t\t.Append(CommandOutletColor.Blue, $\"[{e.Reason}] \")\n\t\t.Append(CommandOutletColor.DarkYellow, e.Key.ToString())\n\t\t.Append(CommandOutletColor.DarkGray, \"=\")\n\t\t.Append(CommandOutletColor.DarkYellow, e.Value?.ToString());\n\n\tif(e.State != null)\n\t\tcontent\n\t\t\t.Append(CommandOutletColor.DarkGray, \" (\")\n\t\t\t.Append(CommandOutletColor.Cyan, e.State.ToString())\n\t\t\t.Append(CommandOutletColor.DarkGray, \")\");\n\n\tTerminal.WriteLine(content);\n}"
+	},
+	{
+		"page": "framework/core/text.md",
+		"file": "framework/Zongsoft.Core/src/Text/TextRegular.cs",
+		"start": 115,
+		"end": 115,
+		"code": "public static readonly TextRegular Email = new(@\"^\\s*(?<value>[A-Za-z0-9]([-_\\.]?[A-Za-z0-9]+)*@([A-Za-z0-9]+([-_]?[A-Za-z0-9]+)*)(\\.[A-Za-z0-9]+([-_]?[A-Za-z0-9]+)*)*\\.[A-Za-z]+)\\s*$\");"
+	},
+	{
+		"page": "framework/core/text.md",
+		"file": "framework/Zongsoft.Core/src/Text/TextRegular.cs",
+		"start": 183,
+		"end": 183,
+		"code": "public static readonly TextRegular Cellphone = new(@\"^\\s*((\\+|00)86\\s*[-\\.]?)?\\s*(?<value>1\\d{2})(?<separator>(\\s*)|(-?))(?<value>\\d{4})(?<separator>(\\s*)|(-?))(?<value>\\d{4})\\s*$\");"
+	},
+	{
+		"page": "framework/core/text.md",
+		"file": "framework/Zongsoft.Core/src/IO/FileSystem.cs",
+		"start": 78,
+		"end": 88,
+		"code": "public static string GetUrl(string virtualPath)\n{\n\tif(string.IsNullOrWhiteSpace(virtualPath))\n\t\treturn virtualPath;\n\n\t//如果传入的虚拟路径参数是一个URI格式，则直接返回它作为结果\n\tif(Zongsoft.Text.TextRegular.Uri.Url.Match(virtualPath))\n\t\treturn virtualPath;\n\n\treturn GetFileSystem(virtualPath, false, out Path path)?.GetUrl(path);\n}"
+	},
+	{
+		"page": "framework/core/text.md",
+		"file": "framework/Zongsoft.Core/src/Text/TextRegular.cs",
+		"start": 43,
+		"end": 49,
+		"code": "public TextRegular(string pattern)\n{\n\tif(string.IsNullOrWhiteSpace(pattern))\n\t\tthrow new ArgumentNullException(nameof(pattern));\n\n\t_regex = new Regex(pattern, RegexOptions.Compiled | RegexOptions.ExplicitCapture | RegexOptions.IgnorePatternWhitespace | RegexOptions.IgnoreCase, TimeSpan.FromSeconds(3));\n}"
+	},
+	{
+		"page": "framework/core/text.md",
+		"file": "framework/Zongsoft.Core/src/Text/ITemplate.cs",
+		"start": 37,
+		"end": 47,
+		"code": "public interface ITemplate\n{\n\t/// <summary>获取模板名称。</summary>\n\tstring Name { get; }\n\n\t/// <summary>应用模板。</summary>\n\t/// <param name=\"data\">待应用的模板数据。</param>\n\t/// <param name=\"arguments\">附加参数集。</param>\n\t/// <returns>返回应用后的文本。</returns>\n\tstring Evaluate(object data, params object[] arguments);\n}"
+	},
+	{
+		"page": "framework/core/text.md",
+		"file": "framework/externals/aliyun/src/Telecom/Phone.cs",
+		"start": 126,
+		"end": 129,
+		"code": "//尝试进行模板数据格式化\nif(!string.IsNullOrEmpty(template.Formatter) && this.ServiceProvider.Resolve(template.Formatter) is ITemplateFormatter formatter)\n{\n\targument.Parameter = formatter.Format(template.Name, argument.Parameter, argument.Extra);"
+	},
+	{
+		"page": "framework/core/versioning/version.md",
+		"file": "framework/Zongsoft.Core/test/Versioning/VersionTest.cs",
+		"start": 94,
+		"end": 105,
+		"code": "public void TestFormat()\n{\n\tvar version = new Version(1, 2, 3, \"alpha.1\", \"build.5\");\n\n\tAssert.Equal(\"1.2.3-alpha.1\", version.ToString());\n\tAssert.Equal(\"1.2.3-alpha.1\", version.ToString(\"N\"));\n\tAssert.Equal(\"1.2.3-alpha.1+build.5\", version.ToString(\"F\"));\n\tAssert.Equal(\"1.2.3\", version.ToString(\"V\"));\n\tAssert.Equal(\"alpha.1\", version.ToString(\"R\"));\n\tAssert.Equal(\"build.5\", version.ToString(\"M\"));\n\tAssert.Equal(\"1.2.3.0\", version.ToString(\"x.y.z.r\"));\n}"
+	},
+	{
+		"page": "framework/core/versioning/version.md",
+		"file": "framework/Zongsoft.Core/test/Versioning/VersionNumberTest.cs",
+		"start": 172,
+		"end": 186,
+		"code": "public void TestNumericConversion()\n{\n\tvar version = new Version.Number(1, 2, 3, 4);\n\tconst ulong Packed = 0x0001_0002_0003_0004UL;\n\n\tAssert.Equal(Packed, (ulong)version);\n\tAssert.Equal((long)Packed, (long)version);\n\tAssert.Equal(version, (Version.Number)Packed);\n\tAssert.Equal(version, (Version.Number)(long)Packed);\n\n\tversion = new Version.Number(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue);\n\tAssert.Equal(ulong.MaxValue, (ulong)version);\n\tAssert.Equal(-1L, (long)version);\n\tAssert.Equal(version, (Version.Number)(-1L));\n}"
+	},
+	{
+		"page": "framework/plugins/plugin-file.md",
+		"file": "src/Zongsoft.Discussions.plugin",
+		"start": 9,
+		"end": 18,
+		"code": "<manifest>\n\t<assemblies>\n\t\t<assembly name=\"Zongsoft.Discussions\" />\n\t</assemblies>\n\n\t<dependencies>\n\t\t<dependency name=\"Zongsoft.Data\" />\n\t\t<dependency name=\"Zongsoft.Security\" />\n\t</dependencies>\n</manifest>"
+	},
+	{
+		"page": "framework/plugins/plugin-file.md",
+		"file": "src/Zongsoft.Discussions.plugin",
+		"start": 20,
+		"end": 29,
+		"code": "<extension path=\"/Workbench/Modules\">\n\t<object name=\"Discussions\" value=\"{static:Zongsoft.Discussions.Module.Current, Zongsoft.Discussions}\">\n\t\t<expose name=\"Accessor\" value=\"{path:../@Accessor}\">\n\t\t\t<expose name=\"Filters\" value=\"{path:../@Filters}\" />\n\t\t</expose>\n\n\t\t<expose name=\"Events\" value=\"{path:../@Events}\" />\n\t\t<expose name=\"Properties\" value=\"{path:../@Properties}\" />\n\t</object>\n</extension>"
+	},
+	{
+		"page": "framework/plugins/plugin-file.md",
+		"file": "src/Zongsoft.Discussions.plugin",
+		"start": 35,
+		"end": 38,
+		"code": "<extension path=\"/Workbench/Modules/Discussions/Accessor/Filters\">\n\t<object name=\"PostFilter\" type=\"Zongsoft.Discussions.Data.PostFilter, Zongsoft.Discussions\" />\n\t<object name=\"ThreadFilter\" type=\"Zongsoft.Discussions.Data.ThreadFilter, Zongsoft.Discussions\" />\n</extension>"
+	},
+	{
+		"page": "framework/plugins/plugin-file.md",
+		"file": "src/Zongsoft.Discussions.plugin",
+		"start": 31,
+		"end": 33,
+		"code": "<extension path=\"/Workbench/Data/Validators\">\n\t<object name=\"Discussions\" type=\"Zongsoft.Discussions.Data.DataValidator, Zongsoft.Discussions\" />\n</extension>"
+	},
+	{
+		"page": "framework/plugins/hosting.md",
+		"file": "hosting/daemon/Program.cs",
+		"start": 9,
+		"end": 28,
+		"code": "static void Main(string[] args)\n{\n\t#if WINDOWS\n\tZongsoft.Plugins.Hosting.Application\n\t\t.Daemon(\"zongsoft.daemon\", [.. args, \"host=daemon\", \"site=daemon\"], builder =>\n\t\t{\n\t\t\tbuilder.Services.AddWindowsService(options => options.ServiceName = builder.Environment.ApplicationName);\n\t\t}).Run();\n\t#elif LINUX\n\tZongsoft.Plugins.Hosting.Application\n\t\t.Daemon(\"zongsoft.daemon\", [.. args, \"host=daemon\", \"site=daemon\"], builder =>\n\t\t{\n\t\t\tbuilder.Services.AddSystemd();\n\t\t}).Run();\n\t#else\n\tZongsoft.Plugins.Hosting.Application\n\t\t.Daemon(\"zongsoft.daemon\", [.. args, \"host=daemon\", \"site=daemon\"])\n\t\t.Run();\n\t#endif\n}"
+	},
+	{
+		"page": "framework/plugins/builtins-and-services.md",
+		"file": "src/Zongsoft.Discussions.plugin",
+		"start": 20,
+		"end": 29,
+		"code": "<extension path=\"/Workbench/Modules\">\n\t<object name=\"Discussions\" value=\"{static:Zongsoft.Discussions.Module.Current, Zongsoft.Discussions}\">\n\t\t<expose name=\"Accessor\" value=\"{path:../@Accessor}\">\n\t\t\t<expose name=\"Filters\" value=\"{path:../@Filters}\" />\n\t\t</expose>\n\n\t\t<expose name=\"Events\" value=\"{path:../@Events}\" />\n\t\t<expose name=\"Properties\" value=\"{path:../@Properties}\" />\n\t</object>\n</extension>"
+	},
+	{
+		"page": "framework/plugins/builtins-and-services.md",
+		"file": "src/Services/ForumService.cs",
+		"start": 41,
+		"end": 46,
+		"code": "[Service(nameof(ForumService))]\n[DataService(typeof(ForumCriteria))]\npublic class ForumService : DataServiceBase<Forum>\n{\n\t#region 构造函数\n\tpublic ForumService(IServiceProvider serviceProvider) : base(serviceProvider) { }"
+	},
+	{
+		"page": "framework/plugins/builtins-and-services.md",
+		"file": "src/Services/Commands/MessageSendCommand.cs",
+		"start": 58,
+		"end": 59,
+		"code": "[ServiceDependency(Provider = Module.NAME)]\npublic MessageService Service { get; set; }"
+	},
+	{
+		"page": "framework/data/README.md",
+		"file": "src/Module.cs",
+		"start": 52,
+		"end": 52,
+		"code": "public IDataAccess Accessor => _accessor ??= this.Services.ResolveRequired<IDataAccessProvider>().GetAccessor(this.Name);"
+	},
+	{
+		"page": "framework/data/quickstart.md",
+		"file": "src/Module.cs",
+		"start": 52,
+		"end": 52,
+		"code": "public IDataAccess Accessor => _accessor ??= this.Services.ResolveRequired<IDataAccessProvider>().GetAccessor(this.Name);"
+	},
+	{
+		"page": "framework/data/quickstart.md",
+		"file": "docs/http/forum.http",
+		"start": 2,
+		"end": 2,
+		"code": "GET /Discussions/Forums?page={{page}} HTTP/1.1"
+	},
+	{
+		"page": "framework/data/quickstart.md",
+		"file": "src/Services/ForumService.cs",
+		"start": 83,
+		"end": 90,
+		"code": "public IEnumerable<Models.Thread> GetPinnedThreads(ushort forumId, string schema, Paging paging = null)\n{\n\treturn this.DataAccess.Select<Models.Thread>(\n\t\tCondition.Equal(nameof(Models.Thread.ForumId), forumId) &\n\t\tCondition.Equal(nameof(Models.Thread.IsPinned), true) &\n\t\tCondition.Equal(nameof(Models.Thread.Visible), true),\n\t\tschema, paging, Sorting.Descending(nameof(Models.Thread.ThreadId)));\n}"
+	},
+	{
+		"page": "framework/data/schema.md",
+		"file": "src/Features/Archiving/UserDataTemplateModelProvider.cs",
+		"start": 56,
+		"end": 56,
+		"code": "var schema = $\"*, {nameof(UserProfile.Site)}\" + \"{*}\";"
+	},
+	{
+		"page": "framework/data/schema.md",
+		"file": "src/Services/UserService.cs",
+		"start": 67,
+		"end": 73,
+		"code": "public IEnumerable<History> GetHistories(uint userId, Paging paging = null)\n{\n\tif(userId == 0)\n\t\tuserId = this.Principal.Identity.GetIdentifier<uint>();\n\n\treturn this.DataAccess.Select<History>(Condition.Equal(nameof(History.UserId), userId), $\"*, {nameof(History.Thread)}\" + \"{*}\", paging);\n}"
+	},
+	{
+		"page": "framework/data/schema.md",
+		"file": "src/Services/ThreadService.cs",
+		"start": 205,
+		"end": 206,
+		"code": "//确保数据模式含有“主题内容贴”复合属性\nschema.Include(\"Post{*}\");"
+	},
+	{
+		"page": "framework/data/mapping.md",
+		"file": "src/Zongsoft.Discussions.mapping",
+		"start": 197,
+		"end": 203,
+		"code": "<key>\n\t<member name=\"SiteId\" />\n\t<member name=\"ForumId\" />\n</key>\n\n<property name=\"SiteId\" type=\"uint\" nullable=\"false\" />\n<property name=\"ForumId\" type=\"ushort\" nullable=\"false\" sequence=\"#(SiteId)\" />"
+	},
+	{
+		"page": "framework/data/mapping.md",
+		"file": "src/Zongsoft.Discussions.mapping",
+		"start": 278,
+		"end": 281,
+		"code": "<complexProperty name=\"Forum\" port=\"Forum\">\n\t<link port=\"SiteId\" />\n\t<link port=\"ForumId\" />\n</complexProperty>"
+	},
+	{
+		"page": "framework/data/mapping.md",
+		"file": "src/Zongsoft.Discussions.mapping",
+		"start": 330,
+		"end": 332,
+		"code": "<complexProperty name=\"Post\" port=\"Post\" multiplicity=\"!\">\n\t<link port=\"PostId\" />\n</complexProperty>"
+	},
+	{
+		"page": "framework/data/mapping.md",
+		"file": "src/Zongsoft.Discussions.mapping",
+		"start": 293,
+		"end": 300,
+		"code": "<property name=\"ThreadId\" type=\"ulong\" nullable=\"false\" sequence=\"#\" />\n<property name=\"SiteId\" type=\"uint\" nullable=\"false\" immutable=\"true\" />\n<property name=\"ForumId\" type=\"ushort\" nullable=\"false\" />\n<property name=\"Title\" type=\"nvarchar\" length=\"50\" nullable=\"false\" />\n<property name=\"Acronym\" type=\"varchar\" length=\"50\" nullable=\"true\" />\n<property name=\"Summary\" type=\"nvarchar\" length=\"500\" nullable=\"true\" />\n<property name=\"Tags\" type=\"nvarchar\" length=\"100\" nullable=\"true\" />\n<property name=\"PostId\" type=\"ulong\" nullable=\"false\" />"
+	},
+	{
+		"page": "framework/data/connections.md",
+		"file": "src/Module.cs",
+		"start": 52,
+		"end": 52,
+		"code": "public IDataAccess Accessor => _accessor ??= this.Services.ResolveRequired<IDataAccessProvider>().GetAccessor(this.Name);"
+	},
+	{
+		"page": "framework/data/connections.md",
+		"file": "framework/Zongsoft.Core/test/Configuration/Xml/OptionConfigurationTest-1.option",
+		"start": 30,
+		"end": 34,
+		"code": "<option path=\"/Data\">\n\t<connectionSettings default=\"db1\">\n\t\t<connectionSetting connectionSetting.name=\"db1\" driver=\"mysql\" mode=\"all\" value=\"server=localhost\" />\n\t</connectionSettings>\n</option>"
+	},
+	{
+		"page": "framework/data/connections.md",
+		"file": "framework/Zongsoft.Core/test/Configuration/ConnectionSettingsTest.cs",
+		"start": 16,
+		"end": 17,
+		"code": "private static readonly DateTime DATE = new(1979, 5, 15);\nprivate static readonly string ConnectionString = $\" ;; server=192.168.0.1:8080, localhost:8088  ; Integer=100 ; enabled ; double= 1.23; ;  boolean= true ; text= MyString; dateTime={DATE:yyyy-M-d}; ; mapping=s1:t1,s2 = t2, same \";"
+	},
+	{
+		"page": "framework/data/connections.md",
+		"file": "framework/Zongsoft.Core/test/Configuration/ConnectionSettingsTest.cs",
+		"start": 178,
+		"end": 188,
+		"code": "public void TestConnectionSettingsCompositeProperty()\n{\n\tvar settings = MyDriver.Instance.GetSettings(\"a.b.c=none;cluster.address=192.168.0.100;nothing.property=none;cluster.heartbeat=30s\");\n\tAssert.NotNull(settings);\n\n\tAssert.False(settings.Cluster.IsEmpty);\n\tAssert.Equal(\"192.168.0.100\", settings.Cluster.Address);\n\tAssert.Equal(TimeSpan.FromSeconds(30), settings.Cluster.Heartbeat);\n\tAssert.Equal(\"none\", settings.Properties[\"a.b.c\"]);\n\tAssert.Equal(\"none\", settings.Properties[\"nothing.property\"]);\n}"
+	},
+	{
+		"page": "framework/data/data-access.md",
+		"file": "src/Module.cs",
+		"start": 52,
+		"end": 53,
+		"code": "public IDataAccess Accessor => _accessor ??= this.Services.ResolveRequired<IDataAccessProvider>().GetAccessor(this.Name);\n#endregion"
+	},
+	{
+		"page": "framework/data/data-access.md",
+		"file": "src/Services/UserService.cs",
+		"start": 83,
+		"end": 89,
+		"code": "public int GetMessageUnreadCount(uint userId = 0)\n{\n\tif(userId == 0)\n\t\tuserId = this.Principal.Identity.GetIdentifier<uint>();\n\n\treturn this.DataAccess.Count<UserMessage>(Condition.Equal(nameof(UserMessage.UserId), userId) & Condition.Equal(nameof(UserMessage.IsRead), false));\n}"
+	},
+	{
+		"page": "framework/data/data-access.md",
+		"file": "src/Security/UserChallenger.cs",
+		"start": 87,
+		"end": 91,
+		"code": "protected virtual ValueTask<UserProfile> GetUserAsync(uint userId, CancellationToken cancellation) =>\n\tModule.Current.Accessor.SelectAsync<UserProfile>(\n\t\tCondition.Equal(nameof(UserProfile.UserId), userId),\n\t\tPaging.Limit(1),\n\t\tcancellation).FirstOrDefault(cancellation);"
+	},
+	{
+		"page": "framework/data/conditions-and-operands.md",
+		"file": "src/Services/ThreadService.cs",
+		"start": 70,
+		"end": 85,
+		"code": "public bool Approve(ulong threadId)\n{\n\tvar criteria = Condition.Equal(nameof(Models.Thread.ThreadId), threadId) &\n\t               Condition.Equal(nameof(Models.Thread.Approved), false) &\n\t               GetIsModeratorCriteria();\n\n\treturn this.DataAccess.Update<Models.Thread>(new\n\t{\n\t\tApproved = true,\n\t\tApprovedTime = DateTime.Now,\n\t\tPost = new\n\t\t{\n\t\t\tApproved = true,\n\t\t}\n\t}, criteria, \"*,Post{Approved}\") > 0;\n}"
+	},
+	{
+		"page": "framework/data/conditions-and-operands.md",
+		"file": "src/Services/ThreadService.cs",
+		"start": 239,
+		"end": 244,
+		"code": "private Zongsoft.Data.Condition GetIsModeratorCriteria()\n{\n\treturn Condition.Exists(\"Forum.Users\",\n\t         Condition.Equal(nameof(Forum.ForumUser.UserId), this.Principal.Identity.GetIdentifier<uint>()) &\n\t         Condition.Equal(nameof(Forum.ForumUser.IsModerator), true));\n}"
+	},
+	{
+		"page": "framework/data/conditions-and-operands.md",
+		"file": "src/Services/ThreadService.cs",
+		"start": 183,
+		"end": 188,
+		"code": "//递增当前主题的累计阅读量并更新最后查看时间\nthis.DataAccess.Update<Models.Thread>(new\n{\n\tTotalViews = Operand.Field(nameof(Models.Thread.TotalViews)) + 1,\n\tViewedTime = DateTime.Now,\n}, Condition.Equal(nameof(Models.Thread.ThreadId), thread.ThreadId));"
+	},
+	{
+		"page": "framework/data/conditions-and-operands.md",
+		"file": "src/Data/DataValidator.cs",
+		"start": 81,
+		"end": 91,
+		"code": "public ICondition Validate(IDataAccessContextBase context, ICondition criteria)\n{\n\tif(UserIdentity.Current == null)\n\t\treturn criteria;\n\n\t//调用方提供的站点条件不能替代当前身份的站点约束。\n\tif(HasProperty(context, Fields.SiteId))\n\t\tcriteria &= Condition.Equal(Fields.SiteId, UserIdentity.Current.SiteId);\n\n\treturn criteria;\n}"
+	},
+	{
+		"page": "framework/data/querying.md",
+		"file": "src/Services/ForumService.cs",
+		"start": 83,
+		"end": 90,
+		"code": "public IEnumerable<Models.Thread> GetPinnedThreads(ushort forumId, string schema, Paging paging = null)\n{\n\treturn this.DataAccess.Select<Models.Thread>(\n\t\tCondition.Equal(nameof(Models.Thread.ForumId), forumId) &\n\t\tCondition.Equal(nameof(Models.Thread.IsPinned), true) &\n\t\tCondition.Equal(nameof(Models.Thread.Visible), true),\n\t\tschema, paging, Sorting.Descending(nameof(Models.Thread.ThreadId)));\n}"
+	},
+	{
+		"page": "framework/data/querying.md",
+		"file": "src/Services/ForumService.cs",
+		"start": 92,
+		"end": 100,
+		"code": "public Models.Thread[] GetTopmosts(ushort forumId, string schema, int count = 10)\n{\n\tcount = Math.Max(5, Math.Min(50, count));\n\n\tvar globals = this.GetGlobalThreads(0, schema, Paging.Page(1, count));\n\tvar pinneds = this.GetPinnedThreads(forumId, schema, Paging.Page(1, count));\n\n\treturn globals.Union(pinneds).OrderByDescending(t => t.ThreadId).Take(count).ToArray();\n}"
+	},
+	{
+		"page": "framework/data/querying.md",
+		"file": "src/Services/UserService.cs",
+		"start": 67,
+		"end": 73,
+		"code": "public IEnumerable<History> GetHistories(uint userId, Paging paging = null)\n{\n\tif(userId == 0)\n\t\tuserId = this.Principal.Identity.GetIdentifier<uint>();\n\n\treturn this.DataAccess.Select<History>(Condition.Equal(nameof(History.UserId), userId), $\"*, {nameof(History.Thread)}\" + \"{*}\", paging);\n}"
+	},
+	{
+		"page": "framework/data/querying.md",
+		"file": "src/Security/UserChallenger.cs",
+		"start": 87,
+		"end": 91,
+		"code": "protected virtual ValueTask<UserProfile> GetUserAsync(uint userId, CancellationToken cancellation) =>\n\tModule.Current.Accessor.SelectAsync<UserProfile>(\n\t\tCondition.Equal(nameof(UserProfile.UserId), userId),\n\t\tPaging.Limit(1),\n\t\tcancellation).FirstOrDefault(cancellation);"
+	},
+	{
+		"page": "framework/data/querying.md",
+		"file": "src/Services/PostService.cs",
+		"start": 229,
+		"end": 244,
+		"code": "private bool SetPostVotes(ulong postId)\n{\n\t//获取当前帖子的点赞总数，即统计帖子投票表中投票数大于零的记录数\n\tvar upvotes = this.DataAccess.Count<Post.PostVoting>(Condition.Equal(nameof(Post.PostVoting.PostId), postId) & Condition.GreaterThan(nameof(Post.PostVoting.Value), 0));\n\n\t//获取当前帖子的被踩总数，即统计帖子投票表中投票数小于零的记录数\n\tvar downvotes = this.DataAccess.Count<Post.PostVoting>(Condition.Equal(nameof(Post.PostVoting.PostId), postId) & Condition.LessThan(nameof(Post.PostVoting.Value), 0));\n\n\t//更新指定帖子的累计点赞总数和累计被踩总数\n\treturn this.DataAccess.Update(Model.Naming.Get<Post>(), new\n\t{\n\t\tPostId = postId,\n\t\tTotalUpvotes = upvotes,\n\t\tTotalDownvotes = downvotes,\n\t}) > 0;\n}"
+	},
+	{
+		"page": "framework/data/writing.md",
+		"file": "src/Services/PostService.cs",
+		"start": 50,
+		"end": 83,
+		"code": "public bool Upvote(ulong postId, byte value = 1)\n{\n\tif(value == 0)\n\t\tvalue = 1;\n\n\tvar userId = this.Principal.Identity.GetIdentifier<uint>();\n\n\tusing(var transaction = new Transaction())\n\t{\n\t\tthis.DataAccess.Delete<Post.PostVoting>(\n\t\t\tCondition.Equal(nameof(Post.PostVoting.PostId), postId) &\n\t\t\tCondition.Equal(nameof(Post.PostVoting.UserId), userId));\n\n\t\tthis.DataAccess.Insert(Model.Build<Post.PostVoting>(voting =>\n\t\t{\n\t\t\tvoting.PostId = postId;\n\t\t\tvoting.UserId = userId;\n\t\t\tvoting.Value = (sbyte)Math.Min(value, (sbyte)100);\n\t\t\tvoting.Timestamp = DateTime.Now;\n\t\t}));\n\n\t\t//如果帖子投票统计信息更新成功\n\t\tif(this.SetPostVotes(postId))\n\t\t{\n\t\t\t//提交事务\n\t\t\ttransaction.Commit();\n\n\t\t\t//返回成功\n\t\t\treturn true;\n\t\t}\n\t}\n\n\treturn false;\n}"
+	},
+	{
+		"page": "framework/data/writing.md",
+		"file": "src/Services/ThreadService.cs",
+		"start": 103,
+		"end": 109,
+		"code": "public bool SetLocked(ulong threadId, bool value)\n{\n\treturn this.DataAccess.Update<Models.Thread>(new\n\t{\n\t\tIsLocked = value,\n\t}, Condition.Equal(nameof(Models.Thread.ThreadId), threadId) & GetIsModeratorCriteria()) > 0;\n}"
+	},
+	{
+		"page": "framework/data/writing.md",
+		"file": "src/Services/ThreadService.cs",
+		"start": 283,
+		"end": 293,
+		"code": "private void SetHistory(ulong threadId)\n{\n\t//新增或更新当前用户对指定主题的浏览记录（自动递增浏览次数）\n\tthis.DataAccess.Upsert<History>(new\n\t{\n\t\tUserId = this.Principal.Identity.GetIdentifier<uint>(),\n\t\tThreadId = threadId,\n\t\tViewedCount = Operand.Field(nameof(History.ViewedCount)) + 1,\n\t\tMostRecentViewedTime = DateTime.Now,\n\t});\n}"
+	},
+	{
+		"page": "framework/data/transactions.md",
+		"file": "src/Services/ThreadService.cs",
+		"start": 200,
+		"end": 234,
+		"code": "protected override int OnInsert(IDataDictionary<Models.Thread> data, ISchema schema, DataInsertOptions options)\n{\n\tif(!data.TryGetValue(p => p.Post, out var post) || post == null || string.IsNullOrEmpty(post.Content))\n\t\tthrow new InvalidOperationException(\"Missing content of the thread.\");\n\n\t//确保数据模式含有“主题内容贴”复合属性\n\tschema.Include(\"Post{*}\");\n\n\t//更新主题内容贴的相关属性\n\tpost.Visible = false;\n\tpost.Approved = this.ServiceProvider.ResolveRequired<ForumService>().CanPublish(data);\n\tdata.SetValue(p => p.Approved, post.Approved);\n\tschema.Include(nameof(Models.Thread.Approved));\n\n\tvar content = DataDictionary.GetDictionary<Post>(post);\n\treturn Utility.MutateContent(content, () => this.Posting.GetContentFilePath(content), () =>\n\t{\n\t\tusing(var transaction = new Transaction())\n\t\t{\n\t\t\t//调用基类同名方法，插入主题数据\n\t\t\tvar count = base.OnInsert(data, schema, options);\n\n\t\t\tif(count < 1)\n\t\t\t\treturn count;\n\n\t\t\t//更新发帖人关联的主题统计信息\n\t\t\tthis.SetMostRecentThread(data);\n\n\t\t\t//提交事务\n\t\t\ttransaction.Commit();\n\n\t\t\treturn count;\n\t\t}\n\t});\n}"
+	},
+	{
+		"page": "framework/data/services.md",
+		"file": "src/Services/ThreadService.cs",
+		"start": 41,
+		"end": 50,
+		"code": "[Service(nameof(ThreadService))]\n[DataService(typeof(ThreadCriteria))]\npublic class ThreadService : DataServiceBase<Models.Thread>\n{\n\t#region 成员字段\n\tprivate PostService _posting;\n\t#endregion\n\n\t#region 构造函数\n\tpublic ThreadService(IServiceProvider serviceProvider) : base(serviceProvider) { }"
+	},
+	{
+		"page": "framework/data/services.md",
+		"file": "src/Services/ThreadService.cs",
+		"start": 54,
+		"end": 64,
+		"code": "public PostService Posting\n{\n\tget\n\t{\n\t\tif(_posting == null)\n\t\t\t_posting = this.ServiceProvider.ResolveRequired<PostService>();\n\n\t\treturn _posting;\n\t}\n}\n#endregion"
+	},
+	{
+		"page": "framework/data/services.md",
+		"file": "src/Data/PostFilter.cs",
+		"start": 44,
+		"end": 51,
+		"code": "public void OnFiltered(DataSelectContextBase context)\n{\n\tif(context.Result == null)\n\t\treturn;\n\n\tvar identity = context.Principal?.Identity;\n\tcontext.Result = FilteredResult.Create(context, item => Filter(item, identity));\n}"
+	},
+	{
+		"page": "framework/data/services.md",
+		"file": "src/Services/ForumService.cs",
+		"start": 132,
+		"end": 140,
+		"code": "internal async ValueTask<bool> CanPublishAsync(IDataDictionary<Models.Thread> thread, CancellationToken cancellation)\n{\n\tcancellation.ThrowIfCancellationRequested();\n\tvar forum = await this.DataAccess.SelectAsync<Forum>(GetForumCriteria(thread), nameof(Forum.Approvable), cancellation: cancellation).FirstOrDefault(cancellation);\n\tif(forum == null)\n\t\tthrow new InvalidOperationException(\"The specified forum does not exist.\");\n\n\treturn !forum.Approvable || this.Principal?.Identity?.IsAuthenticated == true && await this.IsModeratorAsync(thread.GetValue(p => p.ForumId), cancellation: cancellation);\n}"
+	},
+	{
+		"page": "framework/data/drivers.md",
+		"file": "framework/Zongsoft.Data/drivers/mysql/src/Zongsoft.Data.MySql.plugin",
+		"start": 19,
+		"end": 21,
+		"code": "<extension path=\"/Workbench/Configuration/ConnectionSettings/Drivers\">\n\t<object name=\"MySql\" value=\"{static:Zongsoft.Data.MySql.Configuration.MySqlConnectionSettingsDriver.Instance, Zongsoft.Data.MySql}\" />\n</extension>"
+	},
+	{
+		"page": "framework/data/drivers/mysql.md",
+		"file": "framework/Zongsoft.Data/drivers/mysql/test/ConnectionSettingsTest.cs",
+		"start": 10,
+		"end": 16,
+		"code": "public void MaximumPoolSizeMatchesProviderDefault()\n{\n\tvar settings = Configuration.MySqlConnectionSettingsDriver.Instance.GetSettings(\"Server=localhost\");\n\tvar builder = new MySqlConnectionStringBuilder();\n\n\tAssert.Equal(builder.MaximumPoolSize, settings.MaximumPoolSize);\n}"
+	},
+	{
+		"page": "framework/data/drivers/mssql.md",
+		"file": "framework/Zongsoft.Data/drivers/mssql/test/ConnectionSettingsTest.cs",
+		"start": 10,
+		"end": 16,
+		"code": "public void MaximumPoolSizeMatchesProviderDefault()\n{\n\tvar settings = Configuration.MsSqlConnectionSettingsDriver.Instance.GetSettings(\"Server=localhost\");\n\tvar builder = new SqlConnectionStringBuilder();\n\n\tAssert.Equal((uint)builder.MaxPoolSize, settings.MaximumPoolSize);\n}"
+	},
+	{
+		"page": "framework/data/drivers/postgres.md",
+		"file": "framework/Zongsoft.Data/drivers/postgres/test/ConnectionSettingsTest.cs",
+		"start": 10,
+		"end": 16,
+		"code": "public void MaximumPoolSizeMatchesProviderDefault()\n{\n\tvar settings = Configuration.PostgreSqlConnectionSettingsDriver.Instance.GetSettings(\"Server=localhost\");\n\tvar builder = new NpgsqlConnectionStringBuilder();\n\n\tAssert.Equal((uint)builder.MaxPoolSize, settings.MaximumPoolSize);\n}"
+	},
+	{
+		"page": "framework/data/drivers/sqlite.md",
+		"file": "framework/Zongsoft.Data/drivers/sqlite/test/DatabaseFixture.cs",
+		"start": 13,
+		"end": 14,
+		"code": "private static readonly string DATABASE_FILE = Path.Combine(AppContext.BaseDirectory, \"test.db\");\nprivate static readonly string CONNECTION_STRING = $\"DataSource={DATABASE_FILE};PRAGMA:optimize;PRAGMA:journal_mode=WAL;PRAGMA:synchronous=NORMAL;PRAGMA:temp_store=MEMORY;\";"
+	},
+	{
+		"page": "framework/data/drivers/sqlite.md",
+		"file": "framework/Zongsoft.Data/drivers/sqlite/test/DatabaseFixture.cs",
+		"start": 35,
+		"end": 36,
+		"code": "this.ConnectionSettings = Configuration.SQLiteConnectionSettingsDriver.Instance.GetSettings(CONNECTION_STRING);\nthis.Accessor = DataAccessProvider.Instance.GetAccessor(\"Test\", new DataAccessOptions([this.ConnectionSettings]));"
+	},
+	{
+		"page": "framework/data/drivers/duckdb.md",
+		"file": "framework/Zongsoft.Data/drivers/duckdb/test/DatabaseFixture.cs",
+		"start": 13,
+		"end": 14,
+		"code": "private static readonly string DATABASE_FILE = Path.Combine(AppContext.BaseDirectory, \"test.db\");\nprivate static readonly string CONNECTION_STRING = $\"DataSource={DATABASE_FILE}\";"
+	},
+	{
+		"page": "framework/data/drivers/duckdb.md",
+		"file": "framework/Zongsoft.Data/drivers/duckdb/test/DatabaseFixture.cs",
+		"start": 34,
+		"end": 35,
+		"code": "this.ConnectionSettings = Configuration.DuckDBConnectionSettingsDriver.Instance.GetSettings(CONNECTION_STRING);\nthis.Accessor = DataAccessProvider.Instance.GetAccessor(\"Test\", new DataAccessOptions([this.ConnectionSettings]));"
+	},
+	{
+		"page": "framework/data/drivers/clickhouse.md",
+		"file": "framework/Zongsoft.Data/drivers/clickhouse/test/DatabaseFixture.cs",
+		"start": 23,
+		"end": 24,
+		"code": "this.ConnectionSettings = Configuration.ClickHouseConnectionSettingsDriver.Instance.GetSettings(CONNECTION_STRING);\nthis.Accessor = DataAccessProvider.Instance.GetAccessor(\"Test\", new DataAccessOptions([this.ConnectionSettings]));"
+	},
+	{
+		"page": "framework/data/drivers/clickhouse.md",
+		"file": "framework/Zongsoft.Data/drivers/clickhouse/test/ConnectionSettingsPropertiesTest.cs",
+		"start": 8,
+		"end": 15,
+		"code": "public void UnknownPropertiesArePreserved()\n{\n\tvar settings = Configuration.ClickHouseConnectionSettingsDriver.Instance.GetSettings(\n\t\t\"CircuitBreaker.Duration=00:01:00;CircuitBreaker.MaximumDuration=00:02:00\");\n\n\tAssert.Equal(\"00:01:00\", settings.Properties[\"CircuitBreaker.Duration\"]);\n\tAssert.Equal(\"00:02:00\", settings.Properties[\"CircuitBreaker.MaximumDuration\"]);\n}"
+	},
+	{
+		"page": "framework/data/drivers/tdengine.md",
+		"file": "framework/Zongsoft.Data/drivers/tdengine/test/DatabaseFixture.cs",
+		"start": 23,
+		"end": 25,
+		"code": "this.ConnectionSettings = Configuration.TDengineConnectionSettingsDriver.Instance.GetSettings(CONNECTION_STRING);\nthis.ConnectionSettings.Protocol = Configuration.TDengineConnectionProtocol.Native;\nthis.Accessor = DataAccessProvider.Instance.GetAccessor(\"Zongsoft.Data.TDengine.Tests\", new DataAccessOptions([this.ConnectionSettings]));"
+	},
+	{
+		"page": "framework/data/drivers/tdengine.md",
+		"file": "framework/Zongsoft.Data/drivers/tdengine/test/ConnectionSettingsPropertiesTest.cs",
+		"start": 8,
+		"end": 15,
+		"code": "public void UnknownPropertiesArePreserved()\n{\n\tvar settings = Configuration.TDengineConnectionSettingsDriver.Instance.GetSettings(\n\t\t\"CircuitBreaker.Duration=00:01:00;CircuitBreaker.MaximumDuration=00:02:00\");\n\n\tAssert.Equal(\"00:01:00\", settings.Properties[\"CircuitBreaker.Duration\"]);\n\tAssert.Equal(\"00:02:00\", settings.Properties[\"CircuitBreaker.MaximumDuration\"]);\n}"
+	},
+	{
+		"page": "framework/data/drivers/influx.md",
+		"file": "framework/Zongsoft.Data/drivers/influx/test/DatabaseFixture.cs",
+		"start": 23,
+		"end": 24,
+		"code": "this.ConnectionSettings = Configuration.InfluxConnectionSettingsDriver.Instance.GetSettings(CONNECTION_STRING);\nthis.Accessor = DataAccessProvider.Instance.GetAccessor(\"Test\", new DataAccessOptions([this.ConnectionSettings]));"
+	},
+	{
+		"page": "framework/data/drivers/influx.md",
+		"file": "framework/Zongsoft.Data/drivers/influx/test/ConnectionSettingsPropertiesTest.cs",
+		"start": 8,
+		"end": 15,
+		"code": "public void UnknownPropertiesArePreserved()\n{\n\tvar settings = Configuration.InfluxConnectionSettingsDriver.Instance.GetSettings(\n\t\t\"CircuitBreaker.Duration=00:01:00;CircuitBreaker.MaximumDuration=00:02:00\");\n\n\tAssert.Equal(\"00:01:00\", settings.Properties[\"CircuitBreaker.Duration\"]);\n\tAssert.Equal(\"00:02:00\", settings.Properties[\"CircuitBreaker.MaximumDuration\"]);\n}"
+	},
+	{
+		"page": "framework/web.md",
+		"file": "hosting/web/default/Program.cs",
+		"start": 12,
+		"end": 21,
+		"code": "static void Main(string[] args)\n{\n\tvar app = Zongsoft.Web.Application.Web([..args, \"host=web\", \"site=default\", \"daemon=zongsoft.web\"]);\n\n\t//如果要启用私有部署模式则打开下行代码注释\n\t//app.Configuration[\"Deployment\"] = \"private\";\n\n\tapp.Map(\"/\", ctx => { ctx.Response.Redirect(\"/Application\"); return Task.CompletedTask; });\n\tapp.Run();\n}"
+	},
+	{
+		"page": "framework/web/controllers.md",
+		"file": "src/api/Zongsoft.Discussions.Web.plugin",
+		"start": 9,
+		"end": 17,
+		"code": "<manifest>\n\t<dependencies>\n\t\t<dependency name=\"Zongsoft.Discussions\" />\n\t</dependencies>\n\n\t<assemblies>\n\t\t<assembly name=\"Zongsoft.Discussions.Web\" />\n\t</assemblies>\n</manifest>"
+	},
+	{
+		"page": "framework/web/controllers.md",
+		"file": "src/api/Zongsoft.Discussions.Web.deploy",
+		"start": 1,
+		"end": 5,
+		"code": "artifacts/Zongsoft.Discussions.Web.plugin\nlib/$(Framework)/Zongsoft.Discussions.Web.*\n\n[templates]\nartifacts/templates/*.xlsx"
+	},
+	{
+		"page": "framework/web/data-services.md",
+		"file": "src/api/Controllers/ThreadController.cs",
+		"start": 40,
+		"end": 121,
+		"code": "[Authorization]\n[ControllerName(\"Threads\")]\npublic class ThreadController : ServiceController<Thread, ThreadService>\n{\n\t#region 公共方法\n\t[ActionName(\"Approve\")]\n\t[HttpPost(\"{id}/Approve\")]\n\tpublic object Approve(ulong id)\n\t{\n\t\treturn this.DataService.Approve(id) ? this.NoContent() : this.NotFound();\n\t}\n\n\t[ActionName(\"Hidden\")]\n\t[HttpPost(\"{id}/Hidden\")]\n\tpublic object Hidden(ulong id)\n\t{\n\t\treturn this.DataService.Visible(id, false) ? this.NoContent() : this.NotFound();\n\t}\n\n\t[ActionName(\"Visible\")]\n\t[HttpPost(\"{id}/Visible\")]\n\tpublic object Visible(ulong id)\n\t{\n\t\treturn this.DataService.Visible(id, true) ? this.NoContent() : this.NotFound();\n\t}\n\n\t[ActionName(\"Lock\")]\n\t[HttpPost(\"{id}/Lock\")]\n\tpublic object Lock(ulong id)\n\t{\n\t\treturn this.DataService.SetLocked(id, true) ? this.NoContent() : this.NotFound();\n\t}\n\n\t[ActionName(\"Unlock\")]\n\t[HttpPost(\"{id}/Unlock\")]\n\tpublic object Unlock(ulong id)\n\t{\n\t\treturn this.DataService.SetLocked(id, false) ? this.NoContent() : this.NotFound();\n\t}\n\n\t[ActionName(\"Pin\")]\n\t[HttpPost(\"{id}/Pin\")]\n\tpublic object Pin(ulong id)\n\t{\n\t\treturn this.DataService.SetPinned(id, true) ? this.NoContent() : this.NotFound();\n\t}\n\n\t[ActionName(\"Unpin\")]\n\t[HttpPost(\"{id}/Unpin\")]\n\tpublic object Unpin(ulong id)\n\t{\n\t\treturn this.DataService.SetPinned(id, false) ? this.NoContent() : this.NotFound();\n\t}\n\n\t[ActionName(\"Valued\")]\n\t[HttpPost(\"{id}/Valued\")]\n\tpublic object Valued(ulong id)\n\t{\n\t\treturn this.DataService.SetValued(id, true) ? this.NoContent() : this.NotFound();\n\t}\n\n\t[ActionName(\"Unvalued\")]\n\t[HttpPost(\"{id}/Unvalued\")]\n\tpublic object Unvalued(ulong id)\n\t{\n\t\treturn this.DataService.SetValued(id, false) ? this.NoContent() : this.NotFound();\n\t}\n\n\t[ActionName(\"Global\")]\n\t[HttpPost(\"{id}/Global\")]\n\tpublic object Global(ulong id)\n\t{\n\t\treturn this.DataService.SetGlobal(id, true) ? this.NoContent() : this.NotFound();\n\t}\n\n\t[ActionName(\"Unglobal\")]\n\t[HttpPost(\"{id}/Unglobal\")]\n\tpublic object Unglobal(ulong id)\n\t{\n\t\treturn this.DataService.SetGlobal(id, false) ? this.NoContent() : this.NotFound();\n\t}\n\t#endregion"
+	},
+	{
+		"page": "framework/web/protocols.md",
+		"file": "framework/Zongsoft.Diagnostics/protocols/server/src/Listener.Metrics.cs",
+		"start": 51,
+		"end": 55,
+		"code": "[Service(Tags = \"gRPC\", Members = nameof(Metrics))]\npartial class Listener\n{\n\t#region 单例字段\n\tpublic static readonly MetricsProcessor Metrics = new();"
+	},
+	{
+		"page": "framework/security/authentication.md",
+		"file": "src/Zongsoft.Discussions.plugin",
+		"start": 41,
+		"end": 43,
+		"code": "<extension path=\"/Workbench/Security/Authentication/Challengers\">\n\t<object value=\"{static:Zongsoft.Discussions.Security.UserChallenger.Instance, Zongsoft.Discussions}\" />\n</extension>"
+	},
+	{
+		"page": "framework/security/authentication.md",
+		"file": "src/Zongsoft.Discussions.plugin",
+		"start": 46,
+		"end": 48,
+		"code": "<extension path=\"/Workbench/Security/Authentication/Transformers\">\n\t<object value=\"{static:Zongsoft.Discussions.Security.UserIdentity+Transformer.Instance, Zongsoft.Discussions}\" />\n</extension>"
+	},
+	{
+		"page": "framework/security/authentication.md",
+		"file": "src/Security/UserChallenger.cs",
+		"start": 126,
+		"end": 142,
+		"code": "private ClaimsIdentity Identity(UserProfile user)\n{\n\tvar identity = user.Identity(UserIdentity.Scheme, \"Zongsoft\");\n\n\tidentity.SetClaim(nameof(UserProfile.SiteId), user.SiteId);\n\tidentity.SetClaim(nameof(UserProfile.Gender), user.Gender);\n\tidentity.SetClaim(nameof(UserProfile.Avatar), user.Avatar);\n\tidentity.SetClaim(nameof(UserProfile.Grade), user.Grade);\n\tidentity.SetClaim(nameof(UserProfile.TotalPosts), user.TotalPosts);\n\tidentity.SetClaim(nameof(UserProfile.TotalThreads), user.TotalThreads);\n\n\t//进行其他声明定义\n\tthis.OnClaims(identity, user);\n\n\t//返回新构建的身份\n\treturn identity;\n}"
+	},
+	{
+		"page": "framework/security/authentication.md",
+		"file": "src/Security/UserIdentity.cs",
+		"start": 110,
+		"end": 110,
+		"code": "public static UserIdentity Current => ClaimsIdentityModeling.GetModel<UserIdentity>(Scheme);"
+	},
+	{
+		"page": "framework/diagnostics.md",
+		"file": "framework/Zongsoft.Diagnostics/src/Zongsoft.Diagnostics.option",
+		"start": 6,
+		"end": 16,
+		"code": "<meters>\n\t<filter>*</filter>\n\n\t<exporters>\n\t\t<exporter exporter.name=\"telemetry\" driver=\"telemetry\"\n\t\t          settings=\"server=http://localhost:4317;protocol=grpc;processorType=batch;timeout=30s;interval=15s;\" />\n\n\t\t<exporter exporter.name=\"prometheus\" driver=\"prometheus\"\n\t\t          settings=\"urls=http://127.0.0.1:9464,http://localhost:9464;path=/metrics;totalSuffix=true;cacheDuration=300ms;\" />\n\t</exporters>\n</meters>"
+	},
+	{
+		"page": "framework/diagnostics/otlp.md",
+		"file": "framework/Zongsoft.Diagnostics/protocols/server/samples/Zongsoft.Diagnostics.Protocols.Server.Samples.plugin",
+		"start": 19,
+		"end": 21,
+		"code": "<extension path=\"/Workbench/Diagnostics/Telemetry/Listener/Metrics\">\n\t<object name=\"MetricHandler\" type=\"Zongsoft.Diagnostics.Protocols.Server.Samples.MetricHandler, Zongsoft.Diagnostics.Protocols.Server.Samples\" />\n</extension>"
+	},
+	{
+		"page": "framework/diagnostics/otlp.md",
+		"file": "framework/Zongsoft.Diagnostics/protocols/server/samples/MetricHandler.cs",
+		"start": 14,
+		"end": 20,
+		"code": "protected override ValueTask OnHandleAsync(IEnumerable<Telemetry.Metrics.Meter> meters, Parameters parameters, CancellationToken cancellation)\n{\n\tforeach(var meter in meters)\n\t\tTerminal.WriteLine(CommandOutletDumper.Dump(meter));\n\n\treturn ValueTask.CompletedTask;\n}"
+	},
+	{
+		"page": "framework/intelligences.md",
+		"file": "framework/Zongsoft.Intelligences/src/Zongsoft.Intelligences.option",
+		"start": 3,
+		"end": 11,
+		"code": "<options>\n\t<option path=\"ai\">\n\t\t<connectionSettings>\n\t\t\t<connectionSetting connectionSetting.name=\"ollama\"\n\t\t\t                   driver=\"ollama\"\n\t\t\t                   value=\"server=http://127.0.0.1:11434;model=qwen3:0.6b\" />\n\t\t</connectionSettings>\n\t</option>\n</options>"
+	},
+	{
+		"page": "framework/learning.md",
+		"file": "framework/Zongsoft.Learning/src/Zongsoft.Learning.plugin",
+		"start": 46,
+		"end": 48,
+		"code": "<extension path=\"/Workbench/MachineLearning/Pipeline/Regression\">\n\t<object name=\"LightGbm\" type=\"trainer\" builder=\"{static:Zongsoft.Learning.Trainers.LightGbmRegressionTrainer.Instance, Zongsoft.Learning}\" />\n</extension>"
+	},
+	{
+		"page": "framework/hardwares.md",
+		"file": "framework/Zongsoft.Hardwares/test/HardwareCollectorTest.cs",
+		"start": 11,
+		"end": 17,
+		"code": "public void TestCollect()\n{\n\tvar hardwares = HardwareCollector.Instance.Collect();\n\n\tAssert.NotNull(hardwares);\n\tAssert.DoesNotContain(hardwares, hardware => hardware == null);\n}"
+	},
+	{
+		"page": "framework/messaging.md",
+		"file": "framework/messaging/kafka/samples/Program.cs",
+		"start": 17,
+		"end": 18,
+		"code": "using var queue = new KafkaQueue(\"Kafka\",\n\tConfiguration.KafkaConnectionSettingsDriver.Instance.GetSettings(\"Kafka\", $\"server=127.0.0.1:9092;client=Zongsoft.Messaging.Kafka.Sample-{Guid.NewGuid():N};\"));"
+	},
+	{
+		"page": "framework/messaging.md",
+		"file": "framework/messaging/rabbit/samples/Program.cs",
+		"start": 17,
+		"end": 18,
+		"code": "using var queue = new RabbitQueue(\"RabbitMQ\",\n\tConfiguration.RabbitConnectionSettingsDriver.Instance.GetSettings(\"RabbitMQ\", $\"server=127.0.0.1;port=5672;client=Zongsoft.Messaging.RabbitMQ.Sample-{Guid.NewGuid():N};username=program;password=xxxxxx;\"));"
+	},
+	{
+		"page": "framework/messaging.md",
+		"file": "framework/messaging/mqtt/samples/client/Program.cs",
+		"start": 17,
+		"end": 18,
+		"code": "using var queue = new MqttQueue(\"MQTT\",\n\tConfiguration.MqttConnectionSettingsDriver.Instance.GetSettings(\"Mqtt\", $\"server=127.0.0.1:1883;client=Zongsoft.Messaging.Mqtt.Sample-{Guid.NewGuid():N};\"));"
+	},
+	{
+		"page": "framework/messaging.md",
+		"file": "framework/messaging/zero/samples/client/Program.cs",
+		"start": 17,
+		"end": 18,
+		"code": "using var queue = new ZeroQueue(\"ZeroMQ\",\n\tConfiguration.ZeroConnectionSettingsDriver.Instance.GetSettings(\"ZeroMQ\", \"server=127.0.0.1;client=Zongsoft.Messaging.ZeroMQ.Sample;Group=Demo;\"));"
+	},
+	{
+		"page": "framework/messaging.md",
+		"file": "framework/Zongsoft.Core/src/Messaging/MessageQueueUtility.cs",
+		"start": 40,
+		"end": 52,
+		"code": "public static IMessageQueue Queue(IServiceProvider services, string name, IEnumerable<KeyValuePair<string, string>> settings = null)\n{\n\tname ??= string.Empty;\n\tservices ??= ApplicationContext.Current?.Services ?? throw new ArgumentNullException(nameof(services));\n\n\tforeach(var provider in services.ResolveAll<IMessageQueueProvider>())\n\t{\n\t\tif(provider.Exists(name))\n\t\t\treturn provider.Queue(name, settings);\n\t}\n\n\treturn null;\n}"
+	},
+	{
+		"page": "framework/messaging.md",
+		"file": "framework/messaging/kafka/samples/Program.cs",
+		"start": 38,
+		"end": 52,
+		"code": "executor.Command(\"subscribe\", async (context, cancellation) =>\n{\n\tif(context.Arguments.IsEmpty)\n\t\tthrow new CommandException(\"Missing the topics for subscribe.\");\n\n\tfor(int i = 0; i < context.Arguments.Count; i++)\n\t{\n\t\tvar subscriber = await queue.SubscribeAsync(context.Arguments[i], Handler.Instance, cancellation);\n\n\t\tif(subscriber == null)\n\t\t\tcontext.Output.WriteLine(CommandOutletColor.DarkRed, $\"Failed to subscribe topic: {context.Arguments[i]}\");\n\t\telse\n\t\t\tcontext.Output.WriteLine(CommandOutletColor.DarkGreen, $\"The subscription to the '{subscriber.Topic}' topic was successful.\");\n\t}\n});"
+	},
+	{
+		"page": "framework/messaging.md",
+		"file": "framework/messaging/kafka/samples/Program.cs",
+		"start": 121,
+		"end": 136,
+		"code": "protected override async ValueTask OnHandleAsync(Message message, Parameters parameters, CancellationToken cancellation)\n{\n\tif(message.IsEmpty)\n\t\treturn;\n\n\tvar count = Interlocked.Increment(ref _count);\n\tvar content = CommandOutletContent.Create()\n\t\t.Append(CommandOutletColor.Cyan, \"[Received]\")\n\t\t.Append(CommandOutletColor.DarkYellow, $\"#{count}\")\n\t\t.Append(CommandOutletColor.DarkCyan, \" Topic:\")\n\t\t.AppendLine(CommandOutletColor.DarkGreen, message.Topic)\n\t\t.AppendLine(CommandOutletColor.Gray, Encoding.UTF8.GetString(message.Data));\n\n\tTerminal.Console.Executor.Output.Write(content);\n\tawait message.AcknowledgeAsync(cancellation);\n}"
+	},
+	{
+		"page": "framework/messaging.md",
+		"file": "framework/messaging/kafka/samples/Program.cs",
+		"start": 66,
+		"end": 92,
+		"code": "executor.Command(\"produce\", async (context, cancellation) =>\n{\n\tvar round = context.Options.GetValue<int>(\"round\", 1);\n\tvar topic = context.Options.GetValue<string>(\"topic\");\n\n\tif(string.IsNullOrEmpty(topic))\n\t\tthrow new CommandOptionException(\"topic\", \"The topic is required.\");\n\n\tvar stopwatch = System.Diagnostics.Stopwatch.StartNew();\n\n\tfor(int i = 0; i < round; i++)\n\t{\n\t\tfor(int j = 0; j < context.Arguments.Count; j++)\n\t\t{\n\t\t\tvar identifier = await queue.ProduceAsync(\n\t\t\t\ttopic,\n\t\t\t\tEncoding.UTF8.GetBytes($\"[{i + 1}]{context.Arguments[j]}\"),\n\t\t\t\tnull,\n\t\t\t\tcancellation);\n\n\t\t\tcontext.Output.WriteLine(CommandOutletColor.DarkGreen, $\"[{i + 1}] {topic} Sent. (Identifier:{identifier ?? \"N/A\"})\");\n\t\t}\n\t}\n\n\tstopwatch.Stop();\n\tcontext.Output.WriteLine(CommandOutletColor.Magenta, $\"Elapsed: {stopwatch.Elapsed}\");\n});"
+	},
+	{
+		"page": "framework/messaging.md",
+		"file": "framework/messaging/zero/src/Zongsoft.Messaging.ZeroMQ.option",
+		"start": 11,
+		"end": 15,
+		"code": "<option path=\"/Messaging/ZeroMQ\">\n\t<servers port=\"32100,32101,32102\">\n\t\t<server server.name=\"unnamed\" port=\"*\" />\n\t</servers>\n</option>"
+	},
+	{
+		"page": "framework/messaging/reliability.md",
+		"file": "framework/messaging/.storages/test/options/SQLite.option",
+		"start": 3,
+		"end": 10,
+		"code": "<options>\n\t<option path=\"/Data\">\n\t\t<connectionSettings>\n\t\t\t<connectionSetting connectionSetting.name=\"QueueServer\" driver=\"SQLite\"\n\t\t\t                   value=\"DataSource=provider.db\" />\n\t\t</connectionSettings>\n\t</option>\n</options>"
+	},
+	{
+		"page": "framework/messaging/projects/kafka.md",
+		"file": "framework/messaging/kafka/samples/Program.cs",
+		"start": 17,
+		"end": 18,
+		"code": "using var queue = new KafkaQueue(\"Kafka\",\n\tConfiguration.KafkaConnectionSettingsDriver.Instance.GetSettings(\"Kafka\", $\"server=127.0.0.1:9092;client=Zongsoft.Messaging.Kafka.Sample-{Guid.NewGuid():N};\"));"
+	},
+	{
+		"page": "framework/messaging/projects/kafka.md",
+		"file": "framework/messaging/kafka/samples/Program.cs",
+		"start": 38,
+		"end": 52,
+		"code": "executor.Command(\"subscribe\", async (context, cancellation) =>\n{\n\tif(context.Arguments.IsEmpty)\n\t\tthrow new CommandException(\"Missing the topics for subscribe.\");\n\n\tfor(int i = 0; i < context.Arguments.Count; i++)\n\t{\n\t\tvar subscriber = await queue.SubscribeAsync(context.Arguments[i], Handler.Instance, cancellation);\n\n\t\tif(subscriber == null)\n\t\t\tcontext.Output.WriteLine(CommandOutletColor.DarkRed, $\"Failed to subscribe topic: {context.Arguments[i]}\");\n\t\telse\n\t\t\tcontext.Output.WriteLine(CommandOutletColor.DarkGreen, $\"The subscription to the '{subscriber.Topic}' topic was successful.\");\n\t}\n});"
+	},
+	{
+		"page": "framework/messaging/projects/rabbit.md",
+		"file": "framework/messaging/rabbit/samples/Program.cs",
+		"start": 17,
+		"end": 18,
+		"code": "using var queue = new RabbitQueue(\"RabbitMQ\",\n\tConfiguration.RabbitConnectionSettingsDriver.Instance.GetSettings(\"RabbitMQ\", $\"server=127.0.0.1;port=5672;client=Zongsoft.Messaging.RabbitMQ.Sample-{Guid.NewGuid():N};username=program;password=xxxxxx;\"));"
+	},
+	{
+		"page": "framework/messaging/projects/rabbit.md",
+		"file": "framework/messaging/rabbit/samples/Program.cs",
+		"start": 38,
+		"end": 52,
+		"code": "executor.Command(\"subscribe\", async (context, cancellation) =>\n{\n\tif(context.Arguments.IsEmpty)\n\t\tthrow new CommandException(\"Missing the topics for subscribe.\");\n\n\tfor(int i = 0; i < context.Arguments.Count; i++)\n\t{\n\t\tvar subscriber = await queue.SubscribeAsync(context.Arguments[i], Handler.Instance, cancellation);\n\n\t\tif(subscriber == null)\n\t\t\tcontext.Output.WriteLine(CommandOutletColor.DarkRed, $\"Failed to subscribe topic: {context.Arguments[i]}\");\n\t\telse\n\t\t\tcontext.Output.WriteLine(CommandOutletColor.DarkGreen, $\"The subscription to the '{subscriber.Topic}' topic was successful.\");\n\t}\n});"
+	},
+	{
+		"page": "framework/messaging/projects/mqtt.md",
+		"file": "framework/messaging/mqtt/samples/client/Program.cs",
+		"start": 17,
+		"end": 18,
+		"code": "using var queue = new MqttQueue(\"MQTT\",\n\tConfiguration.MqttConnectionSettingsDriver.Instance.GetSettings(\"Mqtt\", $\"server=127.0.0.1:1883;client=Zongsoft.Messaging.Mqtt.Sample-{Guid.NewGuid():N};\"));"
+	},
+	{
+		"page": "framework/messaging/projects/mqtt.md",
+		"file": "framework/messaging/mqtt/samples/client/Program.cs",
+		"start": 38,
+		"end": 52,
+		"code": "executor.Command(\"subscribe\", async (context, cancellation) =>\n{\n\tif(context.Arguments.IsEmpty)\n\t\tthrow new CommandException(\"Missing the topics for subscribe.\");\n\n\tfor(int i = 0; i < context.Arguments.Count; i++)\n\t{\n\t\tvar subscriber = await queue.SubscribeAsync(context.Arguments[i], Handler.Instance, cancellation);\n\n\t\tif(subscriber == null)\n\t\t\tcontext.Output.WriteLine(CommandOutletColor.DarkRed, $\"Failed to subscribe topic: {context.Arguments[i]}\");\n\t\telse\n\t\t\tcontext.Output.WriteLine(CommandOutletColor.DarkGreen, $\"The subscription to the '{subscriber.Topic}' topic was successful.\");\n\t}\n});"
+	},
+	{
+		"page": "framework/messaging/projects/zero.md",
+		"file": "framework/messaging/zero/samples/client/Program.cs",
+		"start": 17,
+		"end": 18,
+		"code": "using var queue = new ZeroQueue(\"ZeroMQ\",\n\tConfiguration.ZeroConnectionSettingsDriver.Instance.GetSettings(\"ZeroMQ\", \"server=127.0.0.1;client=Zongsoft.Messaging.ZeroMQ.Sample;Group=Demo;\"));"
+	},
+	{
+		"page": "framework/messaging/projects/zero.md",
+		"file": "framework/messaging/zero/samples/client/Program.cs",
+		"start": 41,
+		"end": 55,
+		"code": "executor.Command(\"subscribe\", async (context, cancellation) =>\n{\n\tif(context.Arguments.IsEmpty)\n\t\tthrow new CommandException(\"Missing the topics for subscribe.\");\n\n\tfor(int i = 0; i < context.Arguments.Count; i++)\n\t{\n\t\tvar subscriber = await queue.SubscribeAsync(context.Arguments[i], Handler.Instance, cancellation);\n\n\t\tif(subscriber == null)\n\t\t\tcontext.Output.WriteLine(CommandOutletColor.DarkRed, $\"Failed to subscribe topic: {context.Arguments[i]}\");\n\t\telse\n\t\t\tcontext.Output.WriteLine(CommandOutletColor.DarkGreen, $\"The subscription to the '{subscriber.Topic}' topic was successful.\");\n\t}\n});"
+	},
+	{
+		"page": "framework/upgrading/workflow.md",
+		"file": "framework/upgrading/upgrader/Zongsoft.Upgrading.Upgrader.option",
+		"start": 3,
+		"end": 13,
+		"code": "<options>\n\t<option path=\"/Upgrading\">\n\t\t<connectionSettings default=\"Web\">\n\t\t\t<connectionSetting connectionSetting.name=\"Web\"\n\t\t\t                   value=\"url=http://127.0.0.1:8069/Upgrading/Upgrader;timeout=30s\" />\n\n\t\t\t<connectionSetting connectionSetting.name=\"File\"\n\t\t\t                   value=\"url=zfs.s3:/upgrading/releases/\" />\n\t\t</connectionSettings>\n\t</option>\n</options>"
+	},
+	{
+		"page": "framework/upgrading/workflow.md",
+		"file": "framework/upgrading/web/Controllers/UpgraderController.cs",
+		"start": 48,
+		"end": 64,
+		"code": "public async Task<IActionResult> GetAsync(string name, string edition, [FromQuery]Platform platform, [FromQuery]Architecture architecture, CancellationToken cancellation = default)\n{\n\tif(string.IsNullOrWhiteSpace(name))\n\t\tthrow new BadHttpRequestException($\"The '{nameof(name)}' parameter is required.\", StatusCodes.Status400BadRequest);\n\n\tvar parameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);\n\n\tforeach(var pair in this.Request.Query)\n\t\tparameters[pair.Key] = pair.Value;\n\n\tforeach(var header in this.Request.Headers)\n\t\tparameters[header.Key] = header.Value;\n\n\tusing var stream = new MemoryStream();\n\tawait Release.SaveAsync(stream, Upgrader.GetAsync(name, edition, platform, architecture, parameters, cancellation), cancellation);\n\treturn this.File(stream.ToArray(), \"application/manifest+xml\");\n}"
+	},
+	{
+		"page": "framework/externals/caching.md",
+		"file": "framework/externals/redis/samples/distributedcache/Program.cs",
+		"start": 40,
+		"end": 42,
+		"code": "var succeeded = expiry.HasValue ?\n\tawait cache.SetValueAsync(key, value, expiry.Value, requisite, cancellation) :\n\tawait cache.SetValueAsync(key, value, requisite, cancellation);"
+	},
+	{
+		"page": "framework/externals/caching.md",
+		"file": "framework/externals/redis/samples/distributedcache/Program.cs",
+		"start": 65,
+		"end": 65,
+		"code": "var (value, expiry) = await cache.GetValueExpiryAsync<string>(key, cancellation);"
+	},
+	{
+		"page": "framework/externals/scripting.md",
+		"file": "framework/externals/lua/test/LuaExpressionEvaluatorTest.cs",
+		"start": 121,
+		"end": 139,
+		"code": "public void TestEvaluateSerializeJson()\n{\n\tusing var evaluator = new LuaExpressionEvaluator();\n\n\tvar result = evaluator.Evaluate(@\"obj = {id = 100, name=\"\"name\"\"}; return Json:Serialize(obj);\");\n\tAssert.NotNull(result);\n\n\tvar variables = new Dictionary<string, object>() { { \"text\", result } };\n\tresult = evaluator.Evaluate(@\"obj = Json:Deserialize(text); obj.id=200; return obj;\", variables);\n\tAssert.NotNull(result);\n\tAssert.IsAssignableFrom<IDictionary<string, object>>(result);\n\n\tif(result is IDictionary<string, object> dictionary)\n\t{\n\t\tAssert.Equal(2, dictionary.Count);\n\t\tAssert.Equal(200L, dictionary[\"id\"]);\n\t\tAssert.Equal(\"name\", dictionary[\"name\"]);\n\t}\n}"
+	},
+	{
+		"page": "framework/externals/execution.md",
+		"file": "framework/externals/hangfire/samples/MyHandler.cs",
+		"start": 11,
+		"end": 25,
+		"code": "public class MyHandler : HandlerBase<object>\n{\n\tprivate long _count = 0;\n\n\tprotected override ValueTask OnHandleAsync(object argument, Parameters parameters, CancellationToken cancellation) =>\n\t\tLogging.GetLogging(this).DebugAsync(\n\t\t\t\"MyHandler handles the scheduling of the Hangfire.\",\n\t\t\tnew\n\t\t\t{\n\t\t\t\tCount = Interlocked.Increment(ref _count),\n\t\t\t\tArgument = argument,\n\t\t\t\tParameters = parameters,\n\t\t\t},\n\t\t\tcancellation);\n}"
+	},
+	{
+		"page": "framework/externals/execution.md",
+		"file": "framework/externals/hangfire/samples/Zongsoft.Externals.Hangfire.Samples.plugin",
+		"start": 19,
+		"end": 21,
+		"code": "<extension path=\"/Workbench/Scheduler/Handlers\">\n\t<object name=\"MyHandler\" type=\"Zongsoft.Externals.Hangfire.Samples.MyHandler, Zongsoft.Externals.Hangfire.Samples\" />\n</extension>"
+	},
+	{
+		"page": "framework/externals/documents.md",
+		"file": "src/Features/Archiving/UserDataTemplateModelProvider.cs",
+		"start": 41,
+		"end": 45,
+		"code": "[Service(typeof(IDataTemplateModelProvider))]\npublic class UserDataTemplateModelProvider : DataTemplateModelProviderBase\n{\n\t#region 构造函数\n\tpublic UserDataTemplateModelProvider(IServiceProvider services) : base(\"User-List\", services) { }"
+	},
+	{
+		"page": "framework/externals/documents.md",
+		"file": "src/Features/Archiving/UserDataTemplateModelProvider.cs",
+		"start": 54,
+		"end": 69,
+		"code": "public override IDataTemplateModel GetModel(IDataTemplate template, object argument)\n{\n\tvar schema = $\"*, {nameof(UserProfile.Site)}\" + \"{*}\";\n\n\tif(argument is Stream stream)\n\t\targument = Serializer.Json.Deserialize<UserProfileCriteria>(stream);\n\n\tvar data = argument switch\n\t{\n\t\tstring key => this.Services.ResolveRequired<UserService>().Get(key, schema),\n\t\tIModel model => this.Services.ResolveRequired<UserService>().Select(Criteria.Transform(model), schema),\n\t\t_ => this.Services.ResolveRequired<UserService>().Select(null, schema),\n\t};\n\n\treturn new DataTemplateModel(new { Users = data });\n}"
+	},
+	{
+		"page": "framework/externals/documents.md",
+		"file": "src/api/Zongsoft.Discussions.Web.deploy",
+		"start": 4,
+		"end": 5,
+		"code": "[templates]\nartifacts/templates/*.xlsx"
+	},
+	{
+		"page": "framework/externals/cloud.md",
+		"file": "src/Utility.cs",
+		"start": 241,
+		"end": 258,
+		"code": "public static bool WriteTextFile(string path, string content)\n{\n\tif(string.IsNullOrWhiteSpace(path))\n\t\tthrow new ArgumentNullException(nameof(path));\n\n\tif(string.IsNullOrWhiteSpace(content))\n\t\treturn false;\n\n\tusing(var stream = FileSystem.File.Open(path, FileMode.Create, FileAccess.Write))\n\t{\n\t\tusing(var writer = new StreamWriter(stream, System.Text.Encoding.UTF8))\n\t\t{\n\t\t\twriter.Write(content);\n\t\t}\n\t}\n\n\treturn true;\n}"
+	},
+	{
+		"page": "hosting/hosting.md",
+		"file": "hosting/web/default/.deploy",
+		"start": 7,
+		"end": 10,
+		"code": "#@import ../web.deploy\n\n[plugins]\nnuget:Zongsoft.Plugins/plugins/Main.plugin"
+	},
+	{
+		"page": "hosting/terminal.md",
+		"file": "hosting/terminal/Program.cs",
+		"start": 9,
+		"end": 14,
+		"code": "static void Main(string[] args)\n{\n\tZongsoft.Plugins.Hosting.Application\n\t\t.Terminal(\"zongsoft.terminal\", [.. args, \"host=terminal\", \"site=daemon\"])\n\t\t.Run();\n}"
+	},
+	{
+		"page": "hosting/daemon.md",
+		"file": "hosting/daemon/Program.cs",
+		"start": 9,
+		"end": 28,
+		"code": "static void Main(string[] args)\n{\n\t#if WINDOWS\n\tZongsoft.Plugins.Hosting.Application\n\t\t.Daemon(\"zongsoft.daemon\", [.. args, \"host=daemon\", \"site=daemon\"], builder =>\n\t\t{\n\t\t\tbuilder.Services.AddWindowsService(options => options.ServiceName = builder.Environment.ApplicationName);\n\t\t}).Run();\n\t#elif LINUX\n\tZongsoft.Plugins.Hosting.Application\n\t\t.Daemon(\"zongsoft.daemon\", [.. args, \"host=daemon\", \"site=daemon\"], builder =>\n\t\t{\n\t\t\tbuilder.Services.AddSystemd();\n\t\t}).Run();\n\t#else\n\tZongsoft.Plugins.Hosting.Application\n\t\t.Daemon(\"zongsoft.daemon\", [.. args, \"host=daemon\", \"site=daemon\"])\n\t\t.Run();\n\t#endif\n}"
+	},
+	{
+		"page": "hosting/web.md",
+		"file": "hosting/web/default/Program.cs",
+		"start": 12,
+		"end": 21,
+		"code": "static void Main(string[] args)\n{\n\tvar app = Zongsoft.Web.Application.Web([..args, \"host=web\", \"site=default\", \"daemon=zongsoft.web\"]);\n\n\t//如果要启用私有部署模式则打开下行代码注释\n\t//app.Configuration[\"Deployment\"] = \"private\";\n\n\tapp.Map(\"/\", ctx => { ctx.Response.Redirect(\"/Application\"); return Task.CompletedTask; });\n\tapp.Run();\n}"
+	},
+	{
+		"page": "tools/packager.md",
+		"file": "hosting/web/default/pack.cmd",
+		"start": 77,
+		"end": 101,
+		"code": "dotnet-pack %format%              ^\n\t--name:Zongsoft.Hosting.Web   ^\n\t--title:Zongsoft.Web          ^\n\t--edition:%edition%           ^\n\t--version:%version%           ^\n\t--compilation:%compilation%   ^\n\t--framework:%framework%       ^\n\t--platform:%platform%         ^\n\t--architecture:%architecture% ^\n\t--Environment:%environment%   ^\n\t--ASPNETCORE_ENVIRONMENT:%environment% ^\n\t--daemon:zongsoft.web         ^\n\t--daemon-bind:8069            ^\n\t--daemon-environments:Environment,ASPNETCORE_ENVIRONMENT ^\n\t--postinstalled:\"../../.deploy/%scheme%/nginx/reload-nginx.sh\" ^\n\t--postuninstalled:\"../../.deploy/%scheme%/nginx/reload-nginx.sh\" ^\n\t--exclude:**/logs/;bin/$(compilation)/$(framework)/*.staticwebassets.* ^\n\t../../mime                    ^\n\tappsettings.json              ^\n\tweb*.config                   ^\n\tweb*.option                   ^\n\twwwroot                       ^\n\tplugins                       ^\n\tbin/$(compilation)/$(framework):~ ^\n\t\"../../.deploy/%scheme%/nginx/zongsoft.web.conf:/etc/nginx/conf.d/zongsoft.web.conf\""
+	},
+	{
+		"page": "tools/upgrader.md",
+		"file": "hosting/daemon/upgrade.pack.cmd",
+		"start": 56,
+		"end": 67,
+		"code": "dotnet-upgrade pack               ^\n\t--name:Zongsoft.Daemon        ^\n\t--kind:fully                  ^\n\t--edition:%edition%           ^\n\t--version:%version%           ^\n\t--checksum:sha1               ^\n\t--compilation:%compilation%   ^\n\t--framework:%framework%       ^\n\t--platform:%platform%         ^\n\t--architecture:%architecture% ^\n\t--source:\"D:\\\\Zongsoft\\\\hosting\\\\daemon\\\\bin\\\\$(compilation)\\\\$(framework)\" ^\n\t--output:../../../"
+	},
+	{
+		"page": "tools/upgrader.md",
+		"file": "framework/upgrading/tool/README.zh-Hans.md",
+		"start": 289,
+		"end": 289,
+		"code": "dotnet-upgrade checksum --algorithm:sha1 Zongsoft.Daemon-stable@1.1.0_win-x64.zip"
+	},
+	{
+		"page": "tools/regular.md",
+		"file": "framework/Zongsoft.Core/src/Text/TextRegular.cs",
+		"start": 115,
+		"end": 115,
+		"code": "public static readonly TextRegular Email = new(@\"^\\s*(?<value>[A-Za-z0-9]([-_\\.]?[A-Za-z0-9]+)*@([A-Za-z0-9]+([-_]?[A-Za-z0-9]+)*)(\\.[A-Za-z0-9]+([-_]?[A-Za-z0-9]+)*)*\\.[A-Za-z]+)\\s*$\");"
+	},
+	{
+		"page": "references/deploy-files.md",
+		"file": "src/Zongsoft.Discussions.deploy",
+		"start": 1,
+		"end": 4,
+		"code": "artifacts/Zongsoft.Discussions.plugin\nartifacts/Zongsoft.Discussions.option\nartifacts/Zongsoft.Discussions.mapping\nlib/$(Framework)/Zongsoft.Discussions.*"
+	},
+	{
+		"page": "references/deploy-files.md",
+		"file": "src/api/Zongsoft.Discussions.Web.deploy",
+		"start": 1,
+		"end": 5,
+		"code": "artifacts/Zongsoft.Discussions.Web.plugin\nlib/$(Framework)/Zongsoft.Discussions.Web.*\n\n[templates]\nartifacts/templates/*.xlsx"
+	},
+	{
+		"page": "references/option-files.md",
+		"file": "src/Zongsoft.Discussions.option",
+		"start": 1,
+		"end": 7,
+		"code": "<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n\n<options>\n\t<option path=\"/Discussions\">\n\t\t<general siteId=\"1\" basePath=\"zfs.s3:/zongsoft-discussions/\" />\n\t</option>\n</options>"
+	},
+	{
+		"page": "references/option-files.md",
+		"file": "src/Utility.cs",
+		"start": 283,
+		"end": 283,
+		"code": "var basePath = ApplicationContext.Current.Configuration.GetOptionValue<string>(\"/Discussions/General.BasePath\");"
+	}
+]

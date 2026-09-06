@@ -5,7 +5,7 @@ icon: puzzle-piece
 
 # 插件框架
 
-![插件框架](../../.gitbook/assets/zongsoft-plugins-cover.svg)
+![插件框架](../../.gitbook/assets/zongsoft-plugins-cover.png)
 
 `Zongsoft.Plugins` 是 Zongsoft 插件化应用的核心库。它把应用拆成可独立部署、可声明依赖、可挂载能力的插件模块，让终端程序、后台服务、Web 应用和富客户端共享一套扩展模型。
 

@@ -9,19 +9,34 @@ icon: power-off
 
 ## 启动入口
 
+Discussions 的业务代码放在插件中，进程由 hosting 项目承载。下面是现有守护宿主的实际入口，平台分支由项目编译符号选择。
+
 插件框架提供 `Application.Daemon(...)` 和 `Application.Terminal(...)` 两组入口：
+
+来源：[hosting/daemon/Program.cs](https://github.com/Zongsoft/hosting/blob/main/daemon/Program.cs#L9)（节选；上下文见源文件）。
 
 {% code title="Program.cs" %}
 ```csharp
-using Microsoft.Extensions.Hosting;
-using Zongsoft.Plugins.Hosting;
-
-var host = Application.Daemon(args, builder =>
+static void Main(string[] args)
 {
-	// 在这里追加宿主自己的配置、服务或日志设置。
-});
-
-await host.RunAsync();
+	#if WINDOWS
+	Zongsoft.Plugins.Hosting.Application
+		.Daemon("zongsoft.daemon", [.. args, "host=daemon", "site=daemon"], builder =>
+		{
+			builder.Services.AddWindowsService(options => options.ServiceName = builder.Environment.ApplicationName);
+		}).Run();
+	#elif LINUX
+	Zongsoft.Plugins.Hosting.Application
+		.Daemon("zongsoft.daemon", [.. args, "host=daemon", "site=daemon"], builder =>
+		{
+			builder.Services.AddSystemd();
+		}).Run();
+	#else
+	Zongsoft.Plugins.Hosting.Application
+		.Daemon("zongsoft.daemon", [.. args, "host=daemon", "site=daemon"])
+		.Run();
+	#endif
+}
 ```
 {% endcode %}
 

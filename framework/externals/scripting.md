@@ -21,27 +21,37 @@ Python 中能否导入某个库取决于 IronPython 兼容性和部署内容，�
 
 ## 从业务插件调用
 
-宿主部署选定实现，业务项目只引用 Core 契约。以下片段运行在插件初始化之后，预期结果表示数值 `42`。
+Discussions 当前没有脚本求值业务。这里采用 Lua 插件的 JSON 往返测试：先把脚本对象序列化，再通过变量 text 传回脚本，修改 id 后检查结果。这样可以看到脚本语言、宿主变量和返回类型之间的边界。
 
-{% code title="EvaluateRule.cs" %}
+来源：[framework/externals/lua/test/LuaExpressionEvaluatorTest.cs](https://github.com/Zongsoft/framework/blob/main/externals/lua/test/LuaExpressionEvaluatorTest.cs#L121)（节选；上下文见源文件）。
+
+{% code title="LuaExpressionEvaluatorTest.cs" %}
 ```csharp
-using Zongsoft.Expressions;
-using Zongsoft.Services;
-
-var evaluator = ApplicationContext.Current.Services
-	.FindRequired<IExpressionEvaluator>("Scriban");
-var variables = new Dictionary<string, object>
+public void TestEvaluateSerializeJson()
 {
-	["x"] = 20,
-	["y"] = 22,
-};
+	using var evaluator = new LuaExpressionEvaluator();
 
-var result = evaluator.Evaluate("x + y", variables);
-Console.WriteLine(result);
+	var result = evaluator.Evaluate(@"obj = {id = 100, name=""name""}; return Json:Serialize(obj);");
+	Assert.NotNull(result);
+
+	var variables = new Dictionary<string, object>() { { "text", result } };
+	result = evaluator.Evaluate(@"obj = Json:Deserialize(text); obj.id=200; return obj;", variables);
+	Assert.NotNull(result);
+	Assert.IsAssignableFrom<IDictionary<string, object>>(result);
+
+	if(result is IDictionary<string, object> dictionary)
+	{
+		Assert.Equal(2, dictionary.Count);
+		Assert.Equal(200L, dictionary["id"]);
+		Assert.Equal("name", dictionary["name"]);
+	}
+}
 ```
 {% endcode %}
 
-需要配置选择时，从选项读取求值器名，并同时选择与该语言匹配的表达式。完整项目、命令和部署示例见[首个业务插件](../../get-started/first-business-plugin.md)。
+Python 也有 [JSON 往返测试](https://github.com/Zongsoft/framework/blob/main/externals/python/test/PythonExpressionEvaluatorTest.cs)，使用 Json.Deserialize(text) 和 Python 字典索引；不能直接执行上面的 Lua 冒号语法。Scriban 暂未找到相同测试项目，其调用和变量导入方式应以 [ScribanExpressionEvaluator](https://github.com/Zongsoft/framework/blob/main/externals/scriban/src/ScribanExpressionEvaluator.cs) 为准。
+
+在插件宿主中，业务依赖 IExpressionEvaluator 契约，并通过 [FindRequired](../core/services/locating.md) 按 Lua、Python 或 Scriban 名称选择实现；上面的测试自行构造实例，因此负责释放。Discussions 的首个业务插件教程不包含脚本执行步骤。
 
 当前 Scriban 实现会直接读取 `variables.Count`，即使没有变量也应传入空字典，不能把可选参数的默认值视为已支持空对象输入。
 
@@ -53,7 +63,7 @@ Console.WriteLine(result);
 
 ## 运行时与并发
 
-Lua 每次求值创建并释放自己的 Lua 状态；Python 复用引擎并在调用期间切换运行时输入输出；Scriban 每次建立求值上下文。这些实现不能统一概括为“传入独立字典就线程隔离”。
+Lua 每次求值创建并释放自己的 Lua 状态；Python 复用引擎，在调用期间切换运行时输入输出，并在 finally 中恢复先前流；Scriban 每次建立求值上下文。这些实现不能统一概括为“传入独立字典就线程隔离”。
 
 尤其是 Python 的 IO 和全局状态，应在应用拥有的执行边界中串行化，或通过独立进程隔离。容器注册的求值器由宿主管理；直接构造的独立实例才由构造方负责释放。
 
@@ -68,3 +78,7 @@ Lua 每次求值创建并释放自己的 Lua 状态；Python 复用引擎并在�
 模板生成是另一类任务：它把数据渲染成完整文本或文件。工作簿模板应使用[表格归档和模板服务](documents.md)，不能只因为安装了 Scriban 就假定所有模板格式都已接入。
 
 源码入口：[Lua](https://github.com/Zongsoft/framework/tree/main/externals/lua)、[Python](https://github.com/Zongsoft/framework/tree/main/externals/python)、[Scriban](https://github.com/Zongsoft/framework/tree/main/externals/scriban)。
+
+## 按项目继续阅读
+
+[Lua](projects/lua.md) · [Python](projects/python.md) · [Scriban](projects/scriban.md)

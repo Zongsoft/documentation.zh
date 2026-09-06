@@ -11,21 +11,7 @@ OTLP 是遥测数据传输协议。一个批次可包含多个 Resource，每个
 
 `Zongsoft.Diagnostics.Protocols.Client` 提供生成的消息类型及 gRPC 客户端 Stub。它不会自动插桩、采集、批处理、重试或建立 SDK 导出管线。普通应用从[诊断配置](../diagnostics.md)开始；直接协议调用才需要自行构造请求。
 
-下面展示调用形状，空请求不产生业务遥测；需要引用协议包及 gRPC .NET 客户端，并替换为自己的受控端点：
-
-{% code title="ExportMetrics.cs" %}
-```csharp
-using Grpc.Net.Client;
-using OpenTelemetry.Proto.Collector.Metrics.V1;
-
-using var cancellation = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-using var channel = GrpcChannel.ForAddress("https://collector.example.invalid");
-var client = new MetricsService.MetricsServiceClient(channel);
-var response = await client.ExportAsync(
-	new ExportMetricsServiceRequest(),
-	cancellationToken: cancellation.Token);
-```
-{% endcode %}
+Discussions 没有直接构造 OTLP Export 请求的用例，因此不再提供空请求的虚构客户端。发送端应使用现有诊断导出配置；需要直接操作协议时，核对客户端项目生成的服务与 DTO。
 
 业务导出器还要填充资源、作用域和数据点，处理响应及部分成功，控制队列、批次大小和重试范围。生成式 API 版本不等于线协议稳定性，不建议直接将这些类型作为业务长期存储模型。
 
@@ -47,13 +33,29 @@ Listener 的 Logs、Metrics、Traces 服务通过 `gRPC` 标签映射。随包�
 
 ## 注册处理器
 
-接收服务把协议消息转换成框架模型，然后分派给对应处理器集合。指标处理器挂载示例：
+接收服务把协议消息转换为框架模型，然后分派给处理器集合。下面是框架 samples 中实际使用的插件注册：
 
-{% code title="Acme.Telemetry.plugin（扩展片段）" %}
+来源：[framework/Zongsoft.Diagnostics/protocols/server/samples/Zongsoft.Diagnostics.Protocols.Server.Samples.plugin](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Diagnostics/protocols/server/samples/Zongsoft.Diagnostics.Protocols.Server.Samples.plugin#L19)（节选；上下文见源文件）。
+
+{% code title="Zongsoft.Diagnostics.Protocols.Server.Samples.plugin" %}
 ```xml
 <extension path="/Workbench/Diagnostics/Telemetry/Listener/Metrics">
-	<object type="Acme.Telemetry.MetricHandler, Acme.Telemetry" />
+	<object name="MetricHandler" type="Zongsoft.Diagnostics.Protocols.Server.Samples.MetricHandler, Zongsoft.Diagnostics.Protocols.Server.Samples" />
 </extension>
+```
+{% endcode %}
+
+来源：[framework/Zongsoft.Diagnostics/protocols/server/samples/MetricHandler.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Diagnostics/protocols/server/samples/MetricHandler.cs#L14)（节选；上下文见源文件）。
+
+{% code title="MetricHandler.cs" %}
+```csharp
+protected override ValueTask OnHandleAsync(IEnumerable<Telemetry.Metrics.Meter> meters, Parameters parameters, CancellationToken cancellation)
+{
+	foreach(var meter in meters)
+		Terminal.WriteLine(CommandOutletDumper.Dump(meter));
+
+	return ValueTask.CompletedTask;
+}
 ```
 {% endcode %}
 

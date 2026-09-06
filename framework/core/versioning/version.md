@@ -13,20 +13,28 @@ icon: code-commit
 
 `Version.Number` 表示四段式数值版本号，包含 `Major`、`Minor`、`Patch`、`Revision` 四个 `ushort` 字段。它适合保存到数据库、配置项或需要稳定排序的持久化字段中，也可以与旧的整数版本值协作。
 
+Discussions 没有直接操作此版本类型；下面采用 Core 的 VersionTest 和 VersionNumberTest，保留测试输入及输出断言。它们验证版本规则，不表示 Discussions 当前包版本。
+
 ## 语义化版本
 
 `Version` 是引用类型，构造时必须提供非负的 `Major`、`Minor` 和 `Patch`。`Label` 和 `Extra` 会去掉首尾空白；空白值会视为没有标签或额外信息。
 
-{% code title="SemanticVersion.cs" %}
+来源：[framework/Zongsoft.Core/test/Versioning/VersionTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Versioning/VersionTest.cs#L94)（节选；上下文见源文件）。
+
+{% code title="VersionTest.cs" %}
 ```csharp
-var current = Zongsoft.Versioning.Version.Parse("1.2.3-alpha.1+build.5");
-var stable = new Zongsoft.Versioning.Version(1, 2, 3);
+public void TestFormat()
+{
+	var version = new Version(1, 2, 3, "alpha.1", "build.5");
 
-if(current < stable)
-	Console.WriteLine("当前版本仍是预发布版本。");
-
-Console.WriteLine(current.ToString("N")); // 1.2.3-alpha.1
-Console.WriteLine(current.ToString("F")); // 1.2.3-alpha.1+build.5
+	Assert.Equal("1.2.3-alpha.1", version.ToString());
+	Assert.Equal("1.2.3-alpha.1", version.ToString("N"));
+	Assert.Equal("1.2.3-alpha.1+build.5", version.ToString("F"));
+	Assert.Equal("1.2.3", version.ToString("V"));
+	Assert.Equal("alpha.1", version.ToString("R"));
+	Assert.Equal("build.5", version.ToString("M"));
+	Assert.Equal("1.2.3.0", version.ToString("x.y.z.r"));
+}
 ```
 {% endcode %}
 
@@ -66,16 +74,25 @@ Console.WriteLine(current.ToString("F")); // 1.2.3-alpha.1+build.5
 
 `Version.Number` 是值类型，保留旧四段式版本值的使用场景。它可以从 `1.2`、`1.2.3`、`1.2.3.4` 解析；缺失的 `Patch` 或 `Revision` 会补为 `0`，但不支持单段版本和超过 `ushort` 范围的版本段。
 
-{% code title="VersionNumber.cs" %}
+来源：[framework/Zongsoft.Core/test/Versioning/VersionNumberTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Versioning/VersionNumberTest.cs#L172)（节选；上下文见源文件）。
+
+{% code title="VersionNumberTest.cs" %}
 ```csharp
-Zongsoft.Versioning.Version.Number number = new(2, 3, 1);
-ulong stored = number;
+public void TestNumericConversion()
+{
+	var version = new Version.Number(1, 2, 3, 4);
+	const ulong Packed = 0x0001_0002_0003_0004UL;
 
-Zongsoft.Versioning.Version.Number restored = stored;
-var baseline = Zongsoft.Versioning.Version.Number.Parse("2.3.0");
+	Assert.Equal(Packed, (ulong)version);
+	Assert.Equal((long)Packed, (long)version);
+	Assert.Equal(version, (Version.Number)Packed);
+	Assert.Equal(version, (Version.Number)(long)Packed);
 
-var enabled = restored >= baseline;
-var unchanged = restored == number;
+	version = new Version.Number(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue);
+	Assert.Equal(ulong.MaxValue, (ulong)version);
+	Assert.Equal(-1L, (long)version);
+	Assert.Equal(version, (Version.Number)(-1L));
+}
 ```
 {% endcode %}
 
@@ -98,12 +115,7 @@ var unchanged = restored == number;
 
 旧代码如果只是比较 `1.2.3.4` 这类四段数字，或者依赖整数持久化，通常只需要把命名空间和类型改为 `Zongsoft.Versioning.Version.Number`。
 
-{% code title="MigrateVersionNumber.cs" %}
-```csharp
-var version = Zongsoft.Versioning.Version.Number.Parse("1.2.3.4");
-ulong packed = version;
-```
-{% endcode %}
+上面的 TestNumericConversion 就是整数往返兼容用例；跨旧版本迁移时，使用现有持久化值验证每一段恢复结果，再决定是否调整字段类型。
 
 如果旧字段原本保存的是面向用户的发布版本，且需要表达 `alpha`、`beta`, `preview`、`rc` 或构建信息，建议改用 `Version`，并明确是否需要把 `Extra` 写入序列化结果。
 

@@ -18,17 +18,29 @@ icon: code
 
 位向量可以把多个布尔状态压缩到一个整数中。索引器中的 `bit` 参数表示位掩码，不是从零开始的序号。
 
-{% code title="BitVectorSample.cs" %}
+来源：[framework/Zongsoft.Core/test/Common/ConvertTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Common/ConvertTest.cs#L94)（节选；上下文见源文件）。
+
+{% code title="ConvertTest.cs" %}
 ```csharp
-using Zongsoft.Common;
+public void TestBitVector32()
+{
+	Zongsoft.Common.BitVector32 vector = 1;
 
-BitVector32 vector = 1;
+	Assert.Equal(1, vector.Data);
+	Assert.True(vector[1]);
+	Assert.False(vector[2]);
+	Assert.False(vector[3]);
+	Assert.False(vector[4]);
+	Assert.False(vector[5]);
 
-Console.WriteLine(vector[1]); // true
-Console.WriteLine(vector[2]); // false
-
-vector[4] = true;
-Console.WriteLine(vector.Data); // 5
+	vector[5] = true;
+	Assert.Equal(5, vector.Data);
+	Assert.True(vector[1]);
+	Assert.False(vector[2]);
+	Assert.False(vector[3]);
+	Assert.True(vector[4]);
+	Assert.True(vector[5]);
+}
 ```
 {% endcode %}
 
@@ -37,6 +49,8 @@ Console.WriteLine(vector.Data); // 5
 {% hint style="info" %}
 `BitVector32` 和 `BitVector64` 更关注紧凑存储；如果要表达固定层级编码，请使用 [HierarchyVector32](hierarchy-vector32.md)。
 {% endhint %}
+
+以上是框架 ConvertTest 的原始位向量测试；数值表示位掩码，不能把索引参数直接理解为从零开始的位序号。Discussions 没有直接调用此结构。
 
 ## 相关资源
 

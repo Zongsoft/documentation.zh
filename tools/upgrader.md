@@ -19,13 +19,28 @@ dotnet tool install -g Zongsoft.Tools.Upgrader
 
 ## 制作全量包
 
-以下 PowerShell 命令以独立 `publish` 目录为输入：
+Discussions 没有独立升级打包脚本，可参考现有守护宿主 hosting/daemon/upgrade.pack.cmd。以下是它的实际命令，变量由脚本前部设置，使用 cmd 的续行与变量语法；按完整脚本执行，先核对其中源码根路径和输出目录。
 
-{% code title="PackUpgrade.ps1" %}
-```powershell
-dotnet-upgrade pack --name:Acme.Service --version:1.1.0 --edition:stable --framework:net10.0 --platform:windows --architecture:x64 --kind:Fully --checksum:sha256 --source:./publish --output:./releases/ --exclude:'logs/;.garnet/;'
+来源：[hosting/daemon/upgrade.pack.cmd](https://github.com/Zongsoft/hosting/blob/main/daemon/upgrade.pack.cmd#L56)（节选；上下文见源文件）。
+
+{% code title="upgrade.pack.cmd" %}
+```bat
+dotnet-upgrade pack               ^
+	--name:Zongsoft.Daemon        ^
+	--kind:fully                  ^
+	--edition:%edition%           ^
+	--version:%version%           ^
+	--checksum:sha1               ^
+	--compilation:%compilation%   ^
+	--framework:%framework%       ^
+	--platform:%platform%         ^
+	--architecture:%architecture% ^
+	--source:"D:\\Zongsoft\\hosting\\daemon\\bin\\$(compilation)\\$(framework)" ^
+	--output:../../../
 ```
 {% endcode %}
+
+这份脚本当前选择 sha1，本文保留实际参数以便核对；发布完整性要求和算法应由应用发布流程明确，checksum 本身也不提供签名认证。
 
 `name` 必须匹配运行时应用名，`edition` 是发布分发名；它与 deployer 中表示编译输出配置的同名变量不同。`version`、`platform`、`framework` 为必要信息，架构必须符合目标应用。
 
@@ -41,9 +56,11 @@ dotnet-upgrade pack --name:Acme.Service --version:1.1.0 --edition:stable --frame
 
 ## checksum 会修改清单
 
-{% code title="RefreshChecksum.ps1" %}
-```powershell
-dotnet-upgrade checksum ./releases/Acme.Service-stable@1.1.0_win-x64.zip
+来源：[framework/upgrading/tool/README.zh-Hans.md](https://github.com/Zongsoft/framework/blob/main/upgrading/tool/README.zh-Hans.md#L289)（节选；上下文见源文件）。
+
+{% code title="README.zh-Hans.md" %}
+```shell
+dotnet-upgrade checksum --algorithm:sha1 Zongsoft.Daemon-stable@1.1.0_win-x64.zip
 ```
 {% endcode %}
 

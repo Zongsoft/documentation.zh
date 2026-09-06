@@ -1,101 +1,59 @@
 ---
-description: 说明 .option 的 XML 键生成、具名集合、宿主与插件文件匹配、覆盖和排障规则。
+description: 以 Discussions 的真实 option 和消费代码说明配置键、文件匹配与覆盖。
 icon: sliders
 ---
 
 # 选项配置文件
 
-`.option` 是接入应用配置体系的 XML 文件。它只提供运行参数；不会下载包、部署 DLL 或自动创建缺失的业务模块。文件能否加载、XML 生成什么键、对象如何读取配置是三个独立问题。
 
-## 基本结构与标量
+.option 提供运行参数；插件清单、程序集部署和配置读取是不同步骤。Discussions 的配置目前只有 General 节，定义站点编号与文件存储基础路径。
 
-根节点支持 `options` 或 `configuration`，其下通过 `option path` 指定配置节。路径中的 `/` 对应配置键中的 `:`，属性用于表达标量：
+## 从文件到配置键
 
-{% code title="Acme.Rules.option" %}
+来源：[src/Zongsoft.Discussions.option](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Zongsoft.Discussions.option#L1)（节选；上下文见源文件）。
+
+{% code title="Zongsoft.Discussions.option" %}
 ```xml
+<?xml version="1.0" encoding="utf-8" ?>
+
 <options>
-	<option path="/">
-		<rules evaluator="Scriban" enabled="true" />
+	<option path="/Discussions">
+		<general siteId="1" basePath="zfs.s3:/zongsoft-discussions/" />
 	</option>
 </options>
 ```
 {% endcode %}
 
-这个文件生成 `Rules:Evaluator` 和 `Rules:Enabled` 两个键。键名比较忽略大小写；属性值先以文本进入配置，再由消费方绑定或转换。
+path 指定配置节，general 的属性生成 Discussions:General:SiteId 和 Discussions:General:BasePath。属性值先按文本加载，再由消费方转换；键名比较忽略大小写。
 
-{% code title="ReadRuleOptions.cs" %}
+来源：[src/Utility.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Utility.cs#L283)（节选；上下文见源文件）。
+
+{% code title="Utility.cs" %}
 ```csharp
-using Zongsoft.Services;
-
-var configuration = ApplicationContext.Current.Configuration;
-var evaluator = configuration["Rules:Evaluator"];
+var basePath = ApplicationContext.Current.Configuration.GetOptionValue<string>("/Discussions/General.BasePath");
 ```
 {% endcode %}
 
-{% hint style="warning" %}
-🚨 不要照搬其它 XML 配置提供程序的规则。这里的 `<evaluator>Scriban</evaluator>` 会进入文本集合项处理，不等价于 `evaluator="Scriban"`。判断配置是否正确，应核对实际消费的键，不能只看 XML 是否有效。
-{% endhint %}
-
-## 具名集合
-
-连接等集合通过 `元素名.name` 或 `元素名.key` 指定成员名称，建议将该属性放在首位，延续仓库中的声明方式：
-
-{% code title="Acme.Orders.option" %}
-```xml
-<options>
-	<option path="/Data">
-		<connectionSettings>
-			<connectionSetting connectionSetting.name="Orders"
-				driver="SQLite" value="Data Source=orders.db" />
-		</connectionSettings>
-	</option>
-</options>
-```
-{% endcode %}
-
-连接成员名称为 `Orders`，其驱动和值分别位于 `Data:ConnectionSettings:Orders:Driver`、`Data:ConnectionSettings:Orders:Value`。业务按连接名取得对应设置；数据访问器还有自己的名称匹配规则，见[连接配置](../framework/data/connections.md)。
-
-具名键不能包含解析器禁止的路径和特殊字符，例如 `:`、`/`、`[`、`]`。将实例名用于路径时，应遵循相应组件的命名约定。
-
-## 宿主级文件
-
-非 Web 通用宿主的应用构建器先按应用名加载，再在应用名与入口程序集名不同时按入口程序集名加载。对于一个名称，其候选顺序为：
-
-1. `名称.option`。
-2. `名称.环境.option`。
-3. `名称.host值.option`、`名称.host值.环境.option`。
-4. `名称.site值.option`、`名称.site值.环境.option`。
-
-环境名和这里的 host/site 后缀转为小写，重复 host/site 会去重，文件是可选的。Web 构建器有自己的入口和配置装配，应用名及站点参数应对照[Web 宿主](../hosting/web.md)，不要仅凭 DLL 文件名推测。
-
-## 插件级文件
-
-插件配置提供程序只关联**已经加载的插件清单**。假定文件为 `Acme.Rules.plugin`，环境为 `Development`，`host=web`、`site=default`，候选组依次为：
-
-| 顺序 | 候选文件 |
-| --- | --- |
-| 1 | `Acme.Rules.option` |
-| 2 | `Acme.Rules.development.option` |
-| 3 | `Acme.Rules.development-*.option` |
-| 4 | `Acme.Rules.web.option`、`Acme.Rules.web.development-*.option` |
-| 5 | `Acme.Rules.default.option`、`Acme.Rules.default.development-*.option` |
-
-主名取清单**文件名**，不取 `<plugin name>` 属性。host 与 site 相同时不重复处理 site。环境后缀转小写，插件级 host/site 使用配置值拼接，因此在大小写敏感文件系统上应保持拼写一致。
+Utility 实际读取的是 BasePath。配置中出现 SiteId，并不等于所有服务都会用它作为租户回退值；租户身份来自[身份转换与验证器](../framework/security/authentication.md)。这是核对“配置存在”与“业务确实消费”时很重要的区别。
 
 {% hint style="info" %}
-💡 插件级匹配的环境附属模式含 `-`。例如 `Acme.Rules.web.development-local.option` 能匹配上述模式，而不能按宿主级规则推断 `Acme.Rules.web.development.option` 也会自动加载。
+💡 源码中的 S3 路径用于说明真实配置，不包含可供文档读者使用的凭据。运行时应由自己的隔离环境提供基础目录和相应文件系统插件。
 {% endhint %}
 
-## 覆盖与变化
+## XML 的标量与集合
 
-同一插件内，后加入的提供程序优先返回键值；同一通配符组的文件枚举顺序没有作为稳定约定公开，不要用文件名排序实现关键覆盖逻辑。跨插件的配置提供程序通过并发字典枚举，也不承诺同名键的固定覆盖顺序。
+标量使用属性；XML 文本节点走集合项处理，不应把属性值改写成同名子元素后假定语义相同。具名集合使用元素名加 .name 或 .key 指定成员名，具体用例见框架[选项解析测试](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Configuration/Xml/OptionConfigurationTest.cs)。
 
-因此建议让每个配置节有明确所有者，将环境覆盖集中在确定的文件中。文件提供程序启用变化加载，并不意味着业务单例会重新绑定，也不意味着现有数据库连接或客户端会重建；是否响应变化取决于消费方。
+## 清单和选项的主名
 
-## 诊断配置问题
+Discussions 的 Zongsoft.Discussions.plugin 与 Zongsoft.Discussions.option 主文件名一致。插件配置提供程序以已加载清单的文件名匹配选项，不是按 plugin 的 name 属性任意搜索。文件未部署或清单未加载时，仅有正确 XML 也不会生效。
 
-按“清单已加载 → 文件主名匹配 → 环境/host/site 后缀匹配 → 实际键正确 → 消费方已读取”的顺序排查。读取非敏感键确认结果；连接字符串、口令及令牌只检查是否存在和来源，不要整段输出。
+环境、host、site 参数还会影响附属文件匹配。宿主级与插件级规则不同，插件级某些环境附属模式包含连字符；需要新增环境文件时，应核对[插件配置提供程序](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/Configuration/PluginConfigurationProvider.cs)，不能把文档中的候选规则当成仓库已经存在的文件。
 
-部署时 `--site` 可以参与文件筛选，运行时 `site=...` 可以参与配置选择，两者属于不同进程。部署变量规则见[部署文件格式](deploy-files.md)。
+## 覆盖与重新读取
 
-实现依据：[XML 键生成](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Configuration/Xml/XmlStreamConfigurationProvider.cs)、[插件文件匹配](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/Configuration/PluginConfigurationProvider.cs)、[同插件覆盖](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Configuration/CompositeConfigurationProvider.cs)、[宿主配置加载](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/Hosting/ApplicationBuilder.cs)。
+同一插件内，后加入的配置提供程序优先返回同名键；不要依赖通配符枚举顺序或跨插件顺序实现关键覆盖。文件支持变化加载，也不代表消费方一定重新绑定、数据库连接一定重建。
+
+Utility.GetFilePath 在调用时读取 BasePath；其他组件可能缓存设置，必须检查各自实现。排障顺序是：清单加载、选项部署、名称匹配、实际键生成、消费代码读取。
+
+关联阅读：[插件文件](../framework/plugins/plugin-file.md)、[文件系统](../framework/core/io.md)、[部署文件](deploy-files.md)。

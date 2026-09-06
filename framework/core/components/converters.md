@@ -30,12 +30,15 @@ icon: repeat
 * 命令行选项绑定，例如 `--timeout:5s`。
 * JSON、类型描述器或配置绑定需要文本与对象互转的地方。
 
-{% code title="命令选项中的 TimeSpan" %}
+来源：[framework/Zongsoft.Core/src/Terminals/Commands/ShellCommand.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Terminals/Commands/ShellCommand.cs#L42)（节选；上下文见源文件）。
+
+{% code title="ShellCommand.cs" %}
 ```csharp
-[CommandOption("timeout", 't', typeof(TimeSpan), "1s")]
-public sealed class ShellCommand : CommandBase<CommandContext>
+[CommandOption(TIMEOUT_OPTION, 't', typeof(TimeSpan), "1s")]
+public class ShellCommand : CommandBase<CommandContext>
 {
-}
+	#region 常量定义
+	private const string TIMEOUT_OPTION = "timeout";
 ```
 {% endcode %}
 
@@ -47,46 +50,59 @@ public sealed class ShellCommand : CommandBase<CommandContext>
 
 如果目标类型是数组，转换器会创建对应元素类型的数组；如果目标类型是抽象集合类型，则会创建 `System.Collections.Generic.List<T>`；如果目标类型是具体集合类型，则会创建该集合并逐项添加元素。
 
-{% code title="CollectionConverter.cs" %}
+来源：[framework/Zongsoft.Core/test/Configuration/ConnectionSettingsTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Configuration/ConnectionSettingsTest.cs#L462)（节选；上下文见源文件）。
+
+{% code title="ConnectionSettingsTest.cs" %}
 ```csharp
-using System;
-using System.ComponentModel;
-using System.Globalization;
-
-using Zongsoft.Components.Converters;
-
-public sealed class MappingOptions
+[TypeConverter(typeof(Components.Converters.CollectionConverter<MappingEntryConverter>))]
+public MappingEntry[] Mapping
 {
-	[TypeConverter(typeof(CollectionConverter<MappingEntryConverter>))]
-	public MappingEntry[] Mapping { get; set; }
-}
-
-public readonly struct MappingEntry(string source, string target = null)
-{
-	public readonly string Source = source ?? target;
-	public readonly string Target = target ?? source;
-}
-
-public sealed class MappingEntryConverter : TypeConverter
-{
-	public override bool CanConvertFrom(ITypeDescriptorContext context, Type sourceType) =>
-		sourceType == typeof(string) || base.CanConvertFrom(context, sourceType);
-
-	public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, object value)
-	{
-		if(value is not string text)
-			return base.ConvertFrom(context, culture, value);
-
-		var index = text.IndexOfAny([':', '=']);
-		return index < 0 ?
-			new MappingEntry(text.Trim()) :
-			new MappingEntry(text[..index].Trim(), text[(index + 1)..].Trim());
-	}
+	get => this.GetValue<MappingEntry[]>();
+	set => this.SetValue(value);
 }
 ```
 {% endcode %}
 
-上面的声明允许把 `mapping=s1:t1,s2=t2,same` 解析成三个 `MappingEntry` 元素：`s1 -> t1`、`s2 -> t2` 和 `same -> same`。普通 `CollectionConverter` 会使用元素类型本身的转换规则；`CollectionConverter<TElementConverter>` 则显式创建 `TElementConverter` 来解析每个元素，适合元素类型本身没有注册全局转换器，或者某个属性需要专属解析格式的场景。
+来源：[framework/Zongsoft.Core/test/Configuration/ConnectionSettingsTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Configuration/ConnectionSettingsTest.cs#L485)（节选；上下文见源文件）。
+
+{% code title="ConnectionSettingsTest.cs" %}
+```csharp
+public override object ConvertFrom(ITypeDescriptorContext context, CultureInfo culture, object value)
+{
+	if(value is string text)
+	{
+		if(string.IsNullOrEmpty(text))
+			return default(MappingEntry);
+
+		var index = text.IndexOfAny([':', '=']);
+
+		return index < 0 ?
+			new MappingEntry(text.Trim()) :
+			new MappingEntry(text[..index].Trim(), text[(index + 1)..].Trim());
+	}
+
+	return base.ConvertFrom(context, culture, value);
+}
+```
+{% endcode %}
+
+来源：[framework/Zongsoft.Core/test/Configuration/ConnectionSettingsTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Configuration/ConnectionSettingsTest.cs#L130)（节选；上下文见源文件）。
+
+{% code title="ConnectionSettingsTest.cs" %}
+```csharp
+Assert.NotNull(settings.Mapping);
+Assert.NotEmpty(settings.Mapping);
+Assert.Equal(3, settings.Mapping.Length);
+Assert.Equal("s1", settings.Mapping[0].Source, true);
+Assert.Equal("t1", settings.Mapping[0].Target, true);
+Assert.Equal("s2", settings.Mapping[1].Source, true);
+Assert.Equal("t2", settings.Mapping[1].Target, true);
+Assert.Equal("same", settings.Mapping[2].Source, true);
+Assert.Equal("same", settings.Mapping[2].Target, true);
+```
+{% endcode %}
+
+这些片段来自 ConnectionSettingsTest：Mapping 属性属于 MyConnectionSettings，MappingEntry 和 MappingEntryConverter 同在该文件中，settings 来自 MyDriver 对测试连接字符串的解析。上面的声明允许把 `mapping=s1:t1,s2=t2,same` 解析成三个 `MappingEntry` 元素：`s1 -> t1`、`s2 -> t2` 和 `same -> same`。普通 `CollectionConverter` 会使用元素类型本身的转换规则；`CollectionConverter<TElementConverter>` 则显式创建 `TElementConverter` 来解析每个元素，适合元素类型本身没有注册全局转换器，或者某个属性需要专属解析格式的场景。
 
 {% hint style="warning" %}
 集合转换器按简单分隔符拆分文本，不处理引号转义或嵌套结构。元素值本身可能包含 `|`、`;`、`,` 或换行时，应改用更明确的配置结构，或为外层类型提供专用转换器。

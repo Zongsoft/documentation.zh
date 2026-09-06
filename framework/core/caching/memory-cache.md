@@ -25,18 +25,21 @@ icon: database
 
 ## 创建缓存
 
-可以直接创建独立缓存实例，也可以使用共享实例。
+Discussions 通过数据访问器间接使用框架的缓存复用机制。缓存本身的独立演示来自 Core 的 memorycache 交互程序：频率一秒、滑动过期三十秒、数量提醒阈值五项。可以直接创建独立缓存实例，也可以使用共享实例。
 
-{% code title="CreateMemoryCache.cs" %}
+来源：[framework/Zongsoft.Core/samples/memorycache/Program.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/samples/memorycache/Program.cs#L13)（节选；上下文见源文件）。
+
+{% code title="Program.cs" %}
 ```csharp
-using Zongsoft.Caching;
+const int FREQUENCY  = 1;
+const int EXPIRATION = 30;
+const int LIMIT      = 5;
 
-var cache = new MemoryCache(
-	new MemoryCacheOptions(
-		frequency: TimeSpan.FromMinutes(1),
-		limit: 10_000));
+using var cache = new MemoryCache(TimeSpan.FromSeconds(FREQUENCY), LIMIT);
+using var scanner = new MemoryCacheScanner(cache);
 
-var shared = MemoryCache.Shared;
+cache.Limited += Cache_Limited;
+cache.Evicted += Cache_Evicted;
 ```
 {% endcode %}
 
@@ -46,34 +49,58 @@ var shared = MemoryCache.Shared;
 
 `SetValue` 用于直接写入缓存项，`GetValue` 和 `TryGetValue` 用于读取缓存项，`Remove` 用于删除缓存项。
 
-{% code title="ReadWriteMemoryCache.cs" %}
+来源：[framework/Zongsoft.Core/test/Caching/MemoryCacheTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Caching/MemoryCacheTest.cs#L14)（节选；上下文见源文件）。
+
+{% code title="MemoryCacheTest.cs" %}
 ```csharp
-cache.SetValue("user:42", new UserProfile(42, "Alice"));
+public void Test()
+{
+	object value;
 
-if(cache.TryGetValue<UserProfile>("user:42", out var profile))
-	Console.WriteLine(profile.Name);
+	var cache = new MemoryCache();
+	Assert.Equal(0, cache.Count);
+	Assert.False(cache.Contains("KEY"));
+	Assert.False(cache.Remove("KEY", out _));
+	Assert.False(cache.TryGetValue("KEY", out _));
 
-if(cache.Remove("user:42", out var removed))
-	Console.WriteLine(removed);
+	value = cache.GetOrCreate("K1", () => "V1");
+	Assert.NotNull(value);
+	Assert.True(cache.Contains("K1"));
+	Assert.Equal("V1", value);
+	Assert.True(cache.Remove("K1", out value));
+	Assert.Equal("V1", value);
+	Assert.Equal(0, cache.Count);
+
+	const int COUNT = 10000;
+	Parallel.For(0, COUNT, index => cache.SetValue($"KEY#{index}", $"Value#{index}@{Environment.CurrentManagedThreadId}"));
+	Assert.Equal(COUNT, cache.Count);
+}
 ```
 {% endcode %}
 
-当需要“没有就创建”的语义时，使用 `GetOrCreate` 或 `GetOrCreateAsync`。这些方法只有在键不存在时才调用工厂方法。
+当需要“没有就创建”的语义时，使用 `GetOrCreate` 或 `GetOrCreateAsync`。这些方法在读取未命中时调用工厂；并发未命中不等于工厂一定只执行一次，不应依赖它完成业务上的唯一写入。下面是数据访问器提供者的真实用途：缓存创建出的访问器，并把其 Disposed 通知作为缓存失效依赖。
 
-{% code title="GetOrCreateMemoryCache.cs" %}
+来源：[framework/Zongsoft.Core/src/Data/DataAccessProviderBase.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Data/DataAccessProviderBase.cs#L52)（节选；上下文见源文件）。
+
+{% code title="DataAccessProviderBase.cs" %}
 ```csharp
-var profile = cache.GetOrCreate("user:42", key =>
+public TDataAccess GetAccessor(string name, IDataAccessOptions options = null)
 {
-	return (
-		Value: LoadUserProfile((string)key),
-		Expiration: TimeSpan.FromMinutes(10));
-});
+	if(string.IsNullOrEmpty(name) || options == null || options.Settings == null || !options.Settings.Any())
+		name = GetName(name);
+
+	return _accesses.GetOrCreate(name, key =>
+	{
+		var accessor = this.CreateAccessor(name, options);
+		return (accessor, accessor.Disposed);
+	});
+}
 ```
 {% endcode %}
 
 ## 过期策略
 
-`MemoryCache.Expiration` 可以表达滑动过期、绝对过期，或同时表达二者。
+`MemoryCache.Expiration` 可以表达滑动过期、绝对过期，或同时表达二者。下表是参数形式参考；其后的实际范例把终端输入 text 写入 Key#序号，使用 EXPIRATION 常量和同一类的 Now 属性记录状态。
 
 | 写法 | 说明 |
 | --- | --- |
@@ -81,14 +108,11 @@ var profile = cache.GetOrCreate("user:42", key =>
 | `DateTimeOffset.UtcNow.AddHours(1)` | 绝对过期，缓存项到指定时间点后过期。 |
 | `(TimeSpan.FromMinutes(10), DateTimeOffset.UtcNow.AddHours(1))` | 同时设置滑动过期和绝对过期。 |
 
-{% code title="MemoryCacheExpiration.cs" %}
+来源：[framework/Zongsoft.Core/samples/memorycache/Program.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/samples/memorycache/Program.cs#L72)（节选；上下文见源文件）。
+
+{% code title="Program.cs" %}
 ```csharp
-cache.SetValue(
-	"metadata:models",
-	LoadModels(),
-	new MemoryCache.Expiration(
-		sliding: TimeSpan.FromMinutes(30),
-		absolute: DateTimeOffset.UtcNow.AddHours(4)));
+cache.SetValue($"Key#{++count}", text, TimeSpan.FromSeconds(EXPIRATION), Now);
 ```
 {% endcode %}
 
@@ -96,18 +120,61 @@ cache.SetValue(
 
 缓存项可以依赖 [`IChangeToken`](https://source.dot.net/#Microsoft.Extensions.Primitives/IChangeToken.cs)。当令牌变更时，缓存项会被标记为失效，并触发淘汰回调。
 
-{% code title="MemoryCacheDependency.cs" %}
+来源：[framework/Zongsoft.Core/test/Caching/MemoryCacheTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Caching/MemoryCacheTest.cs#L38)（节选；上下文见源文件）。
+
+{% code title="MemoryCacheTest.cs" %}
 ```csharp
-using Microsoft.Extensions.Primitives;
-using Zongsoft.Caching;
+public void TestDependency()
+{
+	var cache = new MemoryCache();
+	cache.Evicted += this.Cache_Evicted;
 
-using var cancellation = new CancellationTokenSource();
-var token = new CancellationChangeToken(cancellation.Token);
+	var cancellation = new CancellationTokenSource();
+	var value = cache.GetOrCreate("KEY", key =>
+	{
+		return ("Value1", new CancellationChangeToken(cancellation.Token));
+	});
 
-cache.SetValue("settings", LoadSettings(), token);
+	Assert.NotNull(value);
+	Assert.Equal("Value1", value);
+	Assert.Equal(1, cache.Count);
 
-cancellation.Cancel();
-cache.Compact();
+	//通知缓存项过期
+	cancellation.Cancel();
+	Assert.False(cache.Contains("KEY"));
+	Assert.Equal(0, cache.Count);
+
+	//清理缓存
+	cache.Compact();
+
+	//等待缓存项过期事件的触发
+	Assert.True(SpinWait.SpinUntil(() => Volatile.Read(ref _reason) >= 0, 10_000), "等待缓存项过期事件回调超时。");
+
+	//确认缓存过期的原因
+	Assert.Equal(CacheEvictedReason.Depended, (CacheEvictedReason)Volatile.Read(ref _reason));
+
+	//创建一个已经过期的缓存项
+	value = cache.GetOrCreate("KEY", key =>
+	{
+		return ("Value2", new CancellationChangeToken(cancellation.Token));
+	});
+
+	Assert.NotNull(value);
+	Assert.Equal("Value2", value);
+	Assert.False(cache.Contains("KEY"));
+	Assert.Equal(0, cache.Count);
+
+	//创建一个依赖失效的缓存项
+	value = cache.GetOrCreate("KEY", key =>
+	{
+		return ("Value3", Common.Notification.GetToken());
+	});
+
+	Assert.NotNull(value);
+	Assert.Equal("Value3", value);
+	Assert.False(cache.Contains("KEY"));
+	Assert.Equal(0, cache.Count);
+}
 ```
 {% endcode %}
 
@@ -117,24 +184,31 @@ cache.Compact();
 
 ## 事件
 
-`MemoryCache` 提供两个事件：
+`MemoryCache` 提供两个事件。上面的 TestDependency 依赖同一测试类的 Cache_Evicted 回调记录原因，并等待异步通知；复用测试时应保留整个夹具。交互范例则在 Limited 回调中主动 Clear：这是范例选择的清理策略，并非缓存内部自动执行。
+
+事件含义如下：
 
 | 事件 | 触发时机 |
 | --- | --- |
 | `Evicted` | 缓存项因为过期、依赖失效、删除、替换或容量压力被淘汰。 |
 | `Limited` | 设置或创建缓存项后，当前数量超过 `MemoryCacheOptions.CountLimit`。 |
 
-{% code title="MemoryCacheEvents.cs" %}
-```csharp
-cache.Evicted += (_, args) =>
-{
-	Console.WriteLine($"{args.Key} removed by {args.Reason}");
-};
+来源：[framework/Zongsoft.Core/samples/memorycache/Program.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/samples/memorycache/Program.cs#L96)（节选；上下文见源文件）。
 
-cache.Limited += (_, args) =>
+{% code title="Program.cs" %}
+```csharp
+private static void Cache_Limited(object sender, CacheLimitedEventArgs e)
 {
-	Console.WriteLine($"cache count: {args.Count}, overflow: {args.Limit}");
-};
+	var content = CommandOutletContent.Create(CommandOutletColor.Magenta, "** Limited **\t")
+		.Append(CommandOutletColor.DarkYellow, e.Limit.ToString())
+		.Append(CommandOutletColor.DarkGray, "/")
+		.Append(CommandOutletColor.DarkYellow, e.Count.ToString());
+
+	Terminal.WriteLine(content);
+
+	//清空缓存
+	((MemoryCache)sender).Clear();
+}
 ```
 {% endcode %}
 
@@ -148,15 +222,12 @@ cache.Limited += (_, args) =>
 
 `MemoryCacheScanner` 封装了一个定时器，按 `MemoryCacheOptions.ScanFrequency` 周期调用 `Compact(0)`。
 
+来源：[framework/Zongsoft.Core/src/Caching/MemoryCacheScanner.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Caching/MemoryCacheScanner.cs#L52)（节选；上下文见源文件）。
+
 {% code title="MemoryCacheScanner.cs" %}
 ```csharp
-using var scanner = new MemoryCacheScanner(cache);
-
-scanner.Start();
-
-// ...
-
-scanner.Stop();
+public void Start() => _timer.Change(TimeSpan.Zero, _cache.Options.ScanFrequency);
+public void Stop() => _timer.Change(Timeout.Infinite, Timeout.Infinite);
 ```
 {% endcode %}
 

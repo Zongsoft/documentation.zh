@@ -5,9 +5,15 @@ icon: message
 
 # 消息队列
 
+![消息在队列中等待，并分发到不同接收端](../.gitbook/assets/zongsoft-messaging-cover.png)
+
 Zongsoft 的消息队列体系由 [Zongsoft.Messaging](core/messaging.md) 核心抽象和四个具体插件组成。核心抽象负责统一生产、订阅、消息确认和队列发现；插件负责把这些抽象落到具体消息系统上。
 
 首次使用请先阅读[发布订阅与投递概念](messaging/concepts.md)，需要故障恢复时继续阅读[可靠投递与消息存储](messaging/reliability.md)。本页说明四个实现的设计差异、配置方式、使用范例和注意事项。业务代码通常只需要依赖 `Zongsoft.Core` 的消息抽象；应用启动、部署和连接参数才需要关心具体插件。
+
+## 按项目阅读
+
+已经选定消息实现时，可直接进入 [Kafka](messaging/projects/kafka.md)、[RabbitMQ](messaging/projects/rabbit.md)、[MQTT](messaging/projects/mqtt.md)、[ZeroMQ](messaging/projects/zero.md) 或 [.storages 消息存储](messaging/projects/storages.md)。[项目索引](messaging/projects/README.md)按源码目录组织，与下面的共同用法和协议比较配合阅读。
 
 ## 插件一览
 
@@ -32,77 +38,51 @@ Zongsoft 的消息队列体系由 [Zongsoft.Messaging](core/messaging.md) 核心
 
 插件会向 `/Workbench/Configuration/ConnectionSettings/Drivers` 挂载连接设置驱动，例如 `Kafka`、`RabbitMQ`、`Mqtt`、`ZeroMQ`。应用的消息队列连接项则放在 `/Messaging/ConnectionSettings`。
 
-## 连接配置
+## 真实客户端的连接入口
 
-下面是四个插件的典型连接配置。`connectionSetting.name` 是应用中访问队列的名称，`driver` 决定由哪个插件解析连接字符串。
+Discussions 没有直接使用这些队列，因此以下采用 framework 各项目现有客户端的构造语句。它们直接调用连接设置驱动，不经过 option 文件。RabbitMQ 的 xxxxxx 是样例占位值；Broker、账号和权限需要由独立测试环境提供。插件宿主配置同样使用这些设置模型，但应放到 /Messaging/ConnectionSettings 中，并以连接名选择队列。
 
 {% tabs %}
 {% tab title="Kafka" %}
-{% code title="Zongsoft.Messaging.Kafka.option" %}
-```xml
-<configuration>
-	<option path="/Messaging">
-		<connectionSettings>
-			<connectionSetting connectionSetting.name="Orders"
-			                   driver="Kafka"
-			                   value="server=127.0.0.1:9092;client=orders-app;group=orders-workers;topic=Orders.Created" />
-		</connectionSettings>
-	</option>
-</configuration>
+来源：[framework/messaging/kafka/samples/Program.cs](https://github.com/Zongsoft/framework/blob/main/messaging/kafka/samples/Program.cs#L17)（节选；上下文见源文件）。
+
+{% code title="Program.cs" %}
+```csharp
+using var queue = new KafkaQueue("Kafka",
+	Configuration.KafkaConnectionSettingsDriver.Instance.GetSettings("Kafka", $"server=127.0.0.1:9092;client=Zongsoft.Messaging.Kafka.Sample-{Guid.NewGuid():N};"));
 ```
 {% endcode %}
 {% endtab %}
 
 {% tab title="RabbitMQ" %}
-{% code title="Zongsoft.Messaging.RabbitMQ.option" %}
-```xml
-<configuration>
-	<option path="/Messaging">
-		<connectionSettings>
-			<connectionSetting connectionSetting.name="Orders"
-			                   driver="RabbitMQ"
-			                   value="server=127.0.0.1;username=program;password=secret;client=orders-app;group=orders.exchange;queue=orders.queue" />
-		</connectionSettings>
-	</option>
-</configuration>
+来源：[framework/messaging/rabbit/samples/Program.cs](https://github.com/Zongsoft/framework/blob/main/messaging/rabbit/samples/Program.cs#L17)（节选；上下文见源文件）。
+
+{% code title="Program.cs" %}
+```csharp
+using var queue = new RabbitQueue("RabbitMQ",
+	Configuration.RabbitConnectionSettingsDriver.Instance.GetSettings("RabbitMQ", $"server=127.0.0.1;port=5672;client=Zongsoft.Messaging.RabbitMQ.Sample-{Guid.NewGuid():N};username=program;password=xxxxxx;"));
 ```
 {% endcode %}
 {% endtab %}
 
 {% tab title="MQTT" %}
-{% code title="Zongsoft.Messaging.Mqtt.option" %}
-```xml
-<configuration>
-	<option path="/Messaging">
-		<connectionSettings>
-			<connectionSetting connectionSetting.name="Telemetry"
-			                   driver="Mqtt"
-			                   value="server=127.0.0.1:1883;username=program;password=secret;client=telemetry-app;topic=devices/+/events" />
-		</connectionSettings>
-	</option>
-</configuration>
+来源：[framework/messaging/mqtt/samples/client/Program.cs](https://github.com/Zongsoft/framework/blob/main/messaging/mqtt/samples/client/Program.cs#L17)（节选；上下文见源文件）。
+
+{% code title="Program.cs" %}
+```csharp
+using var queue = new MqttQueue("MQTT",
+	Configuration.MqttConnectionSettingsDriver.Instance.GetSettings("Mqtt", $"server=127.0.0.1:1883;client=Zongsoft.Messaging.Mqtt.Sample-{Guid.NewGuid():N};"));
 ```
 {% endcode %}
 {% endtab %}
 
 {% tab title="ZeroMQ" %}
-{% code title="Zongsoft.Messaging.ZeroMQ.option" %}
-```xml
-<configuration>
-	<option path="/Messaging">
-		<connectionSettings>
-			<connectionSetting connectionSetting.name="Local"
-			                   driver="ZeroMQ"
-			                   value="server=127.0.0.1;client=local-app;group=Demo" />
-		</connectionSettings>
-	</option>
+来源：[framework/messaging/zero/samples/client/Program.cs](https://github.com/Zongsoft/framework/blob/main/messaging/zero/samples/client/Program.cs#L17)（节选；上下文见源文件）。
 
-	<option path="/Messaging/ZeroMQ">
-		<servers port="32101,32102">
-			<server server.name="unnamed" port="*" />
-		</servers>
-	</option>
-</configuration>
+{% code title="Program.cs" %}
+```csharp
+using var queue = new ZeroQueue("ZeroMQ",
+	Configuration.ZeroConnectionSettingsDriver.Instance.GetSettings("ZeroMQ", "server=127.0.0.1;client=Zongsoft.Messaging.ZeroMQ.Sample;Group=Demo;"));
 ```
 {% endcode %}
 {% endtab %}
@@ -114,49 +94,53 @@ Zongsoft 的消息队列体系由 [Zongsoft.Messaging](core/messaging.md) 核心
 
 通过核心提供器解析队列时，框架会从 `/Messaging/ConnectionSettings` 中查找名称匹配的连接项：
 
-{% code title="ResolveQueue.cs" %}
+来源：[framework/Zongsoft.Core/src/Messaging/MessageQueueUtility.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Messaging/MessageQueueUtility.cs#L40)（节选；上下文见源文件）。
+
+{% code title="MessageQueueUtility.cs" %}
 ```csharp
-using Zongsoft.Messaging;
+public static IMessageQueue Queue(IServiceProvider services, string name, IEnumerable<KeyValuePair<string, string>> settings = null)
+{
+	name ??= string.Empty;
+	services ??= ApplicationContext.Current?.Services ?? throw new ArgumentNullException(nameof(services));
 
-var queue = MessageQueueUtility.Queue("Orders");
+	foreach(var provider in services.ResolveAll<IMessageQueueProvider>())
+	{
+		if(provider.Exists(name))
+			return provider.Queue(name, settings);
+	}
 
-await queue.ProduceAsync("Orders.Created", """{"id":1001}""".AsMemory());
+	return null;
+}
 ```
 {% endcode %}
 
 需要绕过配置、直接用某个插件构造队列时，可以使用对应连接设置驱动：
 
-{% code title="CreateKafkaQueue.cs" %}
+上面四个页签已经给出各项目实际客户端的构造语句。直接构造者负责释放；配置驱动和提供者的关系见[消息核心抽象](core/messaging.md)。
+
+## 真实发布订阅范例
+
+四个实现都遵循同一个核心用法：创建或解析队列，订阅主题，发送消息，在处理成功后确认。下面的片段摘自保持交互循环的 Kafka 样例；executor 是该程序的终端执行器，context.Arguments 是用户输入的主题。MQTT 和 ZeroMQ 默认过滤自身发布，验证时使用两个客户端或按实现配置自接收。
+
+来源：[framework/messaging/kafka/samples/Program.cs](https://github.com/Zongsoft/framework/blob/main/messaging/kafka/samples/Program.cs#L38)（节选；上下文见源文件）。
+
+{% code title="Program.cs" %}
 ```csharp
-using Zongsoft.Messaging.Kafka;
-using Zongsoft.Messaging.Kafka.Configuration;
+executor.Command("subscribe", async (context, cancellation) =>
+{
+	if(context.Arguments.IsEmpty)
+		throw new CommandException("Missing the topics for subscribe.");
 
-var settings = KafkaConnectionSettingsDriver.Instance.GetSettings(
-	"Server=127.0.0.1:9092;Client=orders-sample;Group=orders-workers;");
+	for(int i = 0; i < context.Arguments.Count; i++)
+	{
+		var subscriber = await queue.SubscribeAsync(context.Arguments[i], Handler.Instance, cancellation);
 
-var queue = new KafkaQueue("Kafka", settings);
-```
-{% endcode %}
-
-## 通用范例
-
-四个实现都遵循同一个核心用法：创建或解析队列，订阅主题，发送消息，在处理成功后确认。以下片段运行在持续存活的宿主中；独立控制台程序必须等待接收完成再退出。MQTT 和 ZeroMQ 默认过滤自身发布，验证时使用两个客户端或按实现配置自接收。
-
-{% code title="PublishSubscribe.cs" %}
-```csharp
-using System.Text;
-using Zongsoft.Messaging;
-
-var queue = MessageQueueUtility.Queue("Orders");
-
-var consumer = await queue.SubscribeAsync("Orders.Created", new ConsoleMessageHandler());
-
-var identifier = await queue.ProduceAsync(
-	"Orders.Created",
-	Encoding.UTF8.GetBytes("""{"id":1001}"""),
-	MessageEnqueueOptions.Default);
-
-Console.WriteLine($"Sent: {identifier}");
+		if(subscriber == null)
+			context.Output.WriteLine(CommandOutletColor.DarkRed, $"Failed to subscribe topic: {context.Arguments[i]}");
+		else
+			context.Output.WriteLine(CommandOutletColor.DarkGreen, $"The subscription to the '{subscriber.Topic}' topic was successful.");
+	}
+});
 ```
 {% endcode %}
 
@@ -164,23 +148,27 @@ Console.WriteLine($"Sent: {identifier}");
 示例中的 `AcknowledgeAsync()` 是有意放在处理逻辑之后。生产环境应先完成业务处理、落库或幂等记录，再确认消息。
 {% endhint %}
 
-以下处理器用于本页的订阅片段，应放入示例项目中。异步处理不能直接传给同步 `System.Action<Message>` 重载，否则会形成 `async void`，框架无法等待其完成或正确观察异常。
+下面是同一个 Kafka Program.cs 内部 Handler 的处理方法，_count 和 Handler.Instance 均已在该嵌套类中定义。异步处理不能直接传给同步 `System.Action<Message>` 重载，否则会形成 `async void`，框架无法等待其完成或正确观察异常。
 
-{% code title="ConsoleMessageHandler.cs" %}
+来源：[framework/messaging/kafka/samples/Program.cs](https://github.com/Zongsoft/framework/blob/main/messaging/kafka/samples/Program.cs#L121)（节选；上下文见源文件）。
+
+{% code title="Program.cs" %}
 ```csharp
-using System.Text;
-using Zongsoft.Messaging;
-using Zongsoft.Components;
-using Zongsoft.Collections;
-
-public sealed class ConsoleMessageHandler : HandlerBase<Message>
+protected override async ValueTask OnHandleAsync(Message message, Parameters parameters, CancellationToken cancellation)
 {
-	protected override async ValueTask OnHandleAsync(Message message,
-		Parameters parameters, CancellationToken cancellation)
-	{
-		Console.WriteLine($"[{message.Topic}] {Encoding.UTF8.GetString(message.Data)}");
-		await message.AcknowledgeAsync(cancellation);
-	}
+	if(message.IsEmpty)
+		return;
+
+	var count = Interlocked.Increment(ref _count);
+	var content = CommandOutletContent.Create()
+		.Append(CommandOutletColor.Cyan, "[Received]")
+		.Append(CommandOutletColor.DarkYellow, $"#{count}")
+		.Append(CommandOutletColor.DarkCyan, " Topic:")
+		.AppendLine(CommandOutletColor.DarkGreen, message.Topic)
+		.AppendLine(CommandOutletColor.Gray, Encoding.UTF8.GetString(message.Data));
+
+	Terminal.Console.Executor.Output.Write(content);
+	await message.AcknowledgeAsync(cancellation);
 }
 ```
 {% endcode %}
@@ -199,21 +187,37 @@ public sealed class ConsoleMessageHandler : HandlerBase<Message>
 * `heartbeat`、`timeout`、`transactionId`、`transactionTimeout` 等连接属性会映射到 Kafka 配置。
 * 当前实现没有把 `tags`、`Delay`、`Expiration`、`Priority` 映射到 Kafka 消息。
 
-{% code title="KafkaSample.cs" %}
+来源：[framework/messaging/kafka/samples/Program.cs](https://github.com/Zongsoft/framework/blob/main/messaging/kafka/samples/Program.cs#L66)（节选；上下文见源文件）。
+
+{% code title="Program.cs" %}
 ```csharp
-using System.Text;
-using Zongsoft.Messaging;
-using Zongsoft.Messaging.Kafka;
-using Zongsoft.Messaging.Kafka.Configuration;
+executor.Command("produce", async (context, cancellation) =>
+{
+	var round = context.Options.GetValue<int>("round", 1);
+	var topic = context.Options.GetValue<string>("topic");
 
-var settings = KafkaConnectionSettingsDriver.Instance.GetSettings(
-	"Server=127.0.0.1:9092;Client=orders-sample;Group=orders-workers;");
+	if(string.IsNullOrEmpty(topic))
+		throw new CommandOptionException("topic", "The topic is required.");
 
-var queue = new KafkaQueue("Kafka", settings);
+	var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
-await queue.SubscribeAsync("Orders.Created", new ConsoleMessageHandler());
+	for(int i = 0; i < round; i++)
+	{
+		for(int j = 0; j < context.Arguments.Count; j++)
+		{
+			var identifier = await queue.ProduceAsync(
+				topic,
+				Encoding.UTF8.GetBytes($"[{i + 1}]{context.Arguments[j]}"),
+				null,
+				cancellation);
 
-await queue.ProduceAsync("Orders.Created", Encoding.UTF8.GetBytes("Order #1001"));
+			context.Output.WriteLine(CommandOutletColor.DarkGreen, $"[{i + 1}] {topic} Sent. (Identifier:{identifier ?? "N/A"})");
+		}
+	}
+
+	stopwatch.Stop();
+	context.Output.WriteLine(CommandOutletColor.Magenta, $"Elapsed: {stopwatch.Elapsed}");
+});
 ```
 {% endcode %}
 
@@ -232,30 +236,7 @@ await queue.ProduceAsync("Orders.Created", Encoding.UTF8.GetBytes("Order #1001")
 * 消费时关闭自动确认，`Message.AcknowledgeAsync()` 会执行 `BasicAckAsync(...)`。
 * `tags` 当前作为 consumer tag 传入，不作为 RabbitMQ binding filter。
 
-{% code title="RabbitMQSample.cs" %}
-```csharp
-using System.Text;
-using Zongsoft.Messaging;
-using Zongsoft.Messaging.RabbitMQ;
-using Zongsoft.Messaging.RabbitMQ.Configuration;
-
-var settings = RabbitConnectionSettingsDriver.Instance.GetSettings(
-	"server=127.0.0.1;username=program;password=secret;client=orders-sample;group=orders.exchange;queue=orders.queue;");
-
-var queue = new RabbitQueue("RabbitMQ", settings);
-
-await queue.SubscribeAsync("Orders.Created", new ConsoleMessageHandler());
-
-await queue.ProduceAsync(
-	"Orders/Created",
-	Encoding.UTF8.GetBytes("Order #1001"),
-	new MessageEnqueueOptions
-	{
-		Expiration = TimeSpan.FromMinutes(5),
-		Priority = 5,
-	});
-```
-{% endcode %}
+发布、订阅和终端参数处理的完整实现见 [RabbitMQ 交互客户端](https://github.com/Zongsoft/framework/blob/main/messaging/rabbit/samples/Program.cs)，以实际 topic 参数和连接中的 Group / Queue 设置为准。
 
 ## MQTT 实现
 
@@ -272,27 +253,7 @@ await queue.ProduceAsync(
 * 收到消息时关闭自动确认，处理器调用 `AcknowledgeAsync()` 后才确认。
 * `tags` 当前不参与 MQTT topic filter。
 
-{% code title="MqttSample.cs" %}
-```csharp
-using System.Text;
-using Zongsoft.Messaging;
-using Zongsoft.Messaging.Mqtt;
-using Zongsoft.Messaging.Mqtt.Configuration;
-
-var settings = MqttConnectionSettingsDriver.Instance.GetSettings(
-	"Mqtt",
-	"server=127.0.0.1:1883;username=program;password=secret;client=telemetry-sample;");
-
-var queue = new MqttQueue("MQTT", settings);
-
-await queue.SubscribeAsync("devices/+/events", new ConsoleMessageHandler());
-
-await queue.ProduceAsync(
-	"devices/device-001/events",
-	Encoding.UTF8.GetBytes("""{"temperature":23.5}"""),
-	new MessageEnqueueOptions(MessageReliability.LeastOnce));
-```
-{% endcode %}
+客户端与服务端来自 [MQTT samples](https://github.com/Zongsoft/framework/tree/main/messaging/mqtt/samples)。请使用两个不同 Client 标识的客户端完成发布和接收，处理器在终端输出后显式确认；它没有实现虚构的设备温度存储业务。
 
 ## ZeroMQ 实现
 
@@ -310,15 +271,15 @@ await queue.ProduceAsync(
 
 发现端口默认 `7969`。运行端口通过发现协议取得，配置三个值时依次为 `Control,Incoming,Outgoing`；两个值时为 `Incoming,Outgoing`，启用存储后随机绑定 Control。未指定或指定 `*` 的运行端口可以随机分配。
 
-{% code title="Application.option" %}
+来源：[framework/messaging/zero/src/Zongsoft.Messaging.ZeroMQ.option](https://github.com/Zongsoft/framework/blob/main/messaging/zero/src/Zongsoft.Messaging.ZeroMQ.option#L11)（节选；上下文见源文件）。
+
+{% code title="Zongsoft.Messaging.ZeroMQ.option" %}
 ```xml
-<configuration>
-	<option path="/Messaging/ZeroMQ">
-		<servers port="32100,32101,32102">
-			<server server.name="unnamed" />
-		</servers>
-	</option>
-</configuration>
+<option path="/Messaging/ZeroMQ">
+	<servers port="32100,32101,32102">
+		<server server.name="unnamed" port="*" />
+	</servers>
+</option>
 ```
 {% endcode %}
 
@@ -346,8 +307,8 @@ await queue.ProduceAsync(
 
 | 实现 | 示例 | 说明 |
 | --- | --- | --- |
-| Kafka | `messaging/kafka/samples/Program.cs` | 创建 Kafka 队列，订阅 `TopicX`，并并行发布 200 条消息。 |
-| RabbitMQ | `messaging/rabbit/samples/Program.cs` | 创建 RabbitMQ 队列，订阅默认队列，并按多个主题发布消息。 |
+| Kafka | `messaging/kafka/samples/Program.cs` | 交互式命令接收主题、消息内容和 round，显式订阅及确认。 |
+| RabbitMQ | `messaging/rabbit/samples/Program.cs` | 交互式客户端按命令参数订阅、发布、取消订阅和关闭。 |
 | MQTT | `messaging/mqtt/samples/server/Program.cs`、`messaging/mqtt/samples/client/Program.cs` | 交互式 Broker 与客户端，可验证发布、订阅、重连和确认。 |
 | ZeroMQ | `messaging/zero/samples/server/Program.cs`、`messaging/zero/samples/client/Program.cs` | 服务端启动转发器；客户端通过终端命令订阅、取消订阅和发布消息。 |
 

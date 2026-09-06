@@ -19,25 +19,38 @@ icon: tags
 
 `PrivilegeCategory` 同时包含子分类集合和权限集合。它实现 `IDiscriminator` 后，可以根据输入内容返回应该追加到哪个集合。
 
-{% code title="PrivilegeCategory 识别逻辑示意" %}
+来源：[framework/Zongsoft.Core/src/Security/Privileges/PrivilegeCategory.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Security/Privileges/PrivilegeCategory.cs#L128)（节选；上下文见源文件）。
+
+{% code title="PrivilegeCategory.cs" %}
 ```csharp
 object IDiscriminator.Discriminate(object argument)
 {
-	return argument switch
+	switch(argument)
 	{
-		Privilege => this.Privileges,
-		PrivilegeCategory => this.Categories,
-		"Privilege" => this.Privileges,
-		"Category" => this.Categories,
-		_ => null,
-	};
+		case string type:
+			if(string.IsNullOrEmpty(type) || string.Equals(type, nameof(Category), StringComparison.OrdinalIgnoreCase))
+				return this.Categories;
+
+			if(string.Equals(type, nameof(Privilege), StringComparison.OrdinalIgnoreCase))
+				return this.Privileges;
+
+			break;
+		case Privilege:
+			return this.Privileges;
+		case PrivilegeCategory:
+			return this.Categories;
+	}
+
+	return null;
 }
 ```
 {% endcode %}
 
+这是核心权限分类的实际实现。空类型名与 Category 指向子分类集合，Privilege 指向权限集合，字符串比较忽略大小写；无法识别时返回空。Discussions 的插件挂载仍遵循同一构件装配规则，但未定义自己的 IDiscriminator。
+
 ## 插件装配中的用途
 
-`Zongsoft.Plugins` 中的 `BuiltinType` 会先询问拥有者或默认成员是否实现 `IDiscriminator`，如果返回 `Type` 或集合，就用它判断构件类型。`ObjectBuilder` 在追加子对象时也会先调用容器的识别器，把子对象交给正确的集合。
+`Zongsoft.Plugins` 中的 `BuiltinType` 会先询问拥有者或默认成员是否实现 `IDiscriminator`，如果返回 [`Type`](https://learn.microsoft.com/zh-cn/dotnet/api/system.type) _[源码](https://source.dot.net/#System.Private.CoreLib/Type.cs)_ 或集合，就用它判断构件类型。`ObjectBuilder` 在追加子对象时也会先调用容器的识别器，把子对象交给正确的集合。
 
 {% stepper %}
 {% step %}

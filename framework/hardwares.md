@@ -22,24 +22,23 @@ nuget:Zongsoft.Hardwares
 ```
 {% endcode %}
 
-插件初始化后，通过契约获取采集器。下面的片段适合放入业务命令或诊断服务，只输出类型统计，避免把硬件标识直接写入公共日志。
+Discussions 没有硬件采集用例。本页采用 framework 中 HardwareCollectorTest 的真实测试：通过采集器读取设备，验证集合及元素非空，不输出真实设备标识。插件应用也可以通过核心硬件契约解析采集器。
 
-{% code title="InspectHardware.cs" %}
+来源：[framework/Zongsoft.Hardwares/test/HardwareCollectorTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Hardwares/test/HardwareCollectorTest.cs#L11)（节选；上下文见源文件）。
+
+{% code title="HardwareCollectorTest.cs" %}
 ```csharp
-using System.Linq;
-using Zongsoft.Services;
-using Zongsoft.IO.Hardwares;
+public void TestCollect()
+{
+	var hardwares = HardwareCollector.Instance.Collect();
 
-var collector = ApplicationContext.Current.Services
-	.ResolveRequired<IHardwareCollector>();
-var devices = collector.Collect().ToArray();
-
-foreach(var group in devices.GroupBy(device => device.Type))
-	Console.WriteLine($"{group.Key}: {group.Count()}");
+	Assert.NotNull(hardwares);
+	Assert.DoesNotContain(hardwares, hardware => hardware == null);
+}
 ```
 {% endcode %}
 
-需要画像时，可以用该次采集到的设备集合构造 `HardwareProfile`。建议先固定并记录应用采用的设备筛选规则，再讨论标识是否符合业务要求。
+框架 samples/Program.cs 使用该次采集结果构造 HardwareProfile，并打印画像与设备详情；这适合本地查看，输出不宜原样保存到公共日志。需要画像时，可以用该次采集到的设备集合构造 `HardwareProfile`。建议先固定并记录应用采用的设备筛选规则，再讨论标识是否符合业务要求。
 
 ## 平台与异步边界
 

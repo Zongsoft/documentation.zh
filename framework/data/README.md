@@ -5,7 +5,7 @@ icon: database
 
 # 数据引擎
 
-![数据引擎](../../.gitbook/assets/zongsoft-data-cover.svg)
+![数据引擎](../../.gitbook/assets/zongsoft-data-cover.png)
 
 `Zongsoft.Data` 是一个类 GraphQL 风格的 ORM 数据访问框架。它通过数据模式、映射文件、条件表达式和数据库驱动描述数据访问结构，目标是在不手写 SQL 的情况下完成复杂查询、导航、过滤、分页、分组、聚合和写入操作。
 
@@ -16,7 +16,7 @@ icon: database
 * 访问层：`IDataAccess` 暴露统一的查询、写入、聚合、导入和执行接口。
 * 驱动层：各数据库驱动把统一表达式转换为对应数据库语法并执行。
 
-先理解[对象关系与数据访问](concepts.md)，再按[首次查询](quickstart.md)完成一个不需要建表的 SQLite 验证。业务规则组织见[数据服务](services.md)。
+先理解[对象关系与数据访问](concepts.md)，再按[首次查询](quickstart.md)按 Discussions 的建表、连接和论坛查询用例验证。业务规则组织见[数据服务](services.md)。
 
 ## 特性
 
@@ -97,9 +97,11 @@ icon: database
 {% endtab %}
 {% endtabs %}
 
-## 驱动
+## 按驱动阅读
 
 常见驱动包括 SQL Server、MySQL、SQLite、DuckDB、PostgreSQL、TDengine、ClickHouse 和 InfluxDB。驱动通常以独立插件方式部署，并把数据驱动与连接设置驱动挂载到插件树。
+
+已选定数据库时，可以直接进入 [MySQL](drivers/mysql.md)、[SQL Server](drivers/mssql.md)、[PostgreSQL](drivers/postgres.md)、[SQLite](drivers/sqlite.md)、[DuckDB](drivers/duckdb.md)、[ClickHouse](drivers/clickhouse.md)、[TDengine](drivers/tdengine.md) 或 [InfluxDB](drivers/influx.md) 项目页。
 
 完整包名见 [包与模块索引](../../references/packages.md)，部署方式见 [插件文件与加载](../plugins/plugin-file.md)。
 
@@ -109,17 +111,11 @@ icon: database
 
 ## 典型调用
 
-{% code title="SelectUsers.cs" %}
-```csharp
-var provider = ApplicationContext.Current.Services
-	.ResolveRequired<Zongsoft.Services.IServiceProvider<IDataAccess>>();
-var accessor = provider.GetService("Security");
+来源：[src/Module.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Module.cs#L52)（节选；上下文见源文件）。
 
-var users = accessor.Select<User>(
-	Condition.Equal(nameof(User.Enabled), true),
-	"*, Roles{Name}",
-	Sorting.Descending(nameof(User.CreatedTime))
-);
+{% code title="Module.cs" %}
+```csharp
+public IDataAccess Accessor => _accessor ??= this.Services.ResolveRequired<IDataAccessProvider>().GetAccessor(this.Name);
 ```
 {% endcode %}
 

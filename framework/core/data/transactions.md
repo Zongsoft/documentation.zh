@@ -21,17 +21,7 @@ icon: rotate
 
 ## 典型用法
 
-{% code title="UseTransaction.cs" %}
-```csharp
-using Zongsoft.Data;
-
-using var transaction = Transaction.ReadCommitted();
-
-// 在当前异步上下文中执行数据服务或其它需要参与事务的操作。
-
-transaction.Commit();
-```
-{% endcode %}
+Discussions 创建主题时把主记录、主题内容贴和作者统计放入事务。同步与异步完整用例见[事务与一致性](../../data/transactions.md)。
 
 如果需要让组件感知事务提交或回滚，可实现 `Zongsoft.Data.Transactions.IEnlistment` 并登记到当前事务。登记对象会在事务完成时收到 `Commit` 或 `Rollback` 阶段通知。
 
@@ -44,15 +34,50 @@ transaction.Commit();
 
 ## 异步完成与环境作用域
 
+下面是 Discussions 的真实异步插入钩子；Posting、Utility 和统计方法都来自模块本身。正文文件由 MutateContentAsync 在数据库操作失败时清理，它不是数据库事务自动回滚的资源。
+
 异步数据操作可用 `await using` 管理事务，再等待 `CommitAsync`，让调用方观察真实完成或失败：
 
-{% code title="CompleteTransactionAsync.cs" %}
-```csharp
-using Zongsoft.Data;
+来源：[src/Services/ThreadService.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Services/ThreadService.cs#L336)（节选；上下文见源文件）。
 
-await using var transaction = Transaction.ReadCommitted();
-// await 执行参与当前事务的数据操作。
-await transaction.CommitAsync();
+{% code title="ThreadService.cs" %}
+```csharp
+protected override async ValueTask<int> OnInsertAsync(IDataDictionary<Models.Thread> data, ISchema schema, DataInsertOptions options, CancellationToken cancellation)
+{
+	cancellation.ThrowIfCancellationRequested();
+	if(!data.TryGetValue(p => p.Post, out var post) || post == null || string.IsNullOrEmpty(post.Content))
+		throw new InvalidOperationException("Missing content of the thread.");
+
+	//确保数据模式含有“主题内容贴”复合属性
+	schema.Include("Post{*}");
+
+	//更新主题内容贴的相关属性
+	post.Visible = false;
+	post.Approved = await this.ServiceProvider.ResolveRequired<ForumService>().CanPublishAsync(data, cancellation);
+	data.SetValue(p => p.Approved, post.Approved);
+	schema.Include(nameof(Models.Thread.Approved));
+
+	var content = DataDictionary.GetDictionary<Post>(post);
+	return await Utility.MutateContentAsync(content, () => this.Posting.GetContentFilePath(content), async () =>
+	{
+		await using(var transaction = new Transaction())
+		{
+			//调用基类同名方法，插入主题数据
+			var count = await base.OnInsertAsync(data, schema, options, cancellation);
+
+			if(count < 1)
+				return count;
+
+			//更新发帖人关联的主题统计信息
+			await this.SetMostRecentThreadAsync(data, cancellation: cancellation);
+
+			//提交事务
+			await transaction.CommitAsync(cancellation);
+
+			return count;
+		}
+	}, cancellation);
+}
 ```
 {% endcode %}
 

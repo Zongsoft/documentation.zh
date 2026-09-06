@@ -1,125 +1,104 @@
 ---
-description: 使用 Insert、Update、Upsert、Delete 和 Import 写入数据。
-icon: pen-to-square
+description: 以帖子投票、主题审核和浏览记录说明真实写入及其副作用。
+icon: book-open
 ---
 
 # 写入操作
 
-写入操作包括新增、更新、增改、删除和导入。它们都遵循同一个原则：数据对象提供值，条件确定目标，`schema` 限定成员范围，映射文件决定字段和关系。
 
-## 新增
+数据写入既改变记录，也可能影响统计、审核状态和文件存储。Discussions 将这些规则放在业务服务中；调用者应优先使用服务动作，而不是从控制器直接修改表。
 
-{% code title="InsertUser.cs" %}
+## 新建模型并写入投票
+
+来源：[src/Services/PostService.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Services/PostService.cs#L50)（节选；上下文见源文件）。
+
+{% code title="PostService.cs" %}
 ```csharp
-accessor.Insert<User>(
-	new User
+public bool Upvote(ulong postId, byte value = 1)
+{
+	if(value == 0)
+		value = 1;
+
+	var userId = this.Principal.Identity.GetIdentifier<uint>();
+
+	using(var transaction = new Transaction())
 	{
-		UserId = userId,
-		Name = name,
-		Enabled = true,
-	},
-	"UserId, Name, Enabled"
-);
+		this.DataAccess.Delete<Post.PostVoting>(
+			Condition.Equal(nameof(Post.PostVoting.PostId), postId) &
+			Condition.Equal(nameof(Post.PostVoting.UserId), userId));
+
+		this.DataAccess.Insert(Model.Build<Post.PostVoting>(voting =>
+		{
+			voting.PostId = postId;
+			voting.UserId = userId;
+			voting.Value = (sbyte)Math.Min(value, (sbyte)100);
+			voting.Timestamp = DateTime.Now;
+		}));
+
+		//如果帖子投票统计信息更新成功
+		if(this.SetPostVotes(postId))
+		{
+			//提交事务
+			transaction.Commit();
+
+			//返回成功
+			return true;
+		}
+	}
+
+	return false;
+}
 ```
 {% endcode %}
 
-新增时推荐显式指定允许写入的字段，尤其是在外部输入较多或模型包含导航属性时。
+实际流程先删除当前用户对该帖的旧投票，再通过 Model.Build 创建新记录，最后重算正负票数。只有统计更新成功才提交事务。Value 被限制在 1 到 100，统计的是记录数而非权重总和。
 
-## 更新
+## 删除也需要业务范围
 
-{% code title="UpdateUser.cs" %}
+上面的 Delete 同时指定 PostId 与 UserId：删除的是当前用户对当前帖的旧票。缺少其中一个条件都会扩大影响范围。通用 Delete API 不能替代当前身份与目标资源的授权判断。
+
+## 更新主题状态
+
+来源：[src/Services/ThreadService.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Services/ThreadService.cs#L103)（节选；上下文见源文件）。
+
+{% code title="ThreadService.cs" %}
 ```csharp
-accessor.Update<User>(
-	new
+public bool SetLocked(ulong threadId, bool value)
+{
+	return this.DataAccess.Update<Models.Thread>(new
 	{
-		Name = name,
-		ModifiedTime = DateTime.UtcNow,
-	},
-	Condition.Equal(nameof(User.UserId), userId),
-	"Name, ModifiedTime"
-);
+		IsLocked = value,
+	}, Condition.Equal(nameof(Models.Thread.ThreadId), threadId) & GetIsModeratorCriteria()) > 0;
+}
 ```
 {% endcode %}
 
-更新对象可以是实体，也可以是匿名对象。匿名对象适合只更新少量字段。
+锁定是一个明确的业务动作，版主条件和主题编号一起控制更新。字段的意义、回复入口是否检查锁定，以及界面反馈，需要按完整调用链核对；仅设置 IsLocked 不等于所有自定义写入入口都会自动阻止回复。
 
-## 字段运算更新
+## 新增或更新浏览记录
 
-{% code title="IncrementReplies.cs" %}
+来源：[src/Services/ThreadService.cs](https://github.com/Zongsoft/Zongsoft.Discussions/blob/main/src/Services/ThreadService.cs#L283)（节选；上下文见源文件）。
+
+{% code title="ThreadService.cs" %}
 ```csharp
-accessor.Update<Thread>(
-	new
+private void SetHistory(ulong threadId)
+{
+	//新增或更新当前用户对指定主题的浏览记录（自动递增浏览次数）
+	this.DataAccess.Upsert<History>(new
 	{
-		TotalReplies = Operand.Field("TotalReplies") + 1
-	},
-	Condition.Equal("ThreadId", threadId)
-);
+		UserId = this.Principal.Identity.GetIdentifier<uint>(),
+		ThreadId = threadId,
+		ViewedCount = Operand.Field(nameof(History.ViewedCount)) + 1,
+		MostRecentViewedTime = DateTime.Now,
+	});
+}
 ```
 {% endcode %}
 
-这种方式避免先读后写导致的并发问题，适合计数器和金额累计。
+Upsert 围绕浏览记录键执行新增或更新，同时递增 ViewedCount。是否支持相应写入表达式取决于数据库驱动；不要把一种驱动的 SQL 形式推广到全部数据库。
 
-## 增改
+## 内容文件与数据库不是同一事务
 
-`Upsert` 表示存在则更新，不存在则新增：
+长正文可能先保存到文件，再将路径写入数据库。数据库回滚不会自动删除对象存储文件，因此相关服务使用失败补偿。生产接入还需检查异常、取消、重试和旧文件清理。详见[文件系统](../core/io.md)与[事务](transactions.md)。
 
-{% code title="UpsertProfile.cs" %}
-```csharp
-accessor.Upsert<UserProfile>(
-	profile,
-	"UserId, DisplayName, Avatar"
-);
-```
-{% endcode %}
-
-是否能高效执行取决于映射中的键定义和数据库驱动支持。对于关键业务路径，应确认目标驱动的 upsert 行为。
-
-## 删除
-
-{% code title="DeleteUser.cs" %}
-```csharp
-accessor.Delete<User>(
-	Condition.Equal(nameof(User.UserId), userId)
-);
-```
-{% endcode %}
-
-删除也可以带 `schema`，用于控制导航或级联范围：
-
-{% code title="DeleteRoleMembers.cs" %}
-```csharp
-accessor.Delete<Role>(
-	Condition.Equal(nameof(Role.RoleId), roleId),
-	"Members"
-);
-```
-{% endcode %}
-
-删除范围取决于映射关系和数据引擎的级联处理。生产代码应避免对空条件执行删除。
-
-## 批量导入
-
-`Import` 适合把大量同结构数据快速写入目标数据源：
-
-{% code title="ImportLogs.cs" %}
-```csharp
-accessor.Import<LogEntry>(
-	logs,
-	"LogId, Level, Message, CreatedTime"
-);
-```
-{% endcode %}
-
-导入能力由驱动实现。不同数据库在批量写入、事务和返回值支持上可能不同。
-
-## 返回值、并发与事务
-
-写入后检查影响行数，并明确零行的含义：可能是条件不匹配、数据已经变化，或操作没有产生目标更新。关键更新可在条件中同时携带版本号或预期状态，再根据影响行数判断是否发生并发冲突。
-
-字段运算将计算移到数据库内，减少先读后写的竞争窗口，但不能替代整套并发控制。涉及多条记录或多个操作共同成功时，使用[事务](transactions.md)并在目标驱动上验证。
-
-## 级联不是任意对象图持久化
-
-写入导航必须同时满足映射的可写关系、模式成员选择和驱动执行能力。集合子记录的增改语义，不等于自动删除输入中缺少的所有旧明细；业务应明确“追加、更新、替换集合”各自的规则。
-
-Import 的 members 参数是字段名单，适合大量同结构记录；不同驱动有自己的批量实现和返回语义。导入前验证数据、序号与事务范围，不能假定与逐条 Insert 的扩展行为完全相同。
+Discussions 没有直接调用 IDataAccess.Import 的业务流程；批量导入能力仍需独立验证站点字段、权限和重复数据策略。

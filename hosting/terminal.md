@@ -11,13 +11,16 @@ icon: terminal
 
 当前 `hosting/terminal/Program.cs` 的关键调用如下：
 
+来源：[hosting/terminal/Program.cs](https://github.com/Zongsoft/hosting/blob/main/terminal/Program.cs#L9)（节选；上下文见源文件）。
+
 {% code title="Program.cs" %}
 ```csharp
-using Microsoft.Extensions.Hosting;
-
-Zongsoft.Plugins.Hosting.Application
-	.Terminal("zongsoft.terminal", [.. args, "host=terminal", "site=daemon"])
-	.Run();
+static void Main(string[] args)
+{
+	Zongsoft.Plugins.Hosting.Application
+		.Terminal("zongsoft.terminal", [.. args, "host=terminal", "site=daemon"])
+		.Run();
+}
 ```
 {% endcode %}
 
@@ -25,7 +28,7 @@ Zongsoft.Plugins.Hosting.Application
 
 ## 从最小应用开始
 
-如果还没有业务部署方案，先完成[部署第一个插件](../get-started/deploy-first-plugin.md)。该教程创建独立小宿主和输出目录，适合学习 Main、Terminal 及命令插件的关系。
+如果还没有业务部署方案，先完成[部署第一个插件](../get-started/deploy-first-plugin.md)。该教程以 Discussions 和现有宿主为基础，适合学习 Main、Terminal 及命令插件的关系。
 
 使用 hosting 仓库的现有终端时，先按根目录说明准备框架输出，再检查 `terminal/.deploy`、方案清单和 `deploy.cmd`。脚本组合宿主编译、插件部署及方案选择，不能把 `dotnet build` 当作全部部署工作。
 
@@ -41,7 +44,7 @@ dotnet ./Zongsoft.Hosting.Terminal.dll
 
 在终端中先执行 `help` 查看实际命令树，`plugin.list` 查看已部署的插件，再执行业务命令。命令不存在时，先检查构件路径、命令插件及依赖；命令存在但调用失败时，再检查服务解析与业务配置。
 
-[首个业务插件](../get-started/first-business-plugin.md)提供一个返回 `42` 的表达式命令，可用于验证“加载 → 配置 → 服务 → 执行”整个闭环。
+[首个业务插件](../get-started/first-business-plugin.md)从 Discussions 的模块、数据服务和插件挂载展开；站内信命令的真实实现见[命令模型](../framework/core/components/commands.md)。命令类存在不代表已经挂载到当前终端，请以实际插件树为准。
 
 ## 调试与退出
 

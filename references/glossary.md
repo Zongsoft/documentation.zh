@@ -31,7 +31,7 @@ icon: book
 | 数据访问器 | 通过名称与映射执行数据操作 | [数据访问](../framework/data/data-access.md) |
 | 数据服务 | 在数据操作外组织授权、业务规则和扩展 | [数据服务](../framework/data/services.md) |
 | 环境事务 | 随当前执行上下文传播的事务作用域 | [事务与一致性](../framework/data/transactions.md) |
-| 归档格式 | 模型数据的导入导出文件约定 | [表格与报表](../framework/externals/documents.md) |
+| 归档格式 | 模型数据的导入导出文件约定 | [表格与模板](../framework/externals/documents.md) |
 
 ## 消息与分布式协作
 

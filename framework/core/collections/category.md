@@ -20,19 +20,29 @@ icon: list-tree
 
 ## 创建分类树
 
-{% code title="CreateCategories.cs" %}
+来源：[framework/Zongsoft.Core/test/Collections/CategoryTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Collections/CategoryTest.cs#L119)（节选；上下文见源文件）。
+
+{% code title="CategoryTest.cs" %}
 ```csharp
-using Zongsoft.Collections;
+private static Category Initialize()
+{
+	var root = new Category();
 
-var root = new Category();
+	var file = root.Categories.Add("File");
+	var edit = root.Categories.Add("Edit");
+	var help = root.Categories.Add("Help");
 
-var file = root.Categories.Add("File", "文件");
-file.Categories.Add("Open", "打开");
-file.Categories.Add("Save", "保存");
+	file.Categories.Add("Open");
+	file.Categories.Add("Close");
+	file.Categories.Add("Save");
+	file.Categories.Add("SaveAs");
+	file.Categories.Add("Recents").Categories.AddRange(
+		new Category("Document-1"),
+		new Category("Document-2")
+	);
 
-var edit = root.Categories.Add("Edit", "编辑");
-edit.Categories.Add("Copy", "复制");
-edit.Categories.Add("Paste", "粘贴");
+	return root;
+}
 ```
 {% endcode %}
 
@@ -42,18 +52,69 @@ edit.Categories.Add("Paste", "粘贴");
 
 `Category` 支持按层级路径查找节点。路径可以包含空白、相对路径、根路径和父级跳转。
 
-{% code title="FindCategory.cs" %}
-```csharp
-var root = new Category();
-var file = root.Categories.Add("File");
-file.Categories.Add("Open");
-file.Categories.Add("Save");
-file.Categories.Add("Recents").Categories.Add("Document-1");
+来源：[framework/Zongsoft.Core/test/Collections/CategoryTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Collections/CategoryTest.cs#L36)（节选；上下文见源文件）。
 
-var save = root.Find(" File / Save");
-var recent = root.Find("/ File / Recents / Document-1");
-var same = file.Find("./Open");
-var parent = file.Find("../File/Save");
+{% code title="CategoryTest.cs" %}
+```csharp
+public void TestFind()
+{
+	var root = Initialize();
+
+	var found = root.Find("File");
+	Assert.NotNull(found);
+	Assert.Equal("File", found.Name);
+	Assert.Equal("/", found.Path);
+	Assert.Equal("/File", found.FullPath);
+
+	found = root.Find("Edit");
+	Assert.NotNull(found);
+	Assert.Equal("Edit", found.Name);
+	Assert.Equal("/", found.Path);
+	Assert.Equal("/Edit", found.FullPath);
+
+	found = root.Find("Help");
+	Assert.NotNull(found);
+	Assert.Equal("Help", found.Name);
+	Assert.Equal("/", found.Path);
+	Assert.Equal("/Help", found.FullPath);
+
+	found = root.Find(" File / Save");
+	Assert.NotNull(found);
+	Assert.Equal("Save", found.Name);
+	Assert.Equal("/File", found.Path);
+	Assert.Equal("/File/Save", found.FullPath);
+
+	Assert.NotNull(root.Find(" File/ Recents"));
+	Assert.NotNull(root.Find(" File /Recents / Document-1"));
+
+	Assert.NotNull(root.Find(" /File/ Save"));
+	Assert.NotNull(root.Find("/ File  /Recents"));
+	Assert.NotNull(root.Find(" / File  /  Recents/Document-2"));
+
+	found = root.Find("File").Find(" Open");
+	Assert.NotNull(found);
+	Assert.Equal("Open", found.Name);
+	Assert.Equal("/File", found.Path);
+	Assert.Equal("/File/Open", found.FullPath);
+
+	found = root.Find("File").Find("./ Recents");
+	Assert.NotNull(found);
+	Assert.Equal("Recents", found.Name);
+	Assert.Equal("/File", found.Path);
+	Assert.Equal("/File/Recents", found.FullPath);
+
+	found = root.Find("File").Find("Recents").Find("Document-2  ");
+	Assert.NotNull(found);
+	Assert.Equal("Document-2", found.Name);
+	Assert.Equal("/File/Recents", found.Path);
+	Assert.Equal("/File/Recents/Document-2", found.FullPath);
+
+	found = root.Find("Edit").Find(".. / File / Save");
+	Assert.NotNull(found);
+	Assert.Equal("Save", found.Name);
+	Assert.Equal("/File", found.Path);
+	Assert.Equal("/File/Save", found.FullPath);
+}
 ```
 {% endcode %}
 
@@ -63,20 +124,33 @@ var parent = file.Find("../File/Save");
 
 `CategoryBase<TSelf>.Ordinal` 表示分类的排列顺序。向 `CategoryCollectionBase<TCategory>` 添加节点时，集合会按 `Ordinal` 插入到合适位置。
 
-{% code title="SortCategories.cs" %}
+来源：[framework/Zongsoft.Core/test/Collections/CategoryTest.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/test/Collections/CategoryTest.cs#L97)（节选；上下文见源文件）。
+
+{% code title="CategoryTest.cs" %}
 ```csharp
-var root = new Category();
+public void TestOrdinal()
+{
+	const int COUNT = 100;
 
-root.Categories.Add(new Category("Third") { Ordinal = 30 });
-root.Categories.Add(new Category("First") { Ordinal = 10 });
-root.Categories.Add(new Category("Second") { Ordinal = 20 });
+	var root = new Category();
 
-foreach(var category in root.Categories)
-	Console.WriteLine(category.Name);
+	for(int i = 0; i < COUNT; i++)
+	{
+		var ordinal = Random.Shared.Next() % COUNT;
+		root.Categories.Add(new Category($"A{(i + 1):000}") { Ordinal = ordinal });
+	}
+
+	for(int i = 1; i < root.Categories.Count; i++)
+	{
+		Assert.NotNull(root.Categories[i]);
+		Assert.NotNull(root.Categories[i - 1]);
+		Assert.True(root.Categories[i].Ordinal >= root.Categories[i - 1].Ordinal);
+	}
+}
 ```
 {% endcode %}
 
-上面的输出顺序是 `First`、`Second`、`Third`。
+测试随机设置 100 个节点的 Ordinal，随后逐项验证排序值不递减。上面的 Initialize 和 TestFind 属于同一测试夹具；复用代码时需要保留它们的关系。
 
 ## 本地化标题和描述
 
