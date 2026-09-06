@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="850" viewBox="0 0 1200 850" role="img" aria-labelledby="title desc" xml:lang="zh-CN">
 	<title id="title">功能还是这些功能，变化有了各自的归属</title>
-	<desc id="desc">上方：创建订单、确认支付、发送指令等十二项职责散落在同一应用中。下方：同样的职责归入交易、支付、物联三个业务模块，应用边界保持不变。改编自 Hiisea 的 micro-module.png。</desc>
+	<desc id="desc">上方：创建订单、确认支付、发送指令等十二项职责散落在同一应用中。下方：同样的职责归入交易、支付、物联三个业务模块，应用边界保持不变。</desc>
 	<defs>
 		<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#718698" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
 		<filter id="shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#18354B" flood-opacity="0.06"/></filter>
@@ -72,6 +72,5 @@
 		<rect x="962" y="668" width="152" height="43" rx="10" fill="#FFFFFF" stroke="none" />
 		<text x="1038.0" y="696.85" font-size="21" fill="#9C712F" font-weight="500" text-anchor="middle" >协议解析</text>
 		<text x="48" y="818" font-size="19" fill="#60758A" font-weight="400" text-anchor="start" >改变的是责任边界；模块之间仍需通过明确契约协作。</text>
-		<metadata>Adapted from Hiisea, micro-module.png. Source: https://www.cnblogs.com/hiisea/p/16624472.html</metadata>
 	</g>
 </svg>

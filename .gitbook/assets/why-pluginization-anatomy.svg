@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" role="img" aria-labelledby="title desc" xml:lang="zh-CN">
 	<title id="title">每个业务模块，都负责一组完整的实现与资源</title>
-	<desc id="desc">应用由交易、支付、物联模块组成。每个模块归集自己的模型、服务、事件或处理器、站点接入、清单、选项、映射及资源，并包含相应产品扩展、支付提供者或设备协议。改编自 Hiisea 的 micro-domain.png，按服务端插件组织替换前端职责。</desc>
+	<desc id="desc">应用由交易、支付、物联模块组成。每个模块归集自己的模型、服务、事件或处理器、站点接入、清单、选项、映射及资源，并包含相应产品扩展、支付提供者或设备协议。</desc>
 	<defs>
 		<marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M1 1 L9 5 L1 9" fill="none" stroke="#718698" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></marker>
 		<filter id="shadow" x="-10%" y="-10%" width="120%" height="130%"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#18354B" flood-opacity="0.06"/></filter>
@@ -89,6 +89,5 @@
 		<text x="836" y="693" font-size="19" fill="#9C712F" font-weight="400" text-anchor="start" >设备协议 · MQTT</text>
 		<text x="48" y="831" font-size="19" fill="#60758A" font-weight="400" text-anchor="start" >一个模块可由多个程序集与插件共同提供；配套文件按实际需要交付。</text>
 		<text x="48" y="866" font-size="19" fill="#60758A" font-weight="400" text-anchor="start" >这里表示业务归属，不要求每个模块独占进程或数据库。</text>
-		<metadata>Adapted from Hiisea, micro-domain.png. Source: https://www.cnblogs.com/hiisea/p/16624472.html</metadata>
 	</g>
 </svg>
