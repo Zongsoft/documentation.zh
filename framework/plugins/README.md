@@ -59,6 +59,8 @@ flowchart LR
 
 ## 继续阅读
 
+开始编写清单前，可以先阅读[插件化设计专题](../../overview/pluginization.md#插件化设计专题)，明确模块归属、扩展契约与交付责任。
+
 <table data-view="cards">
 	<thead>
 		<tr>

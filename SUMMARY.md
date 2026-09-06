@@ -9,6 +9,10 @@
 * [架构总览](overview/architecture.md)
 * [基础概念与协作方式](overview/concepts.md)
 * [插件化](overview/pluginization.md)
+  * [从业务变化确定模块边界](overview/pluginization/business-boundaries.md)
+  * [让业务能力跨宿主复用](overview/pluginization/host-independent-business.md)
+  * [把扩展点设计成协作契约](overview/pluginization/extension-contracts.md)
+  * [从局部改造到可验证的插件交付](overview/pluginization/evolutionary-delivery.md)
 * [部署模型](overview/deployment.md)
 
 ## 快速开始 <a href="#get-started" id="get-started"></a>

@@ -80,6 +80,7 @@ Zongsoft 是一组面向 .NET 的开源框架、宿主程序和开发工具，�
 
 ## 按问题深入
 
+- 需要确定模块边界、设计扩展契约或逐步改造已有系统：阅读[插件化设计专题](overview/pluginization.md#插件化设计专题)。
 - 不清楚宿主、模块、服务与提供者的关系：阅读[基础概念](overview/concepts.md)和[服务定位](framework/core/services/locating.md)。
 - 需要业务数据与 HTTP 接口：从[首次查询](framework/data/quickstart.md)到[数据服务](framework/data/services.md)，再连接[Web 控制器](framework/web/controllers.md)。
 - 需要异步工作和外部基础设施：阅读[消息投递概念](framework/messaging/concepts.md)、[任务调度](framework/externals/execution.md)及[扩展索引](framework/externals.md)。
