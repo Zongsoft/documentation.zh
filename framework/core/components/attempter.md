@@ -50,12 +50,12 @@ icon: shield-halved
 
 {% code title="Authenticators.Identity.cs" %}
 ```csharp
-public async ValueTask<Ticket> VerifyAsync(string key, Requirement requirement, string scenario, Parameters parameters, CancellationToken cancellation = default)
+public async ValueTask<Ticket> AuthenticateAsync(string key, Requirement requirement, string scenario, Parameters parameters, CancellationToken cancellation = default)
 {
 	if(string.IsNullOrWhiteSpace(requirement.Identity))
 	{
 		if(string.IsNullOrEmpty(key))
-			throw new AuthenticationException(SecurityReasons.InvalidIdentity, "Missing identity.");
+			throw new AuthenticationException(SecurityReasons.InvalidIdentity, Properties.Resources.Authentication_MissingIdentity_Message);
 
 		requirement.Identity = key;
 	}
@@ -68,22 +68,17 @@ public async ValueTask<Ticket> VerifyAsync(string key, Requirement requirement, 
 	if(attempter != null && !await attempter.CheckAsync(attempterKey, cancellation))
 		throw new AuthenticationException(SecurityReasons.AccountSuspended);
 
-	//获取当前用户的密钥信息
-	var cipher = await Authentication.Servicer.Users.Passworder.GetAsync(requirement.Identity, requirement.Namespace, cancellation);
+	//验证账号密码并获取用户标识
+	var identifier = await Authentication.Servicer.Users.Passworder.AuthenticateAsync(requirement.Namespace, requirement.Identity, requirement.Password, cancellation);
 
-	//如果帐户不存在则验证失败
-	if(cipher == null)
-		throw new AuthenticationException(SecurityReasons.InvalidIdentity);
-
-	//执行密码验证，如果成功则返回验证成功的票证
-	if(await Authentication.Servicer.Users.Passworder.VerifyAsync(requirement.Password, cipher, cancellation))
+	if(!identifier.IsEmpty)
 	{
 		//通知验证尝试成功，即清空验证失败记录
 		if(attempter != null)
 			await attempter.DoneAsync(attempterKey, cancellation);
 
 		//返回验证成功的票证
-		return this.CreateTicket(cipher.Identifier, requirement);
+		return this.CreateTicket(identifier, requirement);
 	}
 
 	//通知验证尝试失败
@@ -96,7 +91,7 @@ public async ValueTask<Ticket> VerifyAsync(string key, Requirement requirement, 
 ```
 {% endcode %}
 
-Discussions 使用框架安全认证入口，模块质询器在其后补充站点身份。上面是核心密码认证器的真实检查、成功清理和失败登记流程，键由认证器类型、用户身份及命名空间构成。不存在的账号在读取密钥失败后直接抛出，不能把这里的 FailAsync 理解为覆盖所有失败类型。
+Discussions 使用框架安全认证入口，模块质询器在其后补充站点身份。上面是核心密码认证器的真实检查、成功清理和失败登记流程，键由认证器类型、用户身份及命名空间构成。不存在或禁用的账号在密码认证时直接抛出，不能把这里的 FailAsync 理解为覆盖所有失败类型。
 
 `Attempter` 依赖的缓存需要支持 `ISequence` 递增操作，否则失败登记无法原子计数。安全模块会把认证尝试器作为插件构件暴露，方便通过配置调整限制策略。
 
