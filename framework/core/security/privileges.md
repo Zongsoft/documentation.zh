@@ -35,7 +35,7 @@ Discussions 当前没有声明独立的权限定义树。它在主题读取中�
 
 ## 用户、角色与成员
 
-`IUser` 与 `IRole` 都继承 Zongsoft 的可标识模型，核心属性包括名称、启用状态、头像、昵称、命名空间和描述。`IUser.Administrator` 与 `IRole.Administrators` 是框架约定的管理员名称。
+`IUser` 与 `IRole` 都继承 Zongsoft 的可标识模型，核心属性包括名称、启用状态、头像、昵称、命名空间和描述。静态类 `Users`、`Roles` 通过 `Users.Administrator`、`Roles.Administrators`、`Roles.Security` 提供内置名称；嵌套的 `Identifiers` 类通过 `Users.Identifiers.User`（`Zongsoft.Security.User`）和 `Roles.Identifiers.Role`（`Zongsoft.Security.Role`）提供逻辑标识类别。这五个值均为编译期字符串常量，角色名称可直接用于授权特性。
 
 `Member` 表示角色成员，成员可以是用户，也可以是角色：
 
