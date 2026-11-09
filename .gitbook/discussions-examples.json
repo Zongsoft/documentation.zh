@@ -484,10 +484,10 @@
 	},
 	{
 		"page": "framework/core/communication/request-response.md",
-		"file": "framework/messaging/zero/test/ZeroRequesterTests.cs",
-		"start": 16,
-		"end": 49,
-		"code": "public async Task RequesterReceivesImmediateResponses()\n{\n\tif(!Global.IsTestingEnabled)\n\t\treturn;\n\n\tusing var server = await ZeroServerScope.StartAsync();\n\tusing var requesterQueue = ZeroTestUtility.CreateQueue(server.Port, \"requester\");\n\tusing var responderQueue = ZeroTestUtility.CreateQueue(server.Port, \"responder\");\n\n\tvar responder = new ZeroResponder { Queue = responderQueue };\n\tresponder.Handlers.Add(new EchoHandler());\n\tawait responder.StartAsync([]);\n\n\ttry\n\t{\n\t\tawait using var requester = new ZeroRequester { Queue = requesterQueue };\n\n\t\tfor(int i = 0; i < 20; i++)\n\t\t{\n\t\t\tusing var token = await requester.RequestAsync(\"rpc/echo\", Encoding.UTF8.GetBytes($\"message-{i}\"));\n\t\t\tAssert.NotNull(token);\n\n\t\t\tvar response = token.GetResponses(TimeSpan.FromSeconds(5)).FirstOrDefault();\n\t\t\tAssert.NotNull(response);\n\t\t\tAssert.Equal($\"message-{i}\", Encoding.UTF8.GetString(response.Data.Span));\n\t\t\tAssert.Equal(token.Request.Identifier, response.Request.Identifier);\n\t\t}\n\t}\n\tfinally\n\t{\n\t\tawait responder.StopAsync([]);\n\t\t((IDisposable)responder).Dispose();\n\t}\n}"
+		"file": "framework/messaging/zero/test/ZeroRequesterTest.cs",
+		"start": 14,
+		"end": 47,
+		"code": "public async Task RequesterReceivesImmediateResponses()\n{\n\tif(!Global.IsTestingEnabled)\n\t\treturn;\n\n\tawait using var server = await ZeroServerScope.StartAsync();\n\tawait using var requesterQueue = ZeroTestUtility.CreateQueue(server.Port, \"requester\");\n\tawait using var responderQueue = ZeroTestUtility.CreateQueue(server.Port, \"responder\");\n\n\tvar responder = new ZeroResponder { Queue = responderQueue };\n\tresponder.Handlers.Add(new EchoHandler());\n\tawait responder.StartAsync([]);\n\n\ttry\n\t{\n\t\tawait using var requester = new ZeroRequester { Queue = requesterQueue };\n\n\t\tfor(int i = 0; i < 20; i++)\n\t\t{\n\t\t\tusing var token = await requester.RequestAsync(\"rpc/echo\", Encoding.UTF8.GetBytes($\"message-{i}\"));\n\t\t\tAssert.NotNull(token);\n\n\t\t\tvar response = (await ZeroTestUtility.ReadResponsesAsync(token, TimeSpan.FromSeconds(5), 1)).FirstOrDefault();\n\t\t\tAssert.NotNull(response);\n\t\t\tAssert.Equal($\"message-{i}\", Encoding.UTF8.GetString(response.Data.Span));\n\t\t\tAssert.Equal(token.Request.Identifier, response.Request.Identifier);\n\t\t}\n\t}\n\tfinally\n\t{\n\t\tawait responder.StopAsync([]);\n\t\tawait responder.DisposeAsync();\n\t}\n}"
 	},
 	{
 		"page": "framework/core/communication/request-response.md",
@@ -1177,17 +1177,17 @@
 	},
 	{
 		"page": "framework/core/services/distributed-lock.md",
-		"file": "framework/externals/redis/test/RedisDistributedLockTests.cs",
-		"start": 40,
-		"end": 46,
-		"code": "await using var first = await cache.AcquireAsync(key, TimeSpan.FromSeconds(2));\nAssert.True(first.IsLocked);\nAssert.True(first.FencingToken > 0);\n\nawait using var rejected = await cache.AcquireAsync(key, TimeSpan.FromSeconds(2));\nAssert.True(rejected.IsUnheld);\nAssert.Equal(0, rejected.FencingToken);"
+		"file": "framework/externals/redis/test/RedisDistributedLockTest.cs",
+		"start": 38,
+		"end": 44,
+		"code": "\t\tawait using var first = await cache.AcquireAsync(KEY, TimeSpan.FromSeconds(2));\n\t\tAssert.True(first.IsLocked);\n\t\tAssert.True(first.FencingToken > 0);\n\n\t\tawait using var rejected = await cache.AcquireAsync(KEY, TimeSpan.FromSeconds(2));\n\t\tAssert.True(rejected.IsUnheld);\n\t\tAssert.Equal(0, rejected.FencingToken);"
 	},
 	{
 		"page": "framework/core/services/distributed-lock.md",
-		"file": "framework/externals/redis/test/RedisDistributedLockTests.cs",
-		"start": 111,
-		"end": 115,
-		"code": "var options = new DistributedLockOptions(TimeSpan.FromMilliseconds(300))\n{\n\tRenewalInterval = TimeSpan.FromMilliseconds(75),\n};\nawait using var renewed = await cache.AcquireAsync(\"automatic\", options);"
+		"file": "framework/externals/redis/test/RedisDistributedLockTest.cs",
+		"start": 109,
+		"end": 113,
+		"code": "\t\tvar options = new DistributedLockOptions(TimeSpan.FromMilliseconds(300))\n\t\t{\n\t\t\tRenewalInterval = TimeSpan.FromMilliseconds(75),\n\t\t};\n\t\tawait using var renewed = await cache.AcquireAsync(\"automatic\", options);"
 	},
 	{
 		"page": "framework/core/services/distributed-lock.md",

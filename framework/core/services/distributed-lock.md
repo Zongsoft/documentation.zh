@@ -56,35 +56,35 @@ settings、redis 和 linked 由同一 OnExecuteAsync 方法建立。await using 
 
 如果不准备等待，应检查刚取得的句柄是否 IsLocked，再决定是否开始工作。Redis 当前获取失败会返回未持有句柄；只检查非空不足以证明抢到锁。框架测试明确验证了这个区别：
 
-来源：[framework/externals/redis/test/RedisDistributedLockTests.cs](https://github.com/Zongsoft/framework/blob/main/externals/redis/test/RedisDistributedLockTests.cs#L40)（节选；上下文见源文件）。
+来源：[framework/externals/redis/test/RedisDistributedLockTest.cs](https://github.com/Zongsoft/framework/blob/main/externals/redis/test/RedisDistributedLockTest.cs#L38)（节选；上下文见源文件）。
 
-{% code title="RedisDistributedLockTests.cs" %}
+{% code title="RedisDistributedLockTest.cs" %}
 ```csharp
-await using var first = await cache.AcquireAsync(key, TimeSpan.FromSeconds(2));
-Assert.True(first.IsLocked);
-Assert.True(first.FencingToken > 0);
+		await using var first = await cache.AcquireAsync(KEY, TimeSpan.FromSeconds(2));
+		Assert.True(first.IsLocked);
+		Assert.True(first.FencingToken > 0);
 
-await using var rejected = await cache.AcquireAsync(key, TimeSpan.FromSeconds(2));
-Assert.True(rejected.IsUnheld);
-Assert.Equal(0, rejected.FencingToken);
+		await using var rejected = await cache.AcquireAsync(KEY, TimeSpan.FromSeconds(2));
+		Assert.True(rejected.IsUnheld);
+		Assert.Equal(0, rejected.FencingToken);
 ```
 {% endcode %}
 
-该片段位于 SuccessfulAcquisitions_ReturnStrictlyIncreasingFencingTokens；完整测试还释放 first 后重新获取，并检查编号递增。cache 与 key 来自测试夹具，不是 Discussions 的配置。
+该片段位于 SuccessfulAcquisitions_ReturnStrictlyIncreasingFencingTokens；完整测试还释放 first 后重新获取，并检查编号递增。cache 与 KEY 来自测试，不是 Discussions 的配置。
 
 ## 续期与失去所有权
 
 Redis 默认不自动续期。启用时，RenewalInterval 必须大于零且小于 Expiry；空值或零表示关闭，负值会被拒绝。实际测试以 300 毫秒租约、75 毫秒间隔演示续期：
 
-来源：[framework/externals/redis/test/RedisDistributedLockTests.cs](https://github.com/Zongsoft/framework/blob/main/externals/redis/test/RedisDistributedLockTests.cs#L111)（节选；上下文见源文件）。
+来源：[framework/externals/redis/test/RedisDistributedLockTest.cs](https://github.com/Zongsoft/framework/blob/main/externals/redis/test/RedisDistributedLockTest.cs#L109)（节选；上下文见源文件）。
 
-{% code title="RedisDistributedLockTests.cs" %}
+{% code title="RedisDistributedLockTest.cs" %}
 ```csharp
-var options = new DistributedLockOptions(TimeSpan.FromMilliseconds(300))
-{
-	RenewalInterval = TimeSpan.FromMilliseconds(75),
-};
-await using var renewed = await cache.AcquireAsync("automatic", options);
+		var options = new DistributedLockOptions(TimeSpan.FromMilliseconds(300))
+		{
+			RenewalInterval = TimeSpan.FromMilliseconds(75),
+		};
+		await using var renewed = await cache.AcquireAsync("automatic", options);
 ```
 {% endcode %}
 
@@ -155,4 +155,4 @@ CredentialManager.GetCredentialAsync 在本地缓存、共享缓存都没有有�
 * [服务定位与所有权](locating.md)
 * [Redis 项目](../../externals/projects/redis.md)
 * [事务与一致性](../../data/transactions.md)
-* [Redis 锁集成测试](https://github.com/Zongsoft/framework/blob/main/externals/redis/test/RedisDistributedLockTests.cs)
+* [Redis 锁集成测试](https://github.com/Zongsoft/framework/blob/main/externals/redis/test/RedisDistributedLockTest.cs)

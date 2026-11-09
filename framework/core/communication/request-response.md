@@ -44,18 +44,18 @@ Discussions 的 HTTP 控制器不使用这组请求应答抽象。下面采用 Z
 
 请求方调用 `RequestAsync` 后会得到 `IRequestToken`。这个 token 不是响应本身，而是响应收集器；调用方可以立即枚举已到达的响应，也可以给一个等待时长。
 
-来源：[framework/messaging/zero/test/ZeroRequesterTests.cs](https://github.com/Zongsoft/framework/blob/main/messaging/zero/test/ZeroRequesterTests.cs#L16)（节选；上下文见源文件）。
+来源：[framework/messaging/zero/test/ZeroRequesterTest.cs](https://github.com/Zongsoft/framework/blob/main/messaging/zero/test/ZeroRequesterTest.cs#L14)（节选；上下文见源文件）。
 
-{% code title="ZeroRequesterTests.cs" %}
+{% code title="ZeroRequesterTest.cs" %}
 ```csharp
 public async Task RequesterReceivesImmediateResponses()
 {
 	if(!Global.IsTestingEnabled)
 		return;
 
-	using var server = await ZeroServerScope.StartAsync();
-	using var requesterQueue = ZeroTestUtility.CreateQueue(server.Port, "requester");
-	using var responderQueue = ZeroTestUtility.CreateQueue(server.Port, "responder");
+	await using var server = await ZeroServerScope.StartAsync();
+	await using var requesterQueue = ZeroTestUtility.CreateQueue(server.Port, "requester");
+	await using var responderQueue = ZeroTestUtility.CreateQueue(server.Port, "responder");
 
 	var responder = new ZeroResponder { Queue = responderQueue };
 	responder.Handlers.Add(new EchoHandler());
@@ -70,7 +70,7 @@ public async Task RequesterReceivesImmediateResponses()
 			using var token = await requester.RequestAsync("rpc/echo", Encoding.UTF8.GetBytes($"message-{i}"));
 			Assert.NotNull(token);
 
-			var response = token.GetResponses(TimeSpan.FromSeconds(5)).FirstOrDefault();
+			var response = (await ZeroTestUtility.ReadResponsesAsync(token, TimeSpan.FromSeconds(5), 1)).FirstOrDefault();
 			Assert.NotNull(response);
 			Assert.Equal($"message-{i}", Encoding.UTF8.GetString(response.Data.Span));
 			Assert.Equal(token.Request.Identifier, response.Request.Identifier);
@@ -79,7 +79,7 @@ public async Task RequesterReceivesImmediateResponses()
 	finally
 	{
 		await responder.StopAsync([]);
-		((IDisposable)responder).Dispose();
+		await responder.DisposeAsync();
 	}
 }
 ```
