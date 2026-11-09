@@ -85,3 +85,7 @@ Zongsoft 是一组面向 .NET 的开源框架、宿主程序和开发工具，�
 - 需要业务数据与 HTTP 接口：从[首次查询](framework/data/quickstart.md)到[数据服务](framework/data/services.md)，再连接[Web 控制器](framework/web/controllers.md)。
 - 需要异步工作和外部基础设施：阅读[消息投递概念](framework/messaging/concepts.md)、[任务调度](framework/externals/execution.md)及[扩展索引](framework/externals.md)。
 - 需要模型调用、诊断或应用交付：进入[智能化](framework/intelligences.md)、[诊断](framework/diagnostics.md)和[升级流程](framework/upgrading/workflow.md)。
+
+## 许可
+
+本项目采用 [MIT](https://github.com/Zongsoft/documentation.zh/blob/main/LICENSE) 许可协议。第三方内容保留各自的版权和许可声明。
