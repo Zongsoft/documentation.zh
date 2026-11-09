@@ -14,9 +14,9 @@ icon: terminal
 | 类型 | 说明 |
 | --- | --- |
 | `ITerminal` | 终端接口，继承 `ICommandOutlet`，提供输入、输出、错误输出、样式、清屏和重置。 |
-| `ITerminalExecutor` | 终端命令执行器接口，继承 `ICommandExecutor`，提供 `Run`/`RunAsync` 和退出事件。 |
+| `ITerminalExecutor` | 终端命令执行器接口，继承 `ICommandExecutor`，提供三个 `RunAsync` 重载和退出事件，运行结果包含退出码。 |
 | `Terminal` | 静态入口，提供 `Default`、`Console`、输出和样式快捷方法。 |
-| `ConsoleTerminal` | 控制台终端实现，封装 `System.Console`、ANSI 样式和 Ctrl+C 中断。 |
+| `ConsoleTerminal` | 控制台终端实现，封装 `System.Console`、共享标准输入、ANSI 样式和中断通知。 |
 | `ConsoleExecutor` | 控制台命令执行器，读取终端输入并执行命令。 |
 | `TerminalStyles` | 终端样式重置选项。 |
 | `Terminal.ExitException` | 终端命令用于退出命令循环的专用异常。 |
@@ -54,7 +54,7 @@ await executor.RunAsync(splash);
 {% step %}
 ## 读取输入
 
-终端重置后显示当前命令节点提示符，然后从 `Input.ReadLine()` 读取命令文本。
+终端重置后显示当前命令节点提示符，再等待 `Input.ReadLineAsync(cancellation)`。空白行继续读取，EOF 结束循环；运行取消令牌同时传入命令执行。
 {% endstep %}
 
 {% step %}
@@ -70,9 +70,15 @@ await executor.RunAsync(splash);
 {% endstep %}
 {% endstepper %}
 
+## 输入与所有权
+
+ITerminal.Input 使用 System.IO.TextReader。默认标准输入与进程同寿命，同时只允许一个等待者；取消只结束本次等待，底层读取和结果保留给后续调用。执行器停止不关闭标准输入，也不等待底层控制台读取退出；EOF 和读取故障会保留。读取开始后不得更换 Console.In，也不得混用其它标准输入读取入口。
+
+注入的普通文本读取器由创建者释放，按具体读取器的契约处理取消。终端的 Abort 方法只同步发送 Aborting 通知，返回是否已处理，不直接停止执行器或进程。进程信号由宿主管理，详见[终端宿主](../../../hosting/terminal.md)。
+
 ## 交互式响应模式
 
-`Terminal.ReactiveAsync(...)` 让命令进入“运行中等待中断”的模式。它会检查当前执行器是否是终端执行器，挂载终端的 `Aborting` 事件，然后等待 Ctrl+C 释放信号量，最后执行退出回调。
+`Terminal.ReactiveAsync(...)` 让命令进入等待中断的模式。它挂载终端的 `Aborting` 事件，中断已处理时结束等待并返回命令循环；运行取消也会结束等待。进入失败、等待取消或正常结束均等待退出回调，退出回调使用不可取消的令牌完成资源清理，并保留运行及清理故障。
 
 来源：[framework/Zongsoft.Commands/src/Messaging/QueueSubscribeCommand.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Commands/src/Messaging/QueueSubscribeCommand.cs#L52)（节选；上下文见源文件）。
 

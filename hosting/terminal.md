@@ -9,17 +9,18 @@ icon: terminal
 
 ## 启动入口
 
-当前 `hosting/terminal/Program.cs` 的关键调用如下：
+终端入口先等待创建宿主，再等待运行和清理完成：
 
-来源：[hosting/terminal/Program.cs](https://github.com/Zongsoft/hosting/blob/main/terminal/Program.cs#L9)（节选；上下文见源文件）。
+以下为 Main 方法片段，需要引入 System.Threading.Tasks 和 Microsoft.Extensions.Hosting。接口依据见 [Application.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/Hosting/Application.cs)。
 
 {% code title="Program.cs" %}
 ```csharp
-static void Main(string[] args)
+static async Task Main(string[] args)
 {
-	Zongsoft.Plugins.Hosting.Application
-		.Terminal("zongsoft.terminal", [.. args, "host=terminal", "site=daemon"])
-		.Run();
+	var host = await Zongsoft.Plugins.Hosting.Application.TerminalAsync(
+		"zongsoft.terminal", [.. args, "host=terminal", "site=daemon"]);
+
+	await host.RunAsync();
 }
 ```
 {% endcode %}
@@ -45,6 +46,12 @@ dotnet ./Zongsoft.Hosting.Terminal.dll
 在终端中先执行 `help` 查看实际命令树，`plugin.list` 查看已部署的插件，再执行业务命令。命令不存在时，先检查构件路径、命令插件及依赖；命令存在但调用失败时，再检查服务解析与业务配置。
 
 [首个业务插件](../get-started/first-business-plugin.md)从 Discussions 的模块、数据服务和插件挂载展开；站内信命令的真实实现见[命令模型](../framework/core/components/commands.md)。命令类存在不代表已经挂载到当前终端，请以实际插件树为准。
+
+## 停止与信号
+
+默认终端宿主将 Ctrl+C／SIGINT 转为终端 Aborting 通知，已处理时保持运行，未处理时请求停止；Ctrl+Break／SIGQUIT 和 SIGTERM 直接请求停止。中断处理器应及时返回，不得等待所属宿主停止。显式注册的自定义宿主生命周期自行负责信号管理。
+
+标准输入与进程同寿命，停止只结束输入等待，不关闭标准输入，也不等待底层控制台读取退出。宿主仍须等待交互命令退出清理和工作器停止；RunAsync 返回后入口才能退出。
 
 ## 调试与退出
 

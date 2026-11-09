@@ -13,8 +13,8 @@ icon: person-running
 
 | 类型 | 说明 |
 | --- | --- |
-| [`IWorker`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs) | 工作者接口，定义 `Start`、`Stop`、`Pause`、`Resume` 及对应异步方法。 |
-| [`WorkerBase`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/WorkerBase.cs) | 工作者基类，负责状态切换、重入控制、启用判断和状态变化事件。 |
+| [`IWorker`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs) | 工作者接口，定义 `StartAsync`、`StopAsync`、`PauseAsync` 和 `ResumeAsync`。 |
+| [`WorkerBase`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/WorkerBase.cs) | 工作者基类，负责线程安全的状态切换、启动时的启用判断和状态变化事件，并支持异步释放。 |
 | [`WorkerState`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/WorkerState.cs) | 工作者状态枚举，包括停止、运行、暂停等状态。 |
 | [`WorkerCommandBase`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/Commands/WorkerCommandBase.cs) | 工作者命令基类，用于把工作者生命周期操作暴露成命令。 |
 | [`WorkerStartCommand`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/Commands/WorkerStartCommand.cs)、[`WorkerStopCommand`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/Commands/WorkerStopCommand.cs) | 启动和停止工作者。 |
@@ -25,23 +25,37 @@ icon: person-running
 
 {% stepper %}
 {% step %}
-## Start
+## StartAsync
 
 [`WorkerBase.StartAsync(...)`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/WorkerBase.cs) 检查启用状态和当前状态，进入 `Starting`，然后调用派生类的启动逻辑，成功后进入 `Running`。
 {% endstep %}
 
 {% step %}
-## Pause / Resume
+## PauseAsync / ResumeAsync
 
-如果工作者支持暂停和继续，调用暂停或恢复命令会切换状态，并触发对应的模板方法。
+CanPauseAndContinue 表示是否支持暂停和恢复。不支持时对应方法抛出 System.NotSupportedException。暂停保留资源和内部进度，恢复使用原有资源继续工作；不能用停止后重启代替。
 {% endstep %}
 
 {% step %}
-## Stop
+## StopAsync
 
 停止过程进入 `Stopping`，释放运行中的资源，例如关闭事件通道、停止调度服务器、注销订阅或释放外部连接，最终回到 `Stopped`。
 {% endstep %}
 {% endstepper %}
+
+## 并发、故障与释放
+
+Enabled 仅决定能否启动，启动后改变它只影响下一次启动，不停止当前运行，也不影响暂停、恢复、停止和释放。
+
+相同的在途动作共享结果；停止等待当前动作结束，启动、暂停和恢复遇到其它在途动作直接返回。例如停止中调用 StartAsync 不会排队重启，需要先等待 StopAsync 完成再启动。
+
+启动失败会调用 OnStopAsync 清理部分初始化资源，清理失败保留 Stopping；停止失败可显式重试停止或释放。暂停和恢复失败时，派生实现撤销部分动作，基类恢复原运行状态。通知异常不回滚已确定的状态。停止调用者取消只结束自己的等待，不中断已经开始的清理。
+
+WorkerBase 仅实现 System.IAsyncDisposable。所有者使用 await using 或等待 DisposeAsync；全部自有资源在 OnStopAsync 释放，包括未启动或部分初始化的情形。停止成功后可以重启，释放开始后普通生命周期入口永久禁用。并发释放共享当前尝试，清理失败可再次 DisposeAsync 重试，成功后重复释放不再清理；IsDisposed 表示清理成功，诊断属性与 ToString 仍可读取。
+
+生命周期回调和状态通知不得反向等待所属工作器的生命周期或释放操作，由回调外的所有者协调后续动作。调用方负责避免循环等待。
+
+工作器命令等待相应异步方法。--timeout 只限制命令等待，不取消已开始的生命周期操作；start --force 仅跳过命令层的 Enabled 检查，WorkerBase 仍按 Enabled 决定能否启动。
 
 ## Hangfire 示例
 

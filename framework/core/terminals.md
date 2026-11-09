@@ -7,14 +7,14 @@ icon: terminal
 
 `Zongsoft.Terminals` 提供终端抽象、控制台终端实现和终端命令执行器，用于把 `Zongsoft.Components` 的命令模型运行在交互式控制台中。它让一个程序既可以像普通后台服务一样启动组件，也可以在控制台里输入命令、查看状态、执行维护动作和进入持续监听模式。
 
-终端模型的核心关系是：`ITerminal` 负责输入、输出、样式、清屏和 Ctrl+C 中断事件；`ITerminalExecutor` 继承命令执行器，负责读取命令文本、解析命令表达式、维护当前命令节点并触发退出事件。
+终端模型的核心关系是：`ITerminal` 负责输入、输出、样式、清屏和中断通知；`ITerminalExecutor` 继承命令执行器，负责读取命令文本、解析命令表达式、维护当前命令节点并触发退出事件。
 
 ## 主要职责
 
 * 定义 `ITerminal`、`ITerminalExecutor` 等终端抽象。
 * 提供 `Terminal.Console` 控制台终端和 `Terminal.Default` 默认终端入口。
 * 把命令树、命令表达式和终端输入循环组合成可交互的命令行程序。
-* 支持彩色输出、ANSI 样式、清屏、重置和 Ctrl+C 中断处理。
+* 支持彩色输出、ANSI 样式、清屏、重置和中断通知。
 * 提供 `Clear`、`Exit`、`Shell` 等控制台内置命令。
 * 支持插件宿主把默认命令执行器替换为终端执行器，让插件命令可以在终端里运行。
 
@@ -23,7 +23,7 @@ icon: terminal
 | 类型 | 说明 |
 | --- | --- |
 | `ITerminal` | 终端接口，提供输入输出、错误输出、样式、清屏、重置和中断事件。 |
-| `ITerminalExecutor` | 终端命令执行器接口，继承命令执行器并提供 `Run(...)` / `RunAsync(...)`。 |
+| `ITerminalExecutor` | 终端命令执行器接口，继承命令执行器并提供三个 `RunAsync(...)` 重载；调用方等待命令循环结束并取得退出码。 |
 | `Terminal` | 静态入口，暴露 `Console`、`Default`、`Write(...)`、`WriteLine(...)`、`Clear(...)` 等快捷方法。 |
 | `TerminalStyles` | 终端样式重置选项，例如前景色、背景色和字体样式。 |
 | `Terminal.ExitException` | 用于终止终端命令循环的专用异常。 |
@@ -95,7 +95,7 @@ protected override ValueTask<object> OnExecuteAsync(CommandContext context, Canc
 ```
 {% endcode %}
 
-这种方式适合把插件应用变成可交互的管理控制台。应用启动后，终端[工作台](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/IWorkbenchBase.cs)会运行执行器；终端退出后，工作台随之关闭。
+这种方式适合把插件应用变成可交互的管理控制台。宿主通过 TerminalAsync 创建，调用方等待 RunAsync。终端工作台运行执行器，循环退出后请求宿主停止；仅关闭工作台不会隐式结束进程。默认宿主将 Ctrl+C 转为终端中断通知，未处理时停止宿主，SIGTERM 和 Ctrl+Break／SIGQUIT 直接请求停止。Core 终端不注册进程信号。
 
 ## 子命名空间
 

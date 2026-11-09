@@ -9,38 +9,32 @@ icon: power-off
 
 ## 启动入口
 
-Discussions 的业务代码放在插件中，进程由 hosting 项目承载。下面是现有守护宿主的实际入口，平台分支由项目编译符号选择。
+Discussions 的业务代码放在插件中，进程由宿主承载。入口先等待宿主创建，再等待运行结束；平台分支由项目编译符号选择。
 
-插件框架提供 `Application.Daemon(...)` 和 `Application.Terminal(...)` 两组入口：
+插件框架提供 `Application.DaemonAsync(...)` 和 `Application.TerminalAsync(...)` 两组入口：
 
-来源：[hosting/daemon/Program.cs](https://github.com/Zongsoft/hosting/blob/main/daemon/Program.cs#L9)（节选；上下文见源文件）。
+以下为当前框架的 Main 方法示例，需要引入 System.Threading.Tasks、Microsoft.Extensions.Hosting 及平台对应的服务集成包。接口依据见 [Application.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/Hosting/Application.cs)。
 
 {% code title="Program.cs" %}
 ```csharp
-static void Main(string[] args)
+static async Task Main(string[] args)
 {
-	#if WINDOWS
-	Zongsoft.Plugins.Hosting.Application
-		.Daemon("zongsoft.daemon", [.. args, "host=daemon", "site=daemon"], builder =>
+	var host = await Zongsoft.Plugins.Hosting.Application.DaemonAsync(
+		"zongsoft.daemon", [.. args, "host=daemon", "site=daemon"], builder =>
 		{
+			#if WINDOWS
 			builder.Services.AddWindowsService(options => options.ServiceName = builder.Environment.ApplicationName);
-		}).Run();
-	#elif LINUX
-	Zongsoft.Plugins.Hosting.Application
-		.Daemon("zongsoft.daemon", [.. args, "host=daemon", "site=daemon"], builder =>
-		{
+			#elif LINUX
 			builder.Services.AddSystemd();
-		}).Run();
-	#else
-	Zongsoft.Plugins.Hosting.Application
-		.Daemon("zongsoft.daemon", [.. args, "host=daemon", "site=daemon"])
-		.Run();
-	#endif
+			#endif
+		});
+
+	await host.RunAsync();
 }
 ```
 {% endcode %}
 
-`Daemon` 适合后台服务和常驻进程，`Terminal` 适合终端程序。两者都会加载宿主配置文件，再构建和初始化 Host。
+`DaemonAsync` 适合后台服务和常驻进程，`TerminalAsync` 适合终端程序。两者都会加载宿主配置文件，再构建和初始化 Host；初始化失败时等待已创建宿主的异步释放。运行入口等待 RunAsync 完成停止及释放。
 
 ## 配置加载顺序
 
@@ -87,7 +81,7 @@ static void Main(string[] args)
 
 ## 初始化与生命周期
 
-Host 构建完成后会初始化 `ApplicationContext`。应用上下文会解析所有 [`IApplicationInitializer`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationInitializer.cs) 并执行初始化；当 Host 生命周期进入 Started、Stopping、Stopped 时，应用上下文会启动或停止已注册的[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)，并触发对应事件。
+BuildAsync 构建宿主并初始化 ApplicationContext，解析应用初始化器。宿主通过可等待的生命周期方法启动和停止已注册的[工作器](../core/components/worker.md)，等待启动失败的清理及停止收尾。Exit 只请求停止，关闭工作台不隐式终止进程；所有者等待 RunAsync，或显式停止并异步释放宿主。插件通过 UnloadAsync、DisposeAsync 收尾，构建器 DestroyAsync 等待自有实例释放，借用实例仍由原所有者负责。
 
 插件式应用的推荐边界是：
 
@@ -113,4 +107,4 @@ Host 构建完成后会初始化 `ApplicationContext`。应用上下文会解析
 
 程序集引用扫描只处理当时已加载的入口引用，再处理入口程序集及已加载插件清单声明的程序集。不要以为放进目录的每个 DLL 都会自动参与服务扫描。
 
-Web 应用使用配套的 `Zongsoft.Web.Application.Web(...)` 入口，并额外完成控制器、[初始化器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationInitializer.cs)和中间件装配，见[Web 基础](../web.md)。
+Web 应用使用配套的 `Zongsoft.Web.Application.WebAsync(...)` 入口，并额外完成控制器、[初始化器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationInitializer.cs)和中间件装配，见[Web 基础](../web.md)。

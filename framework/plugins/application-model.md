@@ -13,10 +13,10 @@ icon: sitemap
 
 框架提供两类常用启动入口：
 
-- `Application.Daemon(...)`：用于后台服务、Worker 和常驻进程。
-- `Application.Terminal(...)`：用于命令行、终端工具和交互式程序。
+- `Application.DaemonAsync(...)`：用于后台服务、Worker 和常驻进程。
+- `Application.TerminalAsync(...)`：用于命令行、终端工具和交互式程序。
 
-这些入口会创建 .NET Host，加载宿主 `.option` 配置，注册插件配置源，加载插件树并初始化应用上下文。
+调用方先等待这些入口创建 .NET Host、加载宿主 `.option` 配置与插件树、注册服务并初始化应用上下文，再等待宿主 RunAsync。创建失败会等待已创建宿主的异步释放。
 
 ## 应用上下文
 
@@ -60,7 +60,7 @@ Web 宿主中的 `/Modules` 接口可用于查看当前加载的模块信息。
 
 构建宿主期间先加载插件树并注册服务，随后初始化应用上下文。[工作台](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/IWorkbenchBase.cs)首次构建时组织其子节点，并将 Startup 子树后置；宿主进入启动、停止阶段时打开和关闭工作台。
 
-对象构造、应用初始化和持续工作是不同阶段。需要保持消息订阅或周期任务的组件应使用[工作器](../core/components/worker.md)管理启动、取消和释放；不要依靠构造函数启动无法停止的后台任务。
+工作器启动、停止和插件释放由宿主等待完成。ApplicationContext.Exit 只请求停止；关闭工作台不会隐式结束进程。对象构造、应用初始化和持续工作是不同阶段。需要保持消息订阅或周期任务的组件应使用[工作器](../core/components/worker.md)管理启动、取消和释放；不要依靠构造函数启动无法停止的后台任务。
 
 {% hint style="warning" %}
 🚨 插件节点构建失败不代表所有已发生的外部操作都能回滚。组件应控制构造副作用，并实现明确的停止和清理路径。

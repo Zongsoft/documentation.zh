@@ -11,21 +11,21 @@ Web 宿主承载控制器、认证授权及 HTTP 协议扩展。业务接口由�
 
 当前仓库实际提供 `web/default`。管理端、商家端、客户端、回调网关等是可按业务建立的站点划分示例，并非已经存在的完整产品。
 
-当前入口传入 `host=web`、`site=default`、`daemon=zongsoft.web`，将根路径重定向到 `/Application` 后运行应用：
+示例入口传入 `host=web`、`site=default`、`daemon=zongsoft.web`，将根路径重定向到 `/Application` 后运行应用：
 
-来源：[hosting/web/default/Program.cs](https://github.com/Zongsoft/hosting/blob/main/web/default/Program.cs#L12)（节选；上下文见源文件）。
+以下为当前框架的 Main 方法片段，需要引入 System.Threading.Tasks、Microsoft.AspNetCore.Builder 和 Microsoft.AspNetCore.Http。先等待 WebAsync 完成初始化，再等待 RunAsync 运行及释放；接口依据见 [Application.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins.Web/src/Application.cs)。
 
 {% code title="Program.cs" %}
 ```csharp
-static void Main(string[] args)
+static async Task Main(string[] args)
 {
-	var app = Zongsoft.Web.Application.Web([..args, "host=web", "site=default", "daemon=zongsoft.web"]);
+	var app = await Zongsoft.Web.Application.WebAsync([..args, "host=web", "site=default", "daemon=zongsoft.web"]);
 
 	//如果要启用私有部署模式则打开下行代码注释
 	//app.Configuration["Deployment"] = "private";
 
 	app.Map("/", ctx => { ctx.Response.Redirect("/Application"); return Task.CompletedTask; });
-	app.Run();
+	await app.RunAsync();
 }
 ```
 {% endcode %}

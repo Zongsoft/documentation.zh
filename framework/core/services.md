@@ -39,7 +39,7 @@ icon: server
 
 宿主或插件可以在 Host 构建阶段直接向服务集合添加服务。下面是 framework 中 gRPC 扩展的真实注册器，配置协议服务及反射支持。普通 .NET 服务生命周期仍然按 DI 规则生效，例如单例、作用域和瞬态。
 
-来源：[framework/Zongsoft.Web/grpc/GrpcInitializer.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Web/grpc/GrpcInitializer.cs#L86)（节选；上下文见源文件）。
+来源：[framework/Zongsoft.Web/grpc/src/GrpcInitializer.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Web/grpc/src/GrpcInitializer.cs)（节选；上下文见源文件）。
 
 {% code title="GrpcInitializer.cs" %}
 ```csharp
@@ -130,43 +130,26 @@ Discussions 的插件声明把模块挂到 /Workbench/Modules，再暴露数据�
 
 [`ApplicationContext`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/ApplicationContext.cs) 中有两个典型用法：
 
-* `Exit(...)` 通过 `Resolve<IHost>()` 查找当前 [`IHost`](https://learn.microsoft.com/zh-cn/dotnet/api/microsoft.extensions.hosting.ihost) _[源码](https://source.dot.net/#Microsoft.Extensions.Hosting.Abstractions/IHost.cs)_。只有宿主与生命周期服务都存在、且宿主尚未停止时，才等待停止流程；随后仍会调用 System.Environment.Exit 退出进程。因此不能把此方法当作“没有宿主就什么也不做”的查询。
+* Exit() 或 Exit(exitCode) 取得 Microsoft.Extensions.Hosting.IHostApplicationLifetime，设置进程退出码并请求停止；方法不等待收尾、不强制终止进程。未释放的上下文必须能解析该生命周期服务，缺失时抛出异常。停止和释放由宿主入口等待。
 * `Initialize()` 通过 `ResolveAll<IApplicationInitializer>()` 收集所有应用[初始化器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationInitializer.cs)，然后逐个执行。
 
-来源：[framework/Zongsoft.Core/src/Services/ApplicationContext.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/ApplicationContext.cs#L150)（节选；上下文见源文件）。
+来源：[framework/Zongsoft.Core/src/Services/ApplicationContext.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/ApplicationContext.cs)（节选；上下文见源文件）。
 
 {% code title="ApplicationContext.cs" %}
 ```csharp
-public void Exit(int exitCode, TimeSpan timeout = default)
+public void Exit(int exitCode)
 {
 	if(_disposed != 0)
 		return;
 
-	var host = _services.Resolve<IHost>();
-	var lifetime = _services.GetService<IHostApplicationLifetime>();
-
-	if(host != null && lifetime != null)
-	{
-		//如果应用程序正在停止或已经停止，则不再执行停止操作，否则会导致死锁
-		var exiting = lifetime.ApplicationStopping.IsCancellationRequested || lifetime.ApplicationStopped.IsCancellationRequested;
-
-		if(!exiting)
-		{
-			if(timeout > TimeSpan.Zero)
-				host.StopAsync(timeout).GetAwaiter().GetResult();
-			else
-				host.StopAsync().GetAwaiter().GetResult();
-
-			host.WaitForShutdown();
-		}
-	}
-
-	System.Environment.Exit(exitCode);
+	var lifetime = _lifetime ?? _services.GetRequiredService<IHostApplicationLifetime>();
+	System.Environment.ExitCode = exitCode;
+	lifetime.StopApplication();
 }
 ```
 {% endcode %}
 
-来源：[framework/Zongsoft.Core/src/Services/ApplicationContext.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/ApplicationContext.cs#L188)（节选；上下文见源文件）。
+来源：[framework/Zongsoft.Core/src/Services/ApplicationContext.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/ApplicationContext.cs)（节选；上下文见源文件）。
 
 {% code title="ApplicationContext.cs" %}
 ```csharp
@@ -181,7 +164,11 @@ public virtual bool Initialize()
 	var services = this.Services;
 
 	if(services != null)
-		_initializers.AddRange(services.ResolveAll<IApplicationInitializer>());
+	{
+		var initializers = services.ResolveAll<IApplicationInitializer>().ToArray();
+		_serviceInitializers.UnionWith(initializers);
+		_initializers.AddRange(initializers);
+	}
 
 	foreach(var initializer in _initializers)
 		initializer?.Initialize(this);
@@ -191,7 +178,7 @@ public virtual bool Initialize()
 ```
 {% endcode %}
 
-这两个例子体现了类型解析的边界：单个可选对象用 `Resolve<T>()`，多扩展点集合用 `ResolveAll<T>()`。如果调用方必须拿到服务才能继续，则改用 `ResolveRequired<T>()`，把注册缺失暴露为明确异常。
+这两个例子体现了类型解析的边界：单个必需服务使用必需解析，注册缺失时明确报错；多扩展点集合使用 ResolveAll。容器解析的初始化器由容器释放，上下文只释放自己拥有的初始化器。可选依赖才使用允许返回空值的解析方法。
 
 ### 按名称解析
 
@@ -286,9 +273,9 @@ bool IMatchable<string>.Match(string argument) => this.OnMatch(argument);
 
 静态成员及其 Service 注解见上文“静态成员注册”的真实源码片段。
 
-`ServiceCollectionExtension` 扫描到这个注解时，会把 `Metrics` 成员值注册为服务，并把该服务类型归入 `gRPC` 标签。到了 [`GrpcInitializer`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Web/grpc/GrpcInitializer.cs)，[初始化器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationInitializer.cs)不需要知道有哪些诊断或业务 gRPC 服务，只要读取标签下的服务类型即可：
+`ServiceCollectionExtension` 扫描到这个注解时，会把 `Metrics` 成员值注册为服务，并把该服务类型归入 `gRPC` 标签。到了 [`GrpcInitializer`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Web/grpc/src/GrpcInitializer.cs)，[初始化器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationInitializer.cs)不需要知道有哪些诊断或业务 gRPC 服务，只要读取标签下的服务类型即可：
 
-来源：[framework/Zongsoft.Web/grpc/GrpcInitializer.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Web/grpc/GrpcInitializer.cs#L57)（节选；上下文见源文件）。
+来源：[framework/Zongsoft.Web/grpc/src/GrpcInitializer.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Web/grpc/src/GrpcInitializer.cs)（节选；上下文见源文件）。
 
 {% code title="GrpcInitializer.cs" %}
 ```csharp
@@ -414,7 +401,7 @@ public MessageService Service { get; set; }
 
 ## 插件宿主的构建顺序
 
-`Zongsoft.Plugins.Hosting` 中的应用构建器把服务注册和插件加载编排在一起。以 `Application.Daemon(...)`、`Application.Terminal(...)` 为入口时，构建过程大致如下：
+`Zongsoft.Plugins.Hosting` 中的应用构建器把服务注册和插件加载编排在一起。以 `Application.DaemonAsync(...)`、`Application.TerminalAsync(...)` 为入口时，构建过程大致如下：
 
 1. 创建 .NET Host 构建器，并把容器工厂设置为 `Zongsoft.Services.ServiceProviderFactory`。
 2. 按应用名加载宿主 `.option` 配置。
@@ -423,10 +410,10 @@ public MessageService Service { get; set; }
 5. 扫描宿主引用程序集、宿主程序集和插件清单程序集，执行服务注册。
 6. 注册默认 `System.Net.Http.HttpClient` 服务。
 7. 把 `/Workspace/Environment/Services` 下的构件注册为单例服务。
-8. 构建 Host，并通过 `Initialize()` 初始化 [`PluginApplicationContext`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/PluginApplicationContext.cs)。
-9. 应用启动时打开[工作台](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/IWorkbenchBase.cs)，加载 `/Workbench/Startup` 下的[工作器](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Components/IWorker.cs)。
+8. 等待 BuildAsync 构建 Host，并通过 `Initialize()` 初始化 [`PluginApplicationContext`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/PluginApplicationContext.cs)。
+9. 宿主启动时打开[工作台](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/IWorkbenchBase.cs)，登记 `/Workbench/Startup` 下的[工作器](components/worker.md)，并等待其异步启动。停止与释放同样等待工作器和插件收尾。
 
-`Daemon` 和 `Terminal` 会先注册各自的应用上下文实现，再映射为 [`PluginApplicationContext`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/PluginApplicationContext.cs) 和 [`IApplicationContext`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationContext.cs)。这意味着应用代码通常只依赖 `IApplicationContext`，而插件宿主内部仍能使用更具体的插件上下文访问插件树和[工作台](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/IWorkbenchBase.cs)。
+`DaemonAsync` 和 `TerminalAsync` 会先注册各自的应用上下文实现，再映射为 [`PluginApplicationContext`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/PluginApplicationContext.cs) 和 [`IApplicationContext`](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Core/src/Services/IApplicationContext.cs)。这意味着应用代码通常只依赖 `IApplicationContext`，而插件宿主内部仍能使用更具体的插件上下文访问插件树和[工作台](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/IWorkbenchBase.cs)。
 
 ## 使用建议
 

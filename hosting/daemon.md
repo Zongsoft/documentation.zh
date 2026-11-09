@@ -9,31 +9,25 @@ icon: gears
 
 ## 平台生命周期
 
-当前入口使用 `Application.Daemon("zongsoft.daemon", ...)`，并传入 `host=daemon`、`site=daemon`。按构建平台条件集成 Windows Service 或 systemd。
+后台入口使用 `Application.DaemonAsync("zongsoft.daemon", ...)`，并传入 `host=daemon`、`site=daemon`。按构建平台条件集成 Windows Service 或 systemd。
 
-来源：[hosting/daemon/Program.cs](https://github.com/Zongsoft/hosting/blob/main/daemon/Program.cs#L9)（节选；上下文见源文件）。
+以下为当前框架的 Main 方法示例，需要引入 System.Threading.Tasks、Microsoft.Extensions.Hosting 及平台对应的服务集成包。接口依据见 [Application.cs](https://github.com/Zongsoft/framework/blob/main/Zongsoft.Plugins/src/Hosting/Application.cs)。
 
 {% code title="Program.cs" %}
 ```csharp
-static void Main(string[] args)
+static async Task Main(string[] args)
 {
-	#if WINDOWS
-	Zongsoft.Plugins.Hosting.Application
-		.Daemon("zongsoft.daemon", [.. args, "host=daemon", "site=daemon"], builder =>
+	var host = await Zongsoft.Plugins.Hosting.Application.DaemonAsync(
+		"zongsoft.daemon", [.. args, "host=daemon", "site=daemon"], builder =>
 		{
+			#if WINDOWS
 			builder.Services.AddWindowsService(options => options.ServiceName = builder.Environment.ApplicationName);
-		}).Run();
-	#elif LINUX
-	Zongsoft.Plugins.Hosting.Application
-		.Daemon("zongsoft.daemon", [.. args, "host=daemon", "site=daemon"], builder =>
-		{
+			#elif LINUX
 			builder.Services.AddSystemd();
-		}).Run();
-	#else
-	Zongsoft.Plugins.Hosting.Application
-		.Daemon("zongsoft.daemon", [.. args, "host=daemon", "site=daemon"])
-		.Run();
-	#endif
+			#endif
+		});
+
+	await host.RunAsync();
 }
 ```
 {% endcode %}
